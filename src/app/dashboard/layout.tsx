@@ -80,8 +80,7 @@ function MobileNav() {
       <SheetContent side="left" className="flex flex-col">
         <nav className="grid gap-2 text-lg font-medium">
           <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
-             <Image src="/logo-main.jpeg" alt="RutaSegura" width={32} height={32} />
-            <span className="">RutaSegura</span>
+             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
           </Link>
           {navItems.map((item) => (
             <Link
@@ -106,8 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <Image src="/logo-main.jpeg" alt="RutaSegura" width={32} height={32} />
-              <span className="font-headline">RutaSegura</span>
+              <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-2">
