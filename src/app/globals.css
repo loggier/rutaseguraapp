@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 240 20% 98%; /* #F5F5FA - Fondo claro original */
+    --background: 0 0% 100%; /* Blanco */
     --foreground: 222 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222 84% 4.9%;
@@ -13,7 +13,7 @@
     --primary: 215 76% 21%; /* #0D2C5B - Azul marino */
     --primary-foreground: 210 40% 98%;
     --secondary: 165 98% 39%; /* #01C998 - Verde turquesa */
-    --secondary-foreground: 215 76% 21%;
+    --secondary-foreground: 210 40% 98%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 49 86% 51%; /* #EECA19 - Amarillo dorado */
