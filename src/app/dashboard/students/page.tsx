@@ -66,7 +66,6 @@ export default function StudentsPage() {
                 <TableHead>Nombre</TableHead>
                 <TableHead className="hidden md:table-cell">Tutor</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="hidden md:table-cell">Saldo</TableHead>
                 <TableHead className="hidden md:table-cell">Fecha Registro</TableHead>
                 <TableHead>
                   <span className="sr-only">Acciones</span>
@@ -92,7 +91,6 @@ export default function StudentsPage() {
                   <TableCell>
                     <Badge variant={getStatusVariant(estudiante.estado)}>{estudiante.estado}</Badge>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">{estudiante.saldo_monedas} monedas</TableCell>
                   <TableCell className="hidden md:table-cell">{estudiante.fecha_registro}</TableCell>
                   <TableCell>
                     <DropdownMenu>
