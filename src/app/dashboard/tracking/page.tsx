@@ -1,3 +1,5 @@
+'use client';
+
 import { MapPlaceholder } from "@/components/map-placeholder";
 import {
   Card,
