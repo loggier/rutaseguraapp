@@ -14,7 +14,6 @@ import {
   Route as RouteIcon,
   Menu,
   Bell,
-  PanelLeft
 } from 'lucide-react';
 import {
   Sheet,
@@ -43,7 +42,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarTrigger,
-  SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
 
@@ -94,7 +92,7 @@ function MobileNav() {
       <SheetContent side="left" className="flex flex-col">
         <nav className="grid gap-2 text-lg font-medium">
           <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
-             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
+             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} />
           </Link>
           {navItems.map((item) => (
             <Link
@@ -134,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
             <SidebarHeader className='p-4'>
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
+                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} />
                 </Link>
             </SidebarHeader>
             <SidebarContent className="flex-1 p-2">
@@ -161,7 +159,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <MobileNav />
             <div className="hidden md:flex">
-                <SidebarTrigger />
+                <SidebarTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle Sidebar</span>
+                  </Button>
+                </SidebarTrigger>
             </div>
             
             <div className="w-full flex-1">
