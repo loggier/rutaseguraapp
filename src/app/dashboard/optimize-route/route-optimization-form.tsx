@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Trash2, Rocket, Map, Clock, CheckCircle, AlertCircle, ListOrdered } from 'lucide-react';
+import { Loader2, Trash2, Rocket, Map, Clock, CheckCircle, ListOrdered } from 'lucide-react';
 import { studentLocationsForOptimization } from '@/lib/data';
 import { toast } from '@/hooks/use-toast';
 
@@ -26,7 +26,7 @@ const FormSchema = z.object({
 type FormData = z.infer<typeof FormSchema>;
 
 export function RouteOptimizationForm() {
-  const [formState, formAction] = useFormState<State, FormData>(getOptimizedRoute as any, { message: null });
+  const [submissionState, setSubmissionState] = useState<State>({ message: null });
   const [isPending, setIsPending] = useState(false);
   
   const form = useForm<FormData>({
@@ -47,19 +47,22 @@ export function RouteOptimizationForm() {
     const formData = new FormData();
     formData.append('busCapacity', String(data.busCapacity));
     formData.append('students', JSON.stringify(data.students));
-    await formAction(formData);
+    
+    // Server action doesn't have a native `formAction` so we'll call it directly
+    const resultState = await getOptimizedRoute(submissionState, formData);
+    setSubmissionState(resultState);
     setIsPending(false);
   };
   
   useEffect(() => {
-    if (formState?.message) {
+    if (submissionState?.message) {
       toast({
-        title: formState.errors ? "Error de Validación" : "Notificación",
-        description: formState.message,
-        variant: formState.errors ? "destructive" : "default",
+        title: submissionState.errors ? "Error de Validación" : "Notificación",
+        description: submissionState.message,
+        variant: submissionState.errors ? "destructive" : "default",
       });
     }
-  }, [formState]);
+  }, [submissionState]);
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -117,13 +120,13 @@ export function RouteOptimizationForm() {
               <p className="text-sm text-muted-foreground">La IA está calculando la ruta más eficiente.</p>
             </div>
           )}
-          {!isPending && formState?.result && (
+          {!isPending && submissionState?.result && (
              <div className="space-y-4">
                 <Alert className="border-green-500 bg-green-500/10">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <AlertTitle className="text-green-400">Ruta Generada</AlertTitle>
                     <AlertDescription>
-                        {formState.message}
+                        {submissionState.message}
                     </AlertDescription>
                 </Alert>
 
@@ -132,14 +135,14 @@ export function RouteOptimizationForm() {
                         <Clock className="h-6 w-6 text-primary" />
                         <div>
                             <p className="text-sm text-muted-foreground">Tiempo Estimado</p>
-                            <p className="font-bold text-lg">{formState.result.optimizedRoute.estimatedTravelTime} min</p>
+                            <p className="font-bold text-lg">{submissionState.result.optimizedRoute.estimatedTravelTime} min</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                         <ListOrdered className="h-6 w-6 text-primary" />
                         <div>
                             <p className="text-sm text-muted-foreground">Paradas</p>
-                            <p className="font-bold text-lg">{formState.result.optimizedRoute.routeOrder.length}</p>
+                            <p className="font-bold text-lg">{submissionState.result.optimizedRoute.routeOrder.length}</p>
                         </div>
                     </div>
                 </div>
@@ -147,14 +150,14 @@ export function RouteOptimizationForm() {
                 <div>
                   <h4 className="font-semibold mb-2">Orden de Recogida:</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm bg-muted p-3 rounded-md">
-                    {formState.result.optimizedRoute.routeOrder.map((studentId) => (
+                    {submissionState.result.optimizedRoute.routeOrder.map((studentId) => (
                       <li key={studentId}>{studentId}</li>
                     ))}
                   </ol>
                 </div>
               </div>
           )}
-          {!isPending && !formState?.result && (
+          {!isPending && !submissionState?.result && (
              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
                 <Map className="h-10 w-10 mb-4" />
                 <p>Los resultados de la ruta aparecerán aquí.</p>
