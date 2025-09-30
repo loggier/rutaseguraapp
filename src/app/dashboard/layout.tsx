@@ -157,12 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col">
             <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <MobileNav />
-            <SidebarTrigger asChild className="hidden md:flex">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Sidebar</span>
-              </Button>
-            </SidebarTrigger>
+            <SidebarTrigger className="hidden md:flex" />
             
             <div className="w-full flex-1">
                 {/* Can add a global search here if needed */}
