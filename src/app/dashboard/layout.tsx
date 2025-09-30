@@ -1,0 +1,170 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  Users,
+  User,
+  Bus,
+  Map,
+  Rocket,
+  LayoutDashboard,
+  CreditCard,
+  Cog,
+  Route as RouteIcon,
+  Menu,
+  Bell
+} from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+const navItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/dashboard/students', icon: Users, label: 'Estudiantes' },
+  { href: '/dashboard/drivers', icon: User, label: 'Conductores' },
+  { href: '/dashboard/buses', icon: Bus, label: 'Autobuses' },
+  { href: '/dashboard/routes', icon: RouteIcon, label: 'Rutas' },
+  { href: '/dashboard/tracking', icon: Map, label: 'Seguimiento' },
+  { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta' },
+  { href: '/dashboard/plans', icon: CreditCard, label: 'Planes' },
+];
+
+function SidebarNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex flex-col gap-1">
+      {navItems.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+            pathname === item.href && "bg-muted text-primary"
+          )}
+        >
+          <item.icon className="h-4 w-4" />
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MobileNav() {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Menú de navegación</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="flex flex-col">
+        <nav className="grid gap-2 text-lg font-medium">
+          <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
+             <Bus className="h-6 w-6 text-primary" />
+            <span className="">RutaSegura</span>
+          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="hidden border-r bg-card md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <Bus className="h-6 w-6 text-primary" />
+              <span className="font-headline">RutaSegura</span>
+            </Link>
+          </div>
+          <div className="flex-1 overflow-auto py-2">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+              <SidebarNav />
+            </nav>
+          </div>
+          <div className="mt-auto p-4">
+            <Card>
+              <CardHeader className="p-2 pt-0 md:p-4">
+                <CardTitle>Nuevas Funciones</CardTitle>
+                <CardDescription>
+                  Descubre las últimas mejoras en nuestra plataforma.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
+                <Button size="sm" className="w-full">
+                  Ver Novedades
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col">
+        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+          <MobileNav />
+          <div className="w-full flex-1">
+            {/* Can add a global search here if needed */}
+          </div>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Notificaciones</span>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Avatar className='h-8 w-8'>
+                    <AvatarImage src="https://picsum.photos/seed/user-avatar-1/64/64" data-ai-hint="person face" />
+                    <AvatarFallback>AD</AvatarFallback>
+                </Avatar>
+                <span className="sr-only">Menú de usuario</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Admin</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
+              <DropdownMenuItem>Soporte</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link href="/">Cerrar Sesión</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
