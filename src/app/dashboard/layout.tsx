@@ -11,10 +11,10 @@ import {
   Rocket,
   LayoutDashboard,
   CreditCard,
-  Cog,
   Route as RouteIcon,
   Menu,
-  Bell
+  Bell,
+  PanelLeft
 } from 'lucide-react';
 import {
   Sheet,
@@ -31,9 +31,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarInset,
+  useSidebar,
+} from '@/components/ui/sidebar';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -48,23 +60,25 @@ const navItems = [
 
 function SidebarNav() {
   const pathname = usePathname();
+  const { open } = useSidebar();
 
   return (
-    <nav className="flex flex-col gap-1">
+    <SidebarMenu>
       {navItems.map((item) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-            pathname === item.href && "bg-muted text-primary"
-          )}
-        >
-          <item.icon className="h-4 w-4" />
-          {item.label}
-        </Link>
+         <SidebarMenuItem key={item.label}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              tooltip={open ? undefined : item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
       ))}
-    </nav>
+    </SidebarMenu>
   );
 }
 
@@ -93,6 +107,21 @@ function MobileNav() {
             </Link>
           ))}
         </nav>
+        <div className="mt-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Nuevas Funciones</CardTitle>
+                <CardDescription>
+                  Descubre las últimas mejoras en nuestra plataforma.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button size="sm" className="w-full">
+                  Ver Novedades
+                </Button>
+              </CardContent>
+            </Card>
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -100,70 +129,78 @@ function MobileNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-card md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
-            </Link>
-          </div>
-          <div className="flex-1 overflow-auto py-2">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              <SidebarNav />
-            </nav>
-          </div>
-          <div className="mt-auto p-4">
-            <Card>
-              <CardHeader className="p-2 pt-0 md:p-4">
-                <CardTitle>Nuevas Funciones</CardTitle>
-                <CardDescription>
-                  Descubre las últimas mejoras en nuestra plataforma.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                <Button size="sm" className="w-full">
-                  Ver Novedades
+    <SidebarProvider>
+      <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
+        <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
+            <SidebarHeader className='p-4'>
+                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={32} />
+                </Link>
+            </SidebarHeader>
+            <SidebarContent className="flex-1 p-2">
+                <SidebarNav />
+            </SidebarContent>
+            <SidebarFooter className="p-4">
+                <Card className='group-data-[collapsible=icon]:hidden'>
+                    <CardHeader className="p-2 pt-0 md:p-4">
+                        <CardTitle>Nuevas Funciones</CardTitle>
+                        <CardDescription>
+                        Descubre las últimas mejoras en nuestra plataforma.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
+                        <Button size="sm" className="w-full">
+                        Ver Novedades
+                        </Button>
+                    </CardContent>
+                </Card>
+            </SidebarFooter>
+        </Sidebar>
+
+        <div className="flex flex-col">
+            <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+            <MobileNav />
+            <div className="hidden md:flex">
+                <SidebarTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <PanelLeft />
+                        <span className="sr-only">Toggle Sidebar</span>
+                    </Button>
+                </SidebarTrigger>
+            </div>
+            
+            <div className="w-full flex-1">
+                {/* Can add a global search here if needed */}
+            </div>
+            <Button variant="ghost" size="icon" className="rounded-full">
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Notificaciones</span>
+            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className='h-8 w-8'>
+                        <AvatarImage src="https://picsum.photos/seed/user-avatar-1/64/64" data-ai-hint="person face" />
+                        <AvatarFallback>AD</AvatarFallback>
+                    </Avatar>
+                    <span className="sr-only">Menú de usuario</span>
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
+                <DropdownMenuItem>Soporte</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild><Link href="/">Cerrar Sesión</Link></DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            </header>
+            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+            {children}
+            </main>
         </div>
       </div>
-      <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-          <MobileNav />
-          <div className="w-full flex-1">
-            {/* Can add a global search here if needed */}
-          </div>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notificaciones</span>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className='h-8 w-8'>
-                    <AvatarImage src="https://picsum.photos/seed/user-avatar-1/64/64" data-ai-hint="person face" />
-                    <AvatarFallback>AD</AvatarFallback>
-                </Avatar>
-                <span className="sr-only">Menú de usuario</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Admin</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
-              <DropdownMenuItem>Soporte</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/">Cerrar Sesión</Link></DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-          {children}
-        </main>
-      </div>
-    </div>
+    </SidebarProvider>
   );
 }
