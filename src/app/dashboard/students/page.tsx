@@ -18,12 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Upload, Download } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { estudiantes } from "@/lib/data";
-import { cn } from "@/lib/utils";
 
 function getStatusVariant(status: string) {
   switch (status) {
