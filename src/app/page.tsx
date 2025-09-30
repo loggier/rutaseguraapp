@@ -17,7 +17,7 @@ export default function LoginPage() {
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <Image src="/logo.jpeg" alt="RutaSegura Logo" width={80} height={80} />
+            <Image src="/logo.jpeg" alt="RutaSegura Logo" width={120} height={120} />
           </div>
           <CardTitle className="text-2xl text-center font-headline">
             Bienvenido a RutaSegura
