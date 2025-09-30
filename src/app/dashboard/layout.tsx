@@ -52,7 +52,7 @@ const navItems = [
   { href: '/dashboard/routes', icon: RouteIcon, label: 'Rutas' },
   { href: '/dashboard/tracking', icon: Map, label: 'Seguimiento' },
   { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta' },
-  { href: '/dashboard/plans', icon: CreditCard, label: 'Planes' },
+  // { href: '/dashboard/plans', icon: CreditCard, label: 'Planes' },
 ];
 
 function SidebarNav() {
