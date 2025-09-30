@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useForm } from 'react-hook-form';
+import { useFormState, useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect, useState } from 'react';
@@ -37,7 +37,7 @@ export function RouteOptimizationForm() {
     },
   });
 
-  const { fields, append, remove } = require('react-hook-form').useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'students',
   });
