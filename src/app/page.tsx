@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bus } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,9 +17,7 @@ export default function LoginPage() {
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Bus className="h-10 w-10 text-primary" />
-            </div>
+            <Image src="/logo.png" alt="RutaSegura Logo" width={80} height={80} />
           </div>
           <CardTitle className="text-2xl text-center font-headline">
             Bienvenido a RutaSegura
