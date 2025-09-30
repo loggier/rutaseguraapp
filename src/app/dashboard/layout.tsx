@@ -91,7 +91,7 @@ function MobileNav() {
       <SheetContent side="left" className="flex flex-col">
         <nav className="grid gap-2 text-lg font-medium">
           <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
-             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} />
+             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} />
           </Link>
           {navItems.map((item) => (
             <Link
@@ -131,7 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
             <SidebarHeader className='p-4'>
                 <Link href="/dashboard">
-                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
+                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
                 </Link>
             </SidebarHeader>
             <SidebarContent className="flex-1 p-2">
