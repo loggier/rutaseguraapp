@@ -30,7 +30,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   SidebarProvider,
@@ -131,8 +130,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
         <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
             <SidebarHeader className='p-4'>
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} />
+                <Link href="/dashboard">
+                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={0} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
                 </Link>
             </SidebarHeader>
             <SidebarContent className="flex-1 p-2">
@@ -158,14 +157,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col">
             <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <MobileNav />
-            <div className="hidden md:flex">
-                <SidebarTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle Sidebar</span>
-                  </Button>
-                </SidebarTrigger>
-            </div>
+            <SidebarTrigger asChild className="hidden md:flex">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle Sidebar</span>
+              </Button>
+            </SidebarTrigger>
             
             <div className="w-full flex-1">
                 {/* Can add a global search here if needed */}
