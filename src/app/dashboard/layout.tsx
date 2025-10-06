@@ -145,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, []);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
