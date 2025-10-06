@@ -134,31 +134,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const supabase = createClient();
   
   useEffect(() => {
-    const initializeSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session data from getSession():', session);
-      
-      if (session) {
-        setUser(session.user);
-      }
-      setIsLoading(false);
-    };
-
-    initializeSession();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Session data from onAuthStateChange:', session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser && isLoading) {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
         setIsLoading(false);
       }
-    });
+    );
 
     return () => {
-        authListener?.subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
-  }, [supabase.auth, isLoading]);
+  }, [supabase.auth]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();

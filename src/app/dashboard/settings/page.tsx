@@ -1,4 +1,4 @@
-
+// pages/settings/page.tsx
 'use client';
 
 import { useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
+  CardHeader, // 👈 Importado correctamente
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,8 @@ export default function SettingsPage({ user }: { user: User | null }) {
         .eq('id', user.id)
         .single();
 
+      // PostgreSQL error code 'PGRST116' means 'No rows found', which is expected 
+      // for new users who haven't filled out their profile yet.
       if (error && error.code !== 'PGRST116') {
         console.error("Error fetching profile:", error);
         toast({
@@ -111,11 +113,17 @@ export default function SettingsPage({ user }: { user: User | null }) {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="firstName">Nombre</Label>
-                                {isLoadingProfile ? <Loader2 className="h-4 w-4 animate-spin"/> : <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />}
+                                {isLoadingProfile 
+                                    ? <Loader2 className="h-4 w-4 animate-spin text-primary mt-3 ml-2" /> 
+                                    : <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
+                                }
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="lastName">Apellido</Label>
-                                {isLoadingProfile ? <Loader2 className="h-4 w-4 animate-spin"/> : <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>}
+                                {isLoadingProfile 
+                                    ? <Loader2 className="h-4 w-4 animate-spin text-primary mt-3 ml-2" /> 
+                                    : <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
+                                }
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -154,10 +162,10 @@ export default function SettingsPage({ user }: { user: User | null }) {
         </div>
         <div>
             <Card>
-                <CardHeader>
+                <CardHeader> 
                     <CardTitle>Notificaciones</CardTitle>
                     <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                </Header>
+                </CardHeader> {/* 👈 ETIQUETA CORREGIDA */}
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="email-notifications" defaultChecked />
