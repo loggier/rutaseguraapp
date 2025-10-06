@@ -62,16 +62,15 @@ export default function LoginPage() {
             description: "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
         });
       }
+      setIsPending(false);
     } else {
       toast({
         title: "Inicio de sesión exitoso",
         description: "¡Bienvenido de nuevo a RutaSegura!",
       });
-      // Redirige al dashboard. El middleware se encargará de que la sesión sea reconocida.
-      router.push('/dashboard');
+      // Forzamos una recarga completa para asegurar que el middleware detecte la nueva sesión.
+      window.location.href = '/dashboard';
     }
-    
-    setIsPending(false);
   };
 
   return (
