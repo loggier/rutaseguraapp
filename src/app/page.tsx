@@ -49,18 +49,27 @@ export default function LoginPage() {
     });
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error al iniciar sesión",
-        description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
-      });
+      if (error instanceof AuthApiError && error.message === 'Invalid login credentials') {
+        toast({
+            variant: "destructive",
+            title: "Error al iniciar sesión",
+            description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
+        });
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Error de autenticación",
+            description: "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+        });
+      }
     } else {
       toast({
         title: "Inicio de sesión exitoso",
         description: "¡Bienvenido de nuevo a RutaSegura!",
       });
+      // Redirige al dashboard y refresca el estado del servidor para que reconozca la sesión
       router.push('/dashboard');
-      router.refresh(); // Forzar la actualización del estado del servidor
+      router.refresh();
     }
     
     setIsPending(false);
