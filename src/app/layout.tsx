@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { SessionProvider } from "@/contexts/SessionContext";
 
 export const metadata: Metadata = {
   title: "RutaSegura",
@@ -23,7 +24,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
         <Toaster />
       </body>
     </html>

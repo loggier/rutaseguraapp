@@ -1,10 +1,10 @@
 
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   Users,
   User,
@@ -17,6 +17,7 @@ import {
   Menu,
   Bell,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import {
   Sheet,
@@ -46,7 +47,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { createClient } from '@/lib/supabase/client';
+import { useSession } from '@/contexts/SessionContext';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -56,7 +57,6 @@ const navItems = [
   { href: '/dashboard/routes', icon: RouteIcon, label: 'Rutas' },
   { href: '/dashboard/tracking', icon: Map, label: 'Seguimiento' },
   { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta' },
-  // { href: '/dashboard/plans', icon: CreditCard, label: 'Planes' },
 ];
 
 function SidebarNav() {
@@ -130,13 +130,31 @@ function MobileNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const supabase = createClient();
+  const { isLoggedIn, loading, logout } = useSession();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('supabase_session');
-    router.push('/');
-  };
+  useEffect(() => {
+    if (!loading && !isLoggedIn) {
+      router.push('/');
+    }
+  }, [loading, isLoggedIn, router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">Cargando sesión...</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+     return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">Redirigiendo al login...</p>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -195,7 +213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Cerrar Sesión</span>
                 </DropdownMenuItem>

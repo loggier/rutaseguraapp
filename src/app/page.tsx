@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useSession } from '@/contexts/SessionContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
@@ -25,6 +26,13 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
+  const { login, isLoggedIn, loading } = useSession();
+
+  useEffect(() => {
+    if (!loading && isLoggedIn) {
+      router.push('/dashboard');
+    }
+  }, [loading, isLoggedIn, router]);
   
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,16 +51,11 @@ export default function LoginPage() {
             description: error.message || "Ocurrió un error inesperado.",
         });
       } else if (data.session) {
-        // Guardamos la sesión manualmente para asegurar la persistencia
-        localStorage.setItem('supabase_session', JSON.stringify(data.session));
-        
         toast({
           title: "¡Login Correcto!",
           description: "Serás redirigido al dashboard.",
         });
-
-        // Forzamos una recarga completa para que el middleware vea la sesión
-        window.location.href = '/dashboard';
+        login(data.session); // Usamos la función login del contexto
       } else {
         toast({
           variant: "destructive",
@@ -70,6 +73,15 @@ export default function LoginPage() {
         setIsPending(false);
     }
   };
+
+  if (loading || isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="ml-2">Cargando sesión...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
