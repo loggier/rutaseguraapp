@@ -158,17 +158,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     
     // También escuchamos cambios por si la sesión se actualiza en otra pestaña
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth event:', event);
+        console.log('Auth event:', event, 'Session:', session);
         const currentUser = session?.user ?? null;
-        if (!user || (currentUser && currentUser.id !== user.id)) {
+        // Solo actualiza si el usuario ha cambiado para evitar bucles de renderizado
+        if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
             setUser(currentUser);
         }
     });
 
     return () => {
-        authListener.subscription.unsubscribe();
+        authListener?.subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
