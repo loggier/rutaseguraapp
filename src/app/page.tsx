@@ -27,22 +27,6 @@ export default function LoginPage() {
   const supabase = createClient();
   const { toast } = useToast();
   
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      // Si hay una sesión después de un inicio de sesión, redirigir.
-      if (event === 'SIGNED_IN' || event === 'INITIAL_USER') {
-        if (session) {
-          router.push('/dashboard');
-        }
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router, supabase]);
-
-
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
@@ -54,37 +38,36 @@ export default function LoginPage() {
       });
 
       if (error) {
-        if (error instanceof AuthApiError && error.message === 'Invalid login credentials') {
-          toast({
-              variant: "destructive",
-              title: "Error al iniciar sesión",
-              description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
-          });
-        } else {
-          toast({
-              variant: "destructive",
-              title: "Error de autenticación",
-              description: error.message || "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
-          });
-        }
-      } else if (data.session) {
-        // Este es el paso crucial que estabas mencionando.
-        // Aunque Supabase SSR debería hacerlo automáticamente con cookies,
-        // nos aseguramos de que el estado se actualice.
         toast({
-          title: "Inicio de sesión exitoso",
-          description: "¡Bienvenido de nuevo a RutaSegura!",
+            variant: "destructive",
+            title: "Error al iniciar sesión",
+            description: error.message || "Ocurrió un error inesperado.",
         });
+      } else if (data.session) {
+        // Paso 1: Guardar la sesión manualmente en localStorage
+        localStorage.setItem('supabase_session', JSON.stringify(data.session));
         
-        // Forzamos una recarga completa para asegurar que el middleware 
-        // y el servidor detecten la nueva sesión a través de las cookies.
-        window.location.href = '/dashboard';
+        // Paso 2: Notificar y registrar en consola para depuración
+        console.log('Sesión guardada en localStorage:', data.session);
+        toast({
+          title: "¡Login Correcto!",
+          description: "La sesión ha sido guardada en localStorage. Revisa la consola y el almacenamiento del navegador.",
+        });
+
+        // NO HAY REDIRECCIÓN. Solo estamos depurando el guardado.
+        
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error inesperado",
+          description: "No se recibió una sesión del servidor.",
+        });
       }
     } catch (error: any) {
         toast({
             variant: "destructive",
-            title: "Error inesperado",
-            description: error.message || "Ocurrió un error durante el inicio de sesión.",
+            title: "Error de sistema",
+            description: error.message || "Ocurrió un error durante el proceso de inicio de sesión.",
         });
     } finally {
         setIsPending(false);
