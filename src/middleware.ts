@@ -55,22 +55,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // This is the crucial part: it refreshes the session cookie and makes it available to server components.
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl;
 
-  // Si no hay usuario y está intentando acceder al dashboard, redirigir a login
+  // If there's no user and they're trying to access the dashboard, redirect to login.
   if (!user && pathname.startsWith('/dashboard')) {
     const url = new URL('/', request.url);
     return NextResponse.redirect(url);
   }
 
-  // Si hay usuario y está en la página de login, redirigir al dashboard
+  // If there is a user and they're on the login page, redirect to the dashboard.
   if (user && pathname === '/') {
     const url = new URL('/dashboard', request.url);
     return NextResponse.redirect(url);
   }
 
+  // Return the original response, which now has the updated session cookie.
   return response;
 }
 

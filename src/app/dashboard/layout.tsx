@@ -136,7 +136,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     await supabase.auth.signOut();
     localStorage.removeItem('supabase_session');
     router.push('/');
-    router.refresh();
   };
 
   return (
