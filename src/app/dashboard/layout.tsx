@@ -43,7 +43,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -159,7 +159,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('supabase_session');
+    // Forzar una recarga completa para que el middleware valide la nueva sesión.
     window.location.href = '/';
   };
 
