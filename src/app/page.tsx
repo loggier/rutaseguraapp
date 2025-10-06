@@ -22,17 +22,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true); // Nuevo estado
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Esta función se ejecuta solo en el cliente, después de la hidratación.
     const session = localStorage.getItem('supabase_session');
+    console.log('Validando sesión en localStorage...');
     if (session) {
-      console.log('Sesión encontrada en localStorage:', JSON.parse(session));
+      console.log('Sesión encontrada, redirigiendo a dashboard:', JSON.parse(session));
       router.push('/dashboard');
     } else {
       console.log('No se encontró sesión en localStorage.');
+      // Solo si no hay sesión, permitimos que se muestre el formulario de login.
+      setCheckingSession(false);
     }
   }, [router]);
   
@@ -78,6 +83,16 @@ export default function LoginPage() {
     }
   };
 
+  // Mientras se verifica la sesión, mostramos un loader para evitar parpadeos
+  if (checkingSession) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Una vez verificado que no hay sesión, mostramos el login
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
       <div className="flex items-center justify-center py-12">
