@@ -27,7 +27,6 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -54,8 +53,7 @@ export default function SettingsPage() {
             title: "Error al cargar el perfil",
             description: "No se pudo encontrar la información del usuario.",
           });
-        } else {
-          setProfile(profileData);
+        } else if (profileData) {
           setFirstName(profileData.nombre || '');
           setLastName(profileData.apellido || '');
         }
