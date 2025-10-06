@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { AuthApiError } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
@@ -31,67 +30,21 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (loginError) {
-      if (loginError instanceof AuthApiError && loginError.message === 'Invalid login credentials') {
-        console.log('Usuario no encontrado, intentando registrar...');
-        toast({
-          title: "Configurando cuenta de administrador",
-          description: "El usuario maestro no existe, se creará automáticamente.",
-        });
-        
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        // Si hay un error de registro, pero NO es sobre el envío del correo, es un problema.
-        if (signUpError && !signUpError.message.includes('Error sending confirmation email')) {
-          console.error('Error durante el registro del usuario master:', signUpError);
-          toast({
-            variant: "destructive",
-            title: "Error al registrar usuario master",
-            description: `No se pudo crear la cuenta. Detalle: ${signUpError.message}`,
-          });
-        } else {
-          // Si el registro fue exitoso (o solo falló el email), iniciamos sesión para obtener la sesión activa
-          console.log('Usuario master creado (o ya existía). Iniciando sesión...');
-           const { data: finalLoginData, error: finalLoginError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-            if (finalLoginError) {
-                 toast({
-                    variant: "destructive",
-                    title: "Error final de login",
-                    description: `No se pudo iniciar sesión tras el registro: ${finalLoginError.message}`,
-                });
-            } else {
-                 toast({
-                    title: "¡Cuenta de administrador lista!",
-                    description: "¡Bienvenido a RutaSegura! Redirigiendo al dashboard...",
-                  });
-                  router.push('/dashboard');
-            }
-        }
-      } else {
-        console.error('Error de inicio de sesión:', loginError);
-        toast({
-          variant: "destructive",
-          title: "Error al iniciar sesión",
-          description: `Ha ocurrido un error. Detalle: ${loginError.message}. Revisa las credenciales y la conexión.`,
-        });
-      }
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error al iniciar sesión",
+        description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
+      });
     } else {
-      console.log('Inicio de sesión exitoso:', loginData);
       toast({
         title: "Inicio de sesión exitoso",
-        description: "Bienvenido de nuevo a RutaSegura.",
+        description: "¡Bienvenido de nuevo a RutaSegura!",
       });
       router.push('/dashboard');
     }
