@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   
-  // Se llama a createClient() sin argumentos, ya que ahora maneja las variables internamente.
   const supabase = createClient();
 
   const { toast } = useToast();
@@ -32,18 +31,21 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    // DEBUG: Capturando data y error para un mejor diagnóstico.
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
+      console.error('Error de autenticación de Supabase:', error);
       toast({
         variant: "destructive",
         title: "Error al iniciar sesión",
-        description: error.message || "Credenciales inválidas. Revisa las variables de entorno de Supabase.",
+        description: `Detalle: ${error.message}. Asegúrate de que las variables de entorno (URL/Anon Key) son correctas y el usuario existe.`,
       });
     } else {
+      console.log('Inicio de sesión exitoso:', data);
       toast({
         title: "Inicio de sesión exitoso",
         description: "Bienvenido a RutaSegura.",
