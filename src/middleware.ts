@@ -3,20 +3,24 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  // This will refresh the session cookie
+  // updateSession refresca la sesión del usuario y la devuelve
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  // If the user is not logged in and tries to access the dashboard, redirect to login
+  // Si el usuario no está logueado y пытается acceder a una ruta protegida
   if (!user && pathname.startsWith('/dashboard')) {
-    return Response.redirect(new URL('/', request.url))
+    // Redirige a la página de login
+    const url = new URL('/', request.url);
+    return NextResponse.redirect(url);
   }
 
-  // If the user is logged in and is on the login page, redirect to dashboard
+  // Si el usuario está logueado y está en la página de login, redirige al dashboard
   if (user && pathname === '/') {
-    return Response.redirect(new URL('/dashboard', request.url))
+    const url = new URL('/dashboard', request.url);
+    return NextResponse.redirect(url);
   }
 
+  // Si no se cumple ninguna de las condiciones anteriores, permite la solicitud
   return response;
 }
 
