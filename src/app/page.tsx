@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -29,29 +27,38 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      toast({
-          variant: "destructive",
-          title: "Error al iniciar sesión",
-          description: error.message || "Ocurrió un error inesperado.",
-      });
-      setIsPending(false);
-    } else if (data.session) {
-      // 1. Guardar la sesión explícitamente (aunque Supabase lo hace internamente)
-      localStorage.setItem('supabase_session', JSON.stringify(data.session));
-      
-      toast({
-        title: "¡Login Correcto!",
-        description: "Serás redirigido al dashboard.",
-      });
-      
-      // 2. Redirigir al dashboard
-      router.replace('/dashboard');
+      if (error) {
+        toast({
+            variant: "destructive",
+            title: "Error al iniciar sesión",
+            description: error.message || "Ocurrió un error inesperado.",
+        });
+      } else if (data.session) {
+        localStorage.setItem('supabase_session', JSON.stringify(data.session));
+        
+        toast({
+          title: "¡Login Correcto!",
+          description: "Serás redirigido al dashboard.",
+        });
+        
+        window.location.href = '/dashboard';
+      }
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error inesperado",
+            description: error.message || "No se pudo iniciar sesión.",
+        });
+    } finally {
+        // En un escenario de redirección completa, esto puede no ser necesario,
+        // pero es buena práctica para evitar que el botón quede desactivado si la redirección falla.
+        setIsPending(false);
     }
   };
   

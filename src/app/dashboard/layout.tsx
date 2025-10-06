@@ -137,11 +137,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
       
       if (!session) {
         router.replace('/');
       } else {
+        setSession(session);
         setLoading(false);
       }
     };
