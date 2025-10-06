@@ -1,8 +1,6 @@
-// pages/settings/page.tsx
 'use client';
 
-import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useState, useContext } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +18,10 @@ import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useUser } from "@/contexts/user-context";
 
-export default function SettingsPage({ user }: { user: User | null }) {
+export default function SettingsPage() {
+  const { user } = useUser();
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -36,7 +36,8 @@ export default function SettingsPage({ user }: { user: User | null }) {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
-        setIsLoadingProfile(false);
+        // Aún no tenemos usuario del contexto, no hacemos nada.
+        // El estado de carga se mantiene hasta que el usuario esté disponible.
         return;
       }
 
@@ -104,6 +105,15 @@ export default function SettingsPage({ user }: { user: User | null }) {
   };
 
   const isFormDisabled = isSaving || isLoadingProfile;
+  
+  if (!user) {
+    return (
+        <div className="flex h-full w-full items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando usuario...</p>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -178,7 +188,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
                 <CardHeader> 
                     <CardTitle>Notificaciones</CardTitle>
                     <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="email-notifications" defaultChecked />

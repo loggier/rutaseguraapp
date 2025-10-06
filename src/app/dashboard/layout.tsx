@@ -25,6 +25,8 @@ import {
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { UserProvider } from '@/contexts/user-context';
+
 
 // --- Constantes de Navegación ---
 const navItems = [
@@ -107,8 +109,8 @@ function MobileNav() {
   );
 }
 
-// --- Dashboard Layout Principal (Corregido) ---
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+// --- Layout Content ---
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
@@ -120,10 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const sessionDataString = localStorage.getItem('supabase_session');
         if (sessionDataString) {
           const sessionData = JSON.parse(sessionDataString);
-          console.log('Session data from localStorage:', sessionData);
           setUser(sessionData.user ?? null);
-        } else {
-           console.log('No session data found in localStorage.');
         }
       } catch (error) {
         console.error("Error reading session from localStorage", error);
@@ -149,7 +148,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, [router, supabase.auth, user?.id]);
 
-
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace('/');
@@ -173,14 +171,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return null;
   }
 
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      // @ts-ignore
-      return React.cloneElement(child, { user });
-    }
-    return child;
-  });
-
   const getAvatarFallback = () => {
     if (!user) return "AD";
     const email = user.email || '';
@@ -192,74 +182,82 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <SidebarProvider>
-      <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
-        <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
-            <SidebarHeader className='p-4'>
-                <Link href="/dashboard">
-                  <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
-                </Link>
-            </SidebarHeader>
-            <SidebarContent className="flex-1 p-2">
-                <SidebarNav />
-            </SidebarContent>
-            <SidebarFooter className="p-4">
-                <Card className='group-data-[collapsible=icon]:hidden'>
-                    <CardHeader className="p-2 pt-0 md:p-4">
-                        <CardTitle>Nuevas Funciones</CardTitle>
-                        <CardDescription>
-                        Descubre las últimas mejoras en nuestra plataforma.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                        <Button size="sm" className="w-full">
-                        Ver Novedades
-                        </Button>
-                    </CardContent>
-                </Card>
-            </SidebarFooter>
-        </Sidebar>
+    <UserProvider user={user}>
+      <SidebarProvider>
+        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
+          <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
+              <SidebarHeader className='p-4'>
+                  <Link href="/dashboard">
+                    <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
+                  </Link>
+              </SidebarHeader>
+              <SidebarContent className="flex-1 p-2">
+                  <SidebarNav />
+              </SidebarContent>
+              <SidebarFooter className="p-4">
+                  <Card className='group-data-[collapsible=icon]:hidden'>
+                      <CardHeader className="p-2 pt-0 md:p-4">
+                          <CardTitle>Nuevas Funciones</CardTitle>
+                          <CardDescription>
+                          Descubre las últimas mejoras en nuestra plataforma.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
+                          <Button size="sm" className="w-full">
+                          Ver Novedades
+                          </Button>
+                      </CardContent>
+                  </Card>
+              </SidebarFooter>
+          </Sidebar>
 
-        <div className="flex flex-col">
-            <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-            <MobileNav />
-            <SidebarTrigger className="hidden md:flex" />
-            
-            <div className="w-full flex-1">
-                {/* Can add a global search here if needed */}
-            </div>
-            <Button variant="ghost" size="icon" className="rounded-full">
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Notificaciones</span>
-            </Button>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className='h-8 w-8'>
-                        <AvatarImage src={user?.user_metadata?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
-                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                    </Avatar>
-                    <span className="sr-only">Menú de usuario</span>
-                </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.user_metadata?.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
-                <DropdownMenuItem>Soporte</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Cerrar Sesión</span>
-                </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-            </header>
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-              {childrenWithProps}
-            </main>
+          <div className="flex flex-col">
+              <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+              <MobileNav />
+              <SidebarTrigger className="hidden md:flex" />
+              
+              <div className="w-full flex-1">
+                  {/* Can add a global search here if needed */}
+              </div>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                  <Bell className="h-5 w-5" />
+                  <span className="sr-only">Notificaciones</span>
+              </Button>
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                      <Avatar className='h-8 w-8'>
+                          <AvatarImage src={user?.user_metadata?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                          <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                      </Avatar>
+                      <span className="sr-only">Menú de usuario</span>
+                  </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user?.user_metadata?.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
+                  <DropdownMenuItem>Soporte</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+              </header>
+              <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+                {children}
+              </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </UserProvider>
   );
+}
+
+
+// --- Dashboard Layout Principal ---
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
