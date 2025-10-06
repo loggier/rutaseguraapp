@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   
+  // Obtenemos la instancia única del cliente de Supabase.
   const supabase = createClient();
 
   const { toast } = useToast();
@@ -31,7 +32,6 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    // DEBUG: Capturando data y error para un mejor diagnóstico.
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
