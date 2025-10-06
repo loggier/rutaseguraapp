@@ -132,34 +132,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const supabase = createClient();
   
   useEffect(() => {
-    const initializeSession = async () => {
-      // Intenta leer la sesión de Supabase, que a su vez usa localStorage.
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      console.log('Session data from getSession():', currentSession);
-      
-      if (currentSession) {
-        setUser(currentSession.user);
-      }
-      
-      // Escucha cambios de estado para mantener la sesión actualizada.
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth event:', event);
-        console.log('Session data from onAuthStateChange:', session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-      });
+    const initializeSession = () => {
+      const sessionDataString = localStorage.getItem('supabase_session');
+      console.log('Session data from localStorage:', sessionDataString);
 
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
+      if (sessionDataString) {
+        try {
+          const session = JSON.parse(sessionDataString);
+          if (session && session.user) {
+            setUser(session.user);
+            // Opcional: sincronizar el cliente de Supabase con esta sesión
+            supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+            });
+          }
+        } catch (error) {
+          console.error("Error parsing session data from localStorage", error);
+          setUser(null);
+        }
+      }
     };
 
     initializeSession();
+    
+    // También escuchamos cambios por si la sesión se actualiza en otra pestaña
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth event:', event);
+        const currentUser = session?.user ?? null;
+        if (!user || (currentUser && currentUser.id !== user.id)) {
+            setUser(currentUser);
+        }
+    });
+
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
   }, [supabase.auth]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Forzar una recarga completa para que el middleware valide la nueva sesión.
+    localStorage.removeItem('supabase_session');
     window.location.href = '/';
   };
 
