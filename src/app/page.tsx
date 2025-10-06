@@ -39,6 +39,7 @@ export default function LoginPage() {
             title: "Error al iniciar sesión",
             description: error.message || "Ocurrió un error inesperado.",
         });
+        setIsPending(false);
       } else if (data.session) {
         localStorage.setItem('supabase_session', JSON.stringify(data.session));
         
@@ -55,9 +56,6 @@ export default function LoginPage() {
             title: "Error inesperado",
             description: error.message || "No se pudo iniciar sesión.",
         });
-    } finally {
-        // En un escenario de redirección completa, esto puede no ser necesario,
-        // pero es buena práctica para evitar que el botón quede desactivado si la redirección falla.
         setIsPending(false);
     }
   };

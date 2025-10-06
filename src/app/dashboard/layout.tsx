@@ -2,10 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { Session } from '@supabase/supabase-js';
 import {
   Users,
   User,
@@ -18,7 +14,6 @@ import {
   Menu,
   Bell,
   LogOut,
-  Loader2,
 } from 'lucide-react';
 import {
   Sheet,
@@ -48,6 +43,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -129,59 +126,12 @@ function MobileNav() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const supabase = createClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.replace('/');
-      } else {
-        setSession(session);
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (!session) {
-        router.replace('/')
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [router, supabase.auth]);
-
-
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     localStorage.removeItem('supabase_session');
-    router.replace('/');
+    window.location.href = '/';
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Cargando sesión...</p>
-      </div>
-    );
-  }
-  
-  if (!session) {
-     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Redirigiendo al login...</p>
-      </div>
-    );
-  }
 
   return (
     <SidebarProvider>
