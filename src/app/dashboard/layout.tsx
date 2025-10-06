@@ -14,6 +14,7 @@ import {
   Menu,
   Bell,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import {
   Sheet,
@@ -129,38 +130,42 @@ function MobileNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   
   useEffect(() => {
     const initializeSession = () => {
-      const sessionDataString = localStorage.getItem('supabase_session');
-      console.log('Session data from localStorage:', sessionDataString);
+      try {
+        const sessionDataString = localStorage.getItem('supabase_session');
+        console.log('Session data from localStorage:', sessionDataString);
 
-      if (sessionDataString) {
-        try {
+        if (sessionDataString) {
           const session = JSON.parse(sessionDataString);
           if (session && session.user) {
-            setUser(session.user);
-            // Opcional: sincronizar el cliente de Supabase con esta sesión
             supabase.auth.setSession({
               access_token: session.access_token,
               refresh_token: session.refresh_token,
             });
+            setUser(session.user);
           }
-        } catch (error) {
-          console.error("Error parsing session data from localStorage", error);
-          setUser(null);
         }
+      } catch (error) {
+        console.error("Error processing session data from localStorage", error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     initializeSession();
     
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth event:', event, 'Session:', session);
         const currentUser = session?.user ?? null;
         if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
             setUser(currentUser);
+        }
+        if (isLoading) {
+          setIsLoading(false);
         }
     });
 
@@ -184,6 +189,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
     }
     return email.substring(0, 2).toUpperCase();
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Cargando sesión...</p>
+      </div>
+    );
   }
 
   return (
