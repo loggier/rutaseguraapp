@@ -45,6 +45,8 @@ import {
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -126,12 +128,46 @@ function MobileNav() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+  const router = usePathname();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+      } else {
+        // En lugar de usar router.replace, usamos window.location para forzar recarga
+        // y que el middleware actúe de forma fiable.
+        window.location.href = '/';
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
+  }, [supabase.auth, router]);
+  
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     localStorage.removeItem('supabase_session');
     window.location.href = '/';
   };
+
+  const getAvatarFallback = () => {
+    if (!user) return "AD";
+    const email = user.email || '';
+    return email.substring(0, 2).toUpperCase();
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Cargando sesión...
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -178,14 +214,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className='h-8 w-8'>
-                        <AvatarImage src="https://picsum.photos/seed/user-avatar-1/64/64" data-ai-hint="person face" />
-                        <AvatarFallback>AD</AvatarFallback>
+                        <AvatarImage src={user?.user_metadata.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
                     <span className="sr-only">Menú de usuario</span>
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.user_metadata.name || user?.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
