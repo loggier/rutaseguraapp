@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, {
+import React, { useEffect, useState } from 'react';
+import {
   Users,
   User,
   Bus,
@@ -46,7 +47,6 @@ import {
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const navItems = [
@@ -136,6 +136,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const initializeSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session data from getSession():', session);
+      
       if (session) {
         setUser(session.user);
       }
@@ -145,11 +147,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     initializeSession();
     
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (isLoading) {
-          setIsLoading(false);
-        }
+      console.log('Session data from onAuthStateChange:', session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser && isLoading) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
@@ -182,7 +185,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
   
-  // Clonamos el elemento hijo para inyectarle la prop `user`.
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
       // @ts-ignore
