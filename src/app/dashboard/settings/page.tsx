@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,7 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader, // 👈 Importado correctamente
+  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,6 @@ import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
 
 export default function SettingsPage({ user }: { user: User | null }) {
   const supabase = createClient();
@@ -41,26 +41,34 @@ export default function SettingsPage({ user }: { user: User | null }) {
       }
 
       setIsLoadingProfile(true);
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+  
+        // El código de error 'PGRST116' significa 'No se encontraron filas', lo cual es normal
+        // para usuarios nuevos que aún no han completado su perfil.
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        } 
+        
+        if (profileData) {
+          setFirstName(profileData.nombre || '');
+          setLastName(profileData.apellido || '');
+        }
 
-      // PostgreSQL error code 'PGRST116' means 'No rows found', which is expected 
-      // for new users who haven't filled out their profile yet.
-      if (error && error.code !== 'PGRST116') {
+      } catch (error: any) {
         console.error("Error fetching profile:", error);
         toast({
           variant: "destructive",
           title: "Error al cargar el perfil",
           description: "No se pudo recuperar la información del perfil.",
         });
-      } else if (profileData) {
-        setFirstName(profileData.nombre || '');
-        setLastName(profileData.apellido || '');
+      } finally {
+        setIsLoadingProfile(false);
       }
-      setIsLoadingProfile(false);
     };
 
     fetchUserProfile();
@@ -72,10 +80,12 @@ export default function SettingsPage({ user }: { user: User | null }) {
     
     setIsSaving(true);
     
-    const { error } = await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
       nombre: firstName,
       apellido: lastName,
-    }).eq('id', user.id);
+      updated_at: new Date().toISOString(),
+    }).select().single();
 
     if (error) {
         toast({
@@ -110,26 +120,29 @@ export default function SettingsPage({ user }: { user: User | null }) {
                         <CardDescription>Esta es la información que se mostrará públicamente.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="firstName">Nombre</Label>
-                                {isLoadingProfile 
-                                    ? <Loader2 className="h-4 w-4 animate-spin text-primary mt-3 ml-2" /> 
-                                    : <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
-                                }
+                        {isLoadingProfile ? (
+                            <div className="flex items-center justify-center p-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <p className="ml-4 text-muted-foreground">Cargando perfil...</p>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="lastName">Apellido</Label>
-                                {isLoadingProfile 
-                                    ? <Loader2 className="h-4 w-4 animate-spin text-primary mt-3 ml-2" /> 
-                                    : <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
-                                }
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Correo Electrónico</Label>
-                            <Input id="email" type="email" value={email} disabled />
-                        </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="firstName">Nombre</Label>
+                                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lastName">Apellido</Label>
+                                        <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Correo Electrónico</Label>
+                                    <Input id="email" type="email" value={email} disabled />
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" disabled={isFormDisabled}>
@@ -165,7 +178,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
                 <CardHeader> 
                     <CardTitle>Notificaciones</CardTitle>
                     <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                </CardHeader> {/* 👈 ETIQUETA CORREGIDA */}
+                </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="email-notifications" defaultChecked />
