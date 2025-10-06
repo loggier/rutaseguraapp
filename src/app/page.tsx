@@ -33,7 +33,8 @@ export default function LoginPage() {
     console.log('Validando sesión en localStorage...');
     if (session) {
       console.log('Sesión encontrada, redirigiendo a dashboard:', JSON.parse(session));
-      router.push('/dashboard');
+      // Forzar una recarga completa para asegurar que el middleware vea la sesión
+      window.location.href = '/dashboard';
     } else {
       console.log('No se encontró sesión en localStorage.');
       // Solo si no hay sesión, permitimos que se muestre el formulario de login.
