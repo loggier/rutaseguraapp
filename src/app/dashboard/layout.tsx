@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -133,11 +132,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, loading, logout } = useSession();
 
   useEffect(() => {
+    // Solo redirigir si la carga ha terminado y el usuario no está logueado.
     if (!loading && !isLoggedIn) {
-      router.push('/');
+      router.replace('/');
     }
   }, [loading, isLoggedIn, router]);
 
+  // Mientras se carga la sesión, muestra una pantalla de carga.
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -147,6 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // Si no está logueado (y la carga ha terminado), muestra un mensaje mientras ocurre la redirección.
   if (!isLoggedIn) {
      return (
       <div className="flex items-center justify-center min-h-screen">
@@ -156,6 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // Si está logueado, muestra el dashboard.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
