@@ -23,11 +23,8 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   
-  // Initialize Supabase client with variables from process.env
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // Se llama a createClient() sin argumentos, ya que ahora maneja las variables internamente.
+  const supabase = createClient();
 
   const { toast } = useToast();
 
