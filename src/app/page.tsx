@@ -39,7 +39,12 @@ export default function LoginPage() {
     if (loginError) {
       if (loginError instanceof AuthApiError && loginError.message === 'Invalid login credentials') {
         console.log('Usuario no encontrado, intentando registrar...');
+        toast({
+          title: "Configurando cuenta de administrador",
+          description: "El usuario maestro no existe, se creará automáticamente.",
+        });
         
+        // Intenta registrar al usuario maestro sin opciones de correo
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -50,33 +55,24 @@ export default function LoginPage() {
           toast({
             variant: "destructive",
             title: "Error al registrar usuario master",
-            description: `No se pudo crear la cuenta automáticamente. Detalle: ${signUpError.message}`,
+            description: `No se pudo crear la cuenta. Detalle: ${signUpError.message}`,
           });
         } else if (signUpData.user) {
           console.log('Usuario master registrado y sesión iniciada:', signUpData.user);
           toast({
-            title: "Cuenta de administrador creada",
-            description: "¡Bienvenido a RutaSegura! Hemos configurado tu cuenta master.",
+            title: "¡Cuenta de administrador creada!",
+            description: "¡Bienvenido a RutaSegura! Redirigiendo al dashboard...",
           });
+          // El signUp exitoso inicia sesión, así que podemos redirigir.
           router.push('/dashboard');
         } else {
-            // Caso raro: signUp no da error pero tampoco devuelve un usuario.
-            // Puede pasar si el usuario ya existe y la confirmación está pendiente.
-            // Intentar iniciar sesión de nuevo es una buena estrategia.
-            const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
-            if(retryError) {
-                 toast({
-                    variant: "destructive",
-                    title: "Error de inicio de sesión",
-                    description: `No se pudo iniciar sesión después de verificar la cuenta. Detalle: ${retryError.message}`,
-                });
-            } else {
-                 toast({
-                    title: "Inicio de sesión exitoso",
-                    description: "Bienvenido a RutaSegura.",
-                });
-                router.push('/dashboard');
-            }
+            // Este caso es poco común, pero podría ocurrir si el usuario existe pero no está confirmado
+            // y la confirmación automática está desactivada.
+            toast({
+                variant: "destructive",
+                title: "Error de configuración",
+                description: "No se pudo iniciar sesión tras el registro. Revisa la configuración de 'auto-confirm' en Supabase.",
+            });
         }
       } else {
         // Otro tipo de error de login
@@ -84,7 +80,7 @@ export default function LoginPage() {
         toast({
           variant: "destructive",
           title: "Error al iniciar sesión",
-          description: `Ha ocurrido un error inesperado. Detalle: ${loginError.message}`,
+          description: `Ha ocurrido un error. Detalle: ${loginError.message}`,
         });
       }
     } else {
