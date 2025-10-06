@@ -28,7 +28,6 @@ export default function SettingsPage() {
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
@@ -37,6 +36,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
+        setIsLoadingProfile(false);
         return;
       }
 
