@@ -23,14 +23,17 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   
-  // Obtenemos la instancia única del cliente de Supabase.
   const supabase = createClient();
-
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
+
+    // DEBUG: Verifiquemos si las variables de entorno están cargadas.
+    console.log("DEBUG: Verificando variables de Supabase...");
+    console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("ANON KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Cargada" : "NO CARGADA");
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -42,7 +45,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Error al iniciar sesión",
-        description: `Detalle: ${error.message}. Asegúrate de que las variables de entorno (URL/Anon Key) son correctas y el usuario existe.`,
+        description: `Detalle: ${error.message}. Asegúrate de que las variables de entorno (URL/Anon Key) son correctas y reinicia el servidor.`,
       });
     } else {
       console.log('Inicio de sesión exitoso:', data);
