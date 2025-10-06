@@ -149,7 +149,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('supabase_session');
     window.location.href = '/';
   };
 

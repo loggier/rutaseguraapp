@@ -41,8 +41,6 @@ export default function LoginPage() {
         });
         setIsPending(false);
       } else if (data.session) {
-        localStorage.setItem('supabase_session', JSON.stringify(data.session));
-        
         toast({
           title: "¡Login Correcto!",
           description: "Serás redirigido al dashboard.",
