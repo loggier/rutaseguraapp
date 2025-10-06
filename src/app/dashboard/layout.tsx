@@ -136,6 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Session data from onAuthStateChange:', session);
         setUser(session?.user ?? null);
         setIsLoading(false);
       }
