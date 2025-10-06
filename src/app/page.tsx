@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
   
+  // Se obtiene la instancia única del cliente de Supabase.
   const supabase = createClient();
   const { toast } = useToast();
   
@@ -108,6 +109,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -126,6 +128,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isPending}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isPending}>
