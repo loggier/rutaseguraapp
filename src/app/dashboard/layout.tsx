@@ -133,15 +133,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   
   useEffect(() => {
+    // Primero, intenta obtener la sesión actual al cargar.
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session data:', session);
+       // Puede que esto sea null inicialmente, es normal.
       if (session) {
+        console.log('Session data from getSession():', session);
         setUser(session.user);
       }
     };
-
+    
     fetchUser();
+
+    // Luego, escucha los cambios de estado de la autenticación.
+    // Esta es la forma más fiable de saber cuando el usuario está logueado.
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event);
+      console.log('Session data from onAuthStateChange:', session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+    });
+
+    // La función de limpieza se ejecuta cuando el componente se desmonta.
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [supabase.auth]);
   
   const handleLogout = async () => {
