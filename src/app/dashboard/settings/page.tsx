@@ -41,13 +41,6 @@ export default function SettingsPage() {
 
       setIsLoadingProfile(true);
       try {
-        // Note: Using .schema('rutasegura') is not standard in the client library.
-        // The schema is typically specified in the table name or client options.
-        // Assuming the user wants to ensure the query is against a non-public schema,
-        // and the RLS policies are set up correctly on `rutasegura.profiles`.
-        // The common way is just from('profiles') and RLS handles schema visibility.
-        // For this specific request, let's keep the code simple and standard.
-        // The schema part is more of a backend/DB config.
         const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
@@ -84,15 +77,13 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     
-    // The upsert operation will insert a new row if one with the user.id doesn't exist,
-    // or update it if it does. This handles both creating and updating the profile.
     const { error } = await supabase.from('profiles').upsert({
-      id: user.id, // This is the primary key to match for upsert
+      id: user.id,
       nombre: firstName,
       apellido: lastName,
       updated_at: new Date().toISOString(),
     }, {
-        onConflict: 'id' // Specify the conflict target
+        onConflict: 'id'
     }).select().single();
 
     if (error) {
@@ -111,8 +102,6 @@ export default function SettingsPage() {
     setIsSaving(false);
   };
 
-  const isFormDisabled = isSaving || isLoadingProfile;
-
   if (!user) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
@@ -121,6 +110,8 @@ export default function SettingsPage() {
       </div>
     );
   }
+
+  const isFormDisabled = isSaving || isLoadingProfile;
 
   return (
     <div className="flex flex-col gap-6">
