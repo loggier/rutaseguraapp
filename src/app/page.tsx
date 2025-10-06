@@ -48,6 +48,7 @@ export default function LoginPage() {
           description: "Serás redirigido al dashboard.",
         });
         
+        // Forzar una recarga completa para que el middleware valide la nueva sesión.
         window.location.href = '/dashboard';
       }
     } catch (error: any) {

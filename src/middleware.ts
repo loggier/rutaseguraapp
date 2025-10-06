@@ -1,58 +1,26 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-
-  // This will refresh session if expired - important!
-  const { data: { user } } = await supabase.auth.getUser()
+  // updateSession se encarga de refrescar la sesión del usuario y devuelve
+  // la respuesta actualizada y el usuario.
+  const { response, user } = await updateSession(request)
 
   const { pathname } = request.nextUrl
 
-  // If there's no user and they're trying to access the dashboard, redirect to login.
+  // Si no hay usuario y están intentando acceder a cualquier ruta del dashboard,
+  // redirigir a la página de login.
   if (!user && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // If there is a user and they're on the login page, redirect to the dashboard.
+  // Si hay un usuario y está en la página de login, redirigir al dashboard.
   if (user && pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Si no se cumple ninguna de las condiciones anteriores, continuar con la respuesta
+  // que ya tiene las cookies de sesión actualizadas.
   return response
 }
 
