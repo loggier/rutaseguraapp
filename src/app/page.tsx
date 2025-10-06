@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,17 @@ export default function LoginPage() {
   
   const supabase = createClient();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/dashboard');
+      }
+    };
+    checkSession();
+  }, [router, supabase.auth]);
+
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,6 +58,7 @@ export default function LoginPage() {
         description: "¡Bienvenido de nuevo a RutaSegura!",
       });
       router.push('/dashboard');
+      router.refresh(); // Forzar la actualización para que el middleware/server components se recarguen
     }
     
     setIsPending(false);
