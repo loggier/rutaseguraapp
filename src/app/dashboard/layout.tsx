@@ -129,27 +129,18 @@ function MobileNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const router = useRouter();
-
+  
   useEffect(() => {
     const fetchUser = async () => {
-      // Esperamos a que getSession termine de leer desde localStorage/servidor
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session) {
         setUser(session.user);
-      } else {
-        // Si después de esperar, no hay sesión, entonces redirigimos.
-        router.replace('/');
       }
-      // Solo dejamos de cargar cuando la comprobación ha finalizado.
-      setLoading(false);
     };
 
     fetchUser();
-  }, [supabase.auth, router]);
+  }, [supabase.auth]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -165,14 +156,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
     }
     return email.substring(0, 2).toUpperCase();
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Cargando sesión...
-      </div>
-    );
   }
 
   return (
@@ -227,7 +210,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.user_metadata.name || user?.email}</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.user_metadata.name || user?.email || 'Admin'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
