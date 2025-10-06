@@ -134,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session data:', session);
       if (session) {
         setUser(session.user);
       }
