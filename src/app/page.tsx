@@ -26,6 +26,13 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const session = localStorage.getItem('supabase_session');
+    if (session) {
+      router.push('/dashboard');
+    }
+  }, [router]);
   
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,18 +51,12 @@ export default function LoginPage() {
             description: error.message || "Ocurrió un error inesperado.",
         });
       } else if (data.session) {
-        // Paso 1: Guardar la sesión manualmente en localStorage
         localStorage.setItem('supabase_session', JSON.stringify(data.session));
-        
-        // Paso 2: Notificar y registrar en consola para depuración
-        console.log('Sesión guardada en localStorage:', data.session);
         toast({
           title: "¡Login Correcto!",
-          description: "La sesión ha sido guardada en localStorage. Revisa la consola y el almacenamiento del navegador.",
+          description: "Serás redirigido al dashboard.",
         });
-
-        // NO HAY REDIRECCIÓN. Solo estamos depurando el guardado.
-        
+        window.location.href = '/dashboard';
       } else {
         toast({
           variant: "destructive",
