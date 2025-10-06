@@ -38,7 +38,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Error al iniciar sesión",
-        description: error.message,
+        description: error.message || "Credenciales inválidas. Revisa las variables de entorno de Supabase.",
       });
     } else {
       toast({
