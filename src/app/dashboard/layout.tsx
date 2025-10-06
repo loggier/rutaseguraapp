@@ -117,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const loadSession = () => {
       try {
-        const sessionDataString = localStorage.getItem('sb-localhost-auth-token');
+        const sessionDataString = localStorage.getItem('supabase_session');
         if (sessionDataString) {
           const sessionData = JSON.parse(sessionDataString);
           console.log('Session data from localStorage:', sessionData);
