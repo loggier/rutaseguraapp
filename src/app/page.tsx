@@ -43,7 +43,6 @@ export default function LoginPage() {
             description: error.message || "Ocurrió un error inesperado.",
         });
       } else if (data.session) {
-        console.log('Login correcto, guardando sesión en localStorage...');
         // Guardamos la sesión manualmente para asegurar la persistencia
         localStorage.setItem('supabase_session', JSON.stringify(data.session));
         
