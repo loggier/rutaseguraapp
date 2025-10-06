@@ -136,19 +136,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     loadSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      // Usamos onAuthStateChange para reaccionar a eventos como LOGOUT
       if (event === 'SIGNED_OUT') {
         setUser(null);
         router.replace('/');
-      } else if (event === 'SIGNED_IN') {
-        setUser(session?.user ?? null);
+      } else if (session?.user && session.user.id !== user?.id) {
+        setUser(session.user);
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase.auth, user?.id]);
 
 
   useEffect(() => {
