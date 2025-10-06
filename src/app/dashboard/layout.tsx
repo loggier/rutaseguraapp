@@ -139,8 +139,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (session) {
         setUser(session.user);
       } else {
-        // En lugar de usar router.replace, usamos window.location para forzar recarga
-        // y que el middleware actúe de forma fiable.
+        // Si no hay sesión, el middleware ya se habrá encargado de redirigir.
+        // Forzamos una redirección del lado del cliente como última medida de seguridad.
         window.location.href = '/';
       }
       setLoading(false);
