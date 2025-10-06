@@ -17,27 +17,30 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { AuthApiError } from '@supabase/supabase-js';
+import { AuthApiError, type Session } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
-  
-  // Se obtiene la instancia única del cliente de Supabase.
   const supabase = createClient();
   const { toast } = useToast();
   
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push('/dashboard');
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Si hay una sesión después de un inicio de sesión, redirigir.
+      if (event === 'SIGNED_IN' || event === 'INITIAL_USER') {
+        if (session) {
+          router.push('/dashboard');
+        }
       }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
     };
-    checkSession();
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,7 +48,7 @@ export default function LoginPage() {
     setIsPending(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -64,12 +67,17 @@ export default function LoginPage() {
               description: error.message || "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
           });
         }
-      } else {
+      } else if (data.session) {
+        // Este es el paso crucial que estabas mencionando.
+        // Aunque Supabase SSR debería hacerlo automáticamente con cookies,
+        // nos aseguramos de que el estado se actualice.
         toast({
           title: "Inicio de sesión exitoso",
           description: "¡Bienvenido de nuevo a RutaSegura!",
         });
-        // Forzamos una recarga completa para asegurar que el middleware detecte la nueva sesión.
+        
+        // Forzamos una recarga completa para asegurar que el middleware 
+        // y el servidor detecten la nueva sesión a través de las cookies.
         window.location.href = '/dashboard';
       }
     } catch (error: any) {

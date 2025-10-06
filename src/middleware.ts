@@ -59,11 +59,13 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Si no hay usuario y está intentando acceder al dashboard, redirigir a login
   if (!user && pathname.startsWith('/dashboard')) {
     const url = new URL('/', request.url);
     return NextResponse.redirect(url);
   }
 
+  // Si hay usuario y está en la página de login, redirigir al dashboard
   if (user && pathname === '/') {
     const url = new URL('/dashboard', request.url);
     return NextResponse.redirect(url);
