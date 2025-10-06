@@ -1,4 +1,3 @@
-
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -18,7 +17,6 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is set, update the request cookies as well.
           request.cookies.set({
             name,
             value,
@@ -36,7 +34,6 @@ export async function updateSession(request: NextRequest) {
           })
         },
         remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the request cookies as well.
           request.cookies.set({
             name,
             value: '',
@@ -57,8 +54,22 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // This will refresh session if expired - important!
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  return { response, user };
+  if (
+    !user &&
+    !request.nextUrl.pathname.startsWith('/') 
+  ) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+
+  if (user && request.nextUrl.pathname === ('/')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+
+  return response
 }
