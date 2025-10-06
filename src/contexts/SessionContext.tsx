@@ -1,3 +1,4 @@
+
 // src/contexts/SessionContext.tsx
 'use client';
 
@@ -22,37 +23,17 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const supabase = createClient();
 
-  const initializeSession = async () => {
-    setLoading(true);
-    try {
-      // Intenta obtener la sesión de supabase al inicio
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setSession(session);
-        // Sincroniza con localStorage por si acaso
-        localStorage.setItem('supabase_session', JSON.stringify(session));
-      } else {
-        // Si supabase no tiene sesión, revisa localStorage como fallback
-        const storedSession = localStorage.getItem('supabase_session');
-        if (storedSession) {
-          const parsedSession = JSON.parse(storedSession);
-          // Opcional: podrías querer validar este token con Supabase aquí
-          setSession(parsedSession);
-        } else {
-          setSession(null);
-        }
-      }
-    } catch (error) {
-      console.error("Error initializing session:", error);
-      setSession(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    initializeSession();
+    // 1. Check for an active session from Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        localStorage.setItem('supabase_session', JSON.stringify(session));
+      }
+      setLoading(false);
+    });
 
+    // 2. Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
