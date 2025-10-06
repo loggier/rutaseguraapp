@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from "react";
@@ -36,12 +35,19 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
-        setIsLoadingProfile(false);
+        // We wait for the user object to be available.
         return;
       }
 
       setIsLoadingProfile(true);
       try {
+        // Note: Using .schema('rutasegura') is not standard in the client library.
+        // The schema is typically specified in the table name or client options.
+        // Assuming the user wants to ensure the query is against a non-public schema,
+        // and the RLS policies are set up correctly on `rutasegura.profiles`.
+        // The common way is just from('profiles') and RLS handles schema visibility.
+        // For this specific request, let's keep the code simple and standard.
+        // The schema part is more of a backend/DB config.
         const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
@@ -78,11 +84,15 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     
+    // The upsert operation will insert a new row if one with the user.id doesn't exist,
+    // or update it if it does. This handles both creating and updating the profile.
     const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
+      id: user.id, // This is the primary key to match for upsert
       nombre: firstName,
       apellido: lastName,
       updated_at: new Date().toISOString(),
+    }, {
+        onConflict: 'id' // Specify the conflict target
     }).select().single();
 
     if (error) {
@@ -102,7 +112,7 @@ export default function SettingsPage() {
   };
 
   const isFormDisabled = isSaving || isLoadingProfile;
-  
+
   if (!user) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
@@ -185,7 +195,7 @@ export default function SettingsPage() {
                 <CardHeader> 
                     <CardTitle>Notificaciones</CardTitle>
                     <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="email-notifications" defaultChecked />
