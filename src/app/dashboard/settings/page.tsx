@@ -37,7 +37,6 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) {
-        setIsLoadingProfile(true);
         return;
       }
 
@@ -49,7 +48,7 @@ export default function SettingsPage() {
           .eq('id', user.id)
           .single();
   
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
           throw error;
         } 
         
