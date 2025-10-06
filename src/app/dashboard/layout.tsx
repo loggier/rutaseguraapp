@@ -43,7 +43,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -131,23 +131,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
+      // Esperamos a que getSession termine de leer desde localStorage/servidor
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (session) {
         setUser(session.user);
       } else {
-        // Si no hay sesión, el middleware ya se habrá encargado de redirigir.
-        // Forzamos una redirección del lado del cliente como última medida de seguridad.
-        window.location.href = '/';
+        // Si después de esperar, no hay sesión, entonces redirigimos.
+        router.replace('/');
       }
+      // Solo dejamos de cargar cuando la comprobación ha finalizado.
       setLoading(false);
     };
 
     fetchUser();
-  }, [supabase.auth, pathname]);
+  }, [supabase.auth, router]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
