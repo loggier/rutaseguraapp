@@ -1,4 +1,3 @@
-
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
@@ -18,45 +17,31 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          // If the cookie is set, update the request cookies as well.
+          request.cookies.set({ name, value, ...options })
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          // If the cookie is removed, update the request cookies as well.
+          request.cookies.set({ name, value: '', ...options })
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  // This is the crucial part: it refreshes the session cookie and makes it available to server components.
-  const { data: { user } } = await supabase.auth.getUser();
+  // This will refresh session if expired - important!
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
     console.log(`Middleware: Sesión de servidor encontrada para el usuario: ${user.id}`);
@@ -64,24 +49,22 @@ export async function middleware(request: NextRequest) {
     console.log('Middleware: No se encontró sesión de servidor.');
   }
 
-  const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl
 
   // If there's no user and they're trying to access the dashboard, redirect to login.
   if (!user && pathname.startsWith('/dashboard')) {
     console.log('Middleware: Usuario no autenticado intentando acceder a /dashboard. Redirigiendo a /');
-    const url = new URL('/', request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   // If there is a user and they're on the login page, redirect to the dashboard.
   if (user && pathname === '/') {
     console.log('Middleware: Usuario autenticado en /. Redirigiendo a /dashboard');
-    const url = new URL('/dashboard', request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Return the original response, which now has the updated session cookie.
-  return response;
+  return response
 }
 
 export const config = {
