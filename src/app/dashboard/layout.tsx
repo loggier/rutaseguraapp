@@ -3,52 +3,30 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Users,
-  User,
-  Bus,
-  Map,
-  Rocket,
-  LayoutDashboard,
-  CreditCard,
-  Route as RouteIcon,
-  Menu,
-  Bell,
-  LogOut,
-  Loader2,
+  Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
+  Menu, Bell, LogOut, Loader2,
 } from 'lucide-react';
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
+  Sheet, SheetContent, SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
-  useSidebar,
+  SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
+  SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+// --- Constantes de Navegación ---
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/students', icon: Users, label: 'Estudiantes' },
@@ -59,6 +37,7 @@ const navItems = [
   { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta' },
 ];
 
+// --- Componentes de Navegación (sin cambios) ---
 function SidebarNav() {
   const pathname = usePathname();
   const { open } = useSidebar();
@@ -128,39 +107,59 @@ function MobileNav() {
   );
 }
 
+// --- Dashboard Layout Principal (Corregido) ---
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter(); 
   
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Session data from onAuthStateChange:', session);
-        setUser(session?.user ?? null);
+    const loadSession = () => {
+      try {
+        const sessionDataString = localStorage.getItem('sb-localhost-auth-token');
+        if (sessionDataString) {
+          const sessionData = JSON.parse(sessionDataString);
+          console.log('Session data from localStorage:', sessionData);
+          setUser(sessionData.user ?? null);
+        } else {
+           console.log('No session data found in localStorage.');
+        }
+      } catch (error) {
+        console.error("Error reading session from localStorage", error);
+        setUser(null);
+      } finally {
         setIsLoading(false);
       }
-    );
+    };
+    
+    loadSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Usamos onAuthStateChange para reaccionar a eventos como LOGOUT
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        router.replace('/');
+      } else if (event === 'SIGNED_IN') {
+        setUser(session?.user ?? null);
+      }
+    });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
-  
+  }, [router, supabase.auth]);
+
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/');
+    }
+  }, [isLoading, user, router]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/';
   };
-
-  const getAvatarFallback = () => {
-    if (!user) return "AD";
-    const email = user.email || '';
-    const name = user.user_metadata?.name;
-    if (name) {
-      return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
-  }
 
   if (isLoading) {
     return (
@@ -171,6 +170,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
   
+  if (!user) {
+      return null;
+  }
+
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
       // @ts-ignore
@@ -178,6 +181,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     return child;
   });
+
+  const getAvatarFallback = () => {
+    if (!user) return "AD";
+    const email = user.email || '';
+    const name = user.user_metadata?.name;
+    if (name && typeof name === 'string') {
+      return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+    return email.substring(0, 2).toUpperCase();
+  }
 
   return (
     <SidebarProvider>
@@ -224,14 +237,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className='h-8 w-8'>
-                        <AvatarImage src={user?.user_metadata.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                        <AvatarImage src={user?.user_metadata?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
                     <span className="sr-only">Menú de usuario</span>
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.user_metadata.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.user_metadata?.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
