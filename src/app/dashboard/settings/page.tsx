@@ -104,118 +104,118 @@ export default function SettingsPage() {
 
   const isFormDisabled = isSaving || isLoadingProfile;
   
-  return (
-    <>
-      {!user ? (
-        <div className="flex h-full w-full items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Cargando usuario...</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          <PageHeader
-            title="Configuración de la Cuenta"
-            description="Administra la información de tu perfil, seguridad y notificaciones."
-          />
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-                <form onSubmit={handleUpdateProfile}>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Perfil</CardTitle>
-                            <CardDescription>Esta es la información que se mostrará públicamente.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {isLoadingProfile ? (
-                                <div className="flex items-center justify-center p-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    <p className="ml-4 text-muted-foreground">Cargando perfil...</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="firstName">Nombre</Label>
-                                            <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="lastName">Apellido</Label>
-                                            <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">Correo Electrónico</Label>
-                                        <Input id="email" type="email" value={email} disabled />
-                                    </div>
-                                </>
-                            )}
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isFormDisabled}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Guardar Cambios
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </form>
+  if (!user) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Cargando usuario...</p>
+      </div>
+    );
+  }
 
-                <Card className="mt-6">
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Configuración de la Cuenta"
+        description="Administra la información de tu perfil, seguridad y notificaciones."
+      />
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="md:col-span-2">
+            <form onSubmit={handleUpdateProfile}>
+                <Card>
                     <CardHeader>
-                        <CardTitle>Seguridad</CardTitle>
-                        <CardDescription>Gestiona tu contraseña.</CardDescription>
+                        <CardTitle>Perfil</CardTitle>
+                        <CardDescription>Esta es la información que se mostrará públicamente.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="currentPassword">Contraseña Actual</Label>
-                            <Input id="currentPassword" type="password" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="newPassword">Nueva Contraseña</Label>
-                            <Input id="newPassword" type="password" />
-                        </div>
+                        {isLoadingProfile ? (
+                            <div className="flex items-center justify-center p-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <p className="ml-4 text-muted-foreground">Cargando perfil...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="firstName">Nombre</Label>
+                                        <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lastName">Apellido</Label>
+                                        <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Correo Electrónico</Label>
+                                    <Input id="email" type="email" value={email} disabled />
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                     <CardFooter>
-                        <Button>Actualizar Contraseña</Button>
+                        <Button type="submit" disabled={isFormDisabled}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar Cambios
+                        </Button>
                     </CardFooter>
                 </Card>
-            </div>
-            <div>
-                <Card>
-                    <CardHeader> 
-                        <CardTitle>Notificaciones</CardTitle>
-                        <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                    </Header>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="email-notifications" defaultChecked />
-                            <label
-                            htmlFor="email-notifications"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                            Notificaciones por correo
-                            </label>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Recibe correos sobre actividad en tu cuenta.</p>
-                        <Separator/>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="push-notifications" />
-                            <label
-                            htmlFor="push-notifications"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                            Notificaciones Push
-                            </label>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Recibe notificaciones en tu dispositivo móvil.</p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button>Guardar Preferencias</Button>
-                    </CardFooter>
-                </Card>
-            </div>
-          </div>
+            </form>
+
+            <Card className="mt-6">
+                <CardHeader>
+                    <CardTitle>Seguridad</CardTitle>
+                    <CardDescription>Gestiona tu contraseña.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="currentPassword">Contraseña Actual</Label>
+                        <Input id="currentPassword" type="password" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                        <Input id="newPassword" type="password" />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button>Actualizar Contraseña</Button>
+                </CardFooter>
+            </Card>
         </div>
-      )}
-    </>
+        <div>
+            <Card>
+                <CardHeader> 
+                    <CardTitle>Notificaciones</CardTitle>
+                    <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
+                </Header>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="email-notifications" defaultChecked />
+                        <label
+                        htmlFor="email-notifications"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                        Notificaciones por correo
+                        </label>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Recibe correos sobre actividad en tu cuenta.</p>
+                    <Separator/>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="push-notifications" />
+                        <label
+                        htmlFor="push-notifications"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                        Notificaciones Push
+                        </label>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Recibe notificaciones en tu dispositivo móvil.</p>
+                </CardContent>
+                <CardFooter>
+                    <Button>Guardar Preferencias</Button>
+                </CardFooter>
+            </Card>
+        </div>
+      </div>
+    </div>
   );
 }
