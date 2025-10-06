@@ -44,43 +44,47 @@ export default function LoginPage() {
           description: "El usuario maestro no existe, se creará automáticamente.",
         });
         
-        // Intenta registrar al usuario maestro sin opciones de correo
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
 
-        if (signUpError) {
+        // Si hay un error de registro, pero NO es sobre el envío del correo, es un problema.
+        if (signUpError && !signUpError.message.includes('Error sending confirmation email')) {
           console.error('Error durante el registro del usuario master:', signUpError);
           toast({
             variant: "destructive",
             title: "Error al registrar usuario master",
             description: `No se pudo crear la cuenta. Detalle: ${signUpError.message}`,
           });
-        } else if (signUpData.user) {
-          console.log('Usuario master registrado y sesión iniciada:', signUpData.user);
-          toast({
-            title: "¡Cuenta de administrador creada!",
-            description: "¡Bienvenido a RutaSegura! Redirigiendo al dashboard...",
-          });
-          // El signUp exitoso inicia sesión, así que podemos redirigir.
-          router.push('/dashboard');
         } else {
-            // Este caso es poco común, pero podría ocurrir si el usuario existe pero no está confirmado
-            // y la confirmación automática está desactivada.
-            toast({
-                variant: "destructive",
-                title: "Error de configuración",
-                description: "No se pudo iniciar sesión tras el registro. Revisa la configuración de 'auto-confirm' en Supabase.",
+          // Si el registro fue exitoso (o solo falló el email), iniciamos sesión para obtener la sesión activa
+          console.log('Usuario master creado (o ya existía). Iniciando sesión...');
+           const { data: finalLoginData, error: finalLoginError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
             });
+
+            if (finalLoginError) {
+                 toast({
+                    variant: "destructive",
+                    title: "Error final de login",
+                    description: `No se pudo iniciar sesión tras el registro: ${finalLoginError.message}`,
+                });
+            } else {
+                 toast({
+                    title: "¡Cuenta de administrador lista!",
+                    description: "¡Bienvenido a RutaSegura! Redirigiendo al dashboard...",
+                  });
+                  router.push('/dashboard');
+            }
         }
       } else {
-        // Otro tipo de error de login
         console.error('Error de inicio de sesión:', loginError);
         toast({
           variant: "destructive",
           title: "Error al iniciar sesión",
-          description: `Ha ocurrido un error. Detalle: ${loginError.message}`,
+          description: `Ha ocurrido un error. Detalle: ${loginError.message}. Revisa las credenciales y la conexión.`,
         });
       }
     } else {
