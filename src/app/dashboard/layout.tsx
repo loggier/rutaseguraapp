@@ -130,6 +130,7 @@ function MobileNav() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const supabase = createClient();
+  const router = useRouter();
   
   useEffect(() => {
     const fetchUser = async () => {
