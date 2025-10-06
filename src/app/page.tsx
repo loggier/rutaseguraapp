@@ -30,31 +30,75 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    // DEBUG: Verifiquemos si las variables de entorno están cargadas.
-    console.log("DEBUG: Verificando variables de Supabase...");
-    console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("ANON KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Cargada" : "NO CARGADA");
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Intento de inicio de sesión
+    let { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      console.error('Error de autenticación de Supabase:', error);
-      toast({
-        variant: "destructive",
-        title: "Error al iniciar sesión",
-        description: `Detalle: ${error.message}. Asegúrate de que las variables de entorno (URL/Anon Key) son correctas y reinicia el servidor.`,
-      });
+    // Si hay un error, comprobamos si es porque el usuario no existe
+    if (loginError) {
+      console.error('Error inicial de login:', loginError.message);
+
+      // Si el usuario es el master y el error indica credenciales inválidas (posiblemente porque no existe)
+      if (email === 'master@rutasegura.com' && loginError.message.includes('Invalid login credentials')) {
+        console.log('Usuario master no encontrado, intentando registrar...');
+        
+        // Intentamos registrar al usuario
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (signUpError) {
+           toast({
+            variant: "destructive",
+            title: "Error al crear usuario master",
+            description: `Detalle: ${signUpError.message}`,
+          });
+          setIsPending(false);
+          return;
+        }
+
+        // Si el registro fue exitoso (o el usuario ya existía y se devolvió), intentamos iniciar sesión de nuevo
+        console.log('Registro exitoso o usuario ya existente. Reintentando login...');
+        const { data: retryLoginData, error: retryLoginError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+        
+        if (retryLoginError) {
+            toast({
+                variant: "destructive",
+                title: "Error en el segundo intento de login",
+                description: `Detalle: ${retryLoginError.message}`,
+            });
+        } else {
+            toast({
+                title: "Usuario master creado y sesión iniciada",
+                description: "Bienvenido a RutaSegura.",
+            });
+            router.push('/dashboard');
+        }
+
+      } else {
+        // Otro tipo de error de login
+         toast({
+          variant: "destructive",
+          title: "Error al iniciar sesión",
+          description: `Detalle: ${loginError.message}`,
+        });
+      }
     } else {
-      console.log('Inicio de sesión exitoso:', data);
+      // Inicio de sesión exitoso al primer intento
+      console.log('Inicio de sesión exitoso:', loginData);
       toast({
         title: "Inicio de sesión exitoso",
         description: "Bienvenido a RutaSegura.",
       });
       router.push('/dashboard');
     }
+    
     setIsPending(false);
   };
 
