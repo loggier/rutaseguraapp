@@ -26,40 +26,43 @@ export default function SettingsPage({ user }: { user: User | null }) {
   const supabase = createClient();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-  // The email is taken directly from the `user` prop.
+  // The email is taken directly from the `user` prop and should always be available.
   const email = user?.email || '';
 
   useEffect(() => {
     // This useEffect is now only responsible for loading the *profile* data
     // as the *user* data is passed in via props.
     const fetchUserProfile = async () => {
-      setIsLoading(true);
-      if (user) {
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error("Error fetching profile:", error);
-          toast({
-            variant: "destructive",
-            title: "Error al cargar el perfil",
-            description: "No se pudo recuperar la información del perfil.",
-          });
-        } else if (profileData) {
-          setFirstName(profileData.nombre || '');
-          setLastName(profileData.apellido || '');
-        }
+      if (!user) {
+        setIsLoadingProfile(false);
+        return;
       }
-      setIsLoading(false);
+
+      setIsLoadingProfile(true);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not a fatal error
+        console.error("Error fetching profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Error al cargar el perfil",
+          description: "No se pudo recuperar la información del perfil.",
+        });
+      } else if (profileData) {
+        setFirstName(profileData.nombre || '');
+        setLastName(profileData.apellido || '');
+      }
+      setIsLoadingProfile(false);
     };
 
     fetchUserProfile();
@@ -74,6 +77,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
     const { error } = await supabase.from('profiles').update({
       nombre: firstName,
       apellido: lastName,
+      // Ensure the 'updated_at' field is handled by Supabase policies if needed
     }).eq('id', user.id);
 
     if (error) {
@@ -92,14 +96,9 @@ export default function SettingsPage({ user }: { user: User | null }) {
     setIsSaving(false);
   }
 
-  if (isLoading) {
-    return (
-        <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Cargando perfil...</p>
-        </div>
-    )
-  }
+  // The main loading state from the layout handles the initial user loading.
+  // This component's loading state is only for the profile-specific fields.
+  const isFormDisabled = isSaving || isLoadingProfile;
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,11 +118,11 @@ export default function SettingsPage({ user }: { user: User | null }) {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="firstName">Nombre</Label>
-                                <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
+                                {isLoadingProfile ? <Loader2 className="h-4 w-4 animate-spin"/> : <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="lastName">Apellido</Label>
-                                <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
+                                {isLoadingProfile ? <Loader2 className="h-4 w-4 animate-spin"/> : <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>}
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -132,7 +131,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button type="submit" disabled={isSaving}>
+                        <Button type="submit" disabled={isFormDisabled}>
                             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Guardar Cambios
                         </Button>
@@ -165,7 +164,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
                 <CardHeader>
                     <CardTitle>Notificaciones</CardTitle>
                     <CardDescription>Elige cómo quieres ser notificado.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="email-notifications" defaultChecked />
