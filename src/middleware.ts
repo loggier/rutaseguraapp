@@ -1,25 +1,23 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { updateSession } from '@/lib/supabase/middleware';
+
+import { type NextRequest, NextResponse } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  const { supabase, response } = createClient(request);
-  const { data: { session }} = await supabase.auth.getSession();
+  // This will refresh the session cookie
+  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  // Si el usuario no tiene sesión y intenta acceder al dashboard, redirigir a login.
-  if (!session && pathname.startsWith('/dashboard')) {
-    const url = new URL('/', request.url);
-    return NextResponse.redirect(url);
+  // If the user is not logged in and tries to access the dashboard, redirect to login
+  if (!user && pathname.startsWith('/dashboard')) {
+    return Response.redirect(new URL('/', request.url))
   }
 
-  // Si el usuario tiene sesión y está en la página de login, redirigir al dashboard.
-  if (session && pathname === '/') {
-    const url = new URL('/dashboard', request.url);
-    return NextResponse.redirect(url);
+  // If the user is logged in and is on the login page, redirect to dashboard
+  if (user && pathname === '/') {
+    return Response.redirect(new URL('/dashboard', request.url))
   }
-  
-  return await updateSession(request);
+
+  return response;
 }
 
 export const config = {
@@ -33,4 +31,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-};
+}

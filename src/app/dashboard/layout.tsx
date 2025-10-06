@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Users,
   User,
@@ -14,6 +15,7 @@ import {
   Route as RouteIcon,
   Menu,
   Bell,
+  LogOut,
 } from 'lucide-react';
 import {
   Sheet,
@@ -43,6 +45,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -125,6 +128,15 @@ function MobileNav() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
+
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
@@ -182,7 +194,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link href="/">Cerrar Sesión</Link></DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar Sesión</span>
+                </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             </header>

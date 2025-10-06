@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { AuthApiError } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
@@ -58,7 +60,7 @@ export default function LoginPage() {
         description: "¡Bienvenido de nuevo a RutaSegura!",
       });
       router.push('/dashboard');
-      router.refresh(); // Forzar la actualización para que el middleware/server components se recarguen
+      router.refresh(); // Forzar la actualización del estado del servidor
     }
     
     setIsPending(false);
