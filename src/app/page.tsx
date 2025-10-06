@@ -67,9 +67,8 @@ export default function LoginPage() {
         title: "Inicio de sesión exitoso",
         description: "¡Bienvenido de nuevo a RutaSegura!",
       });
-      // Redirige al dashboard y refresca el estado del servidor para que reconozca la sesión
+      // Redirige al dashboard. El middleware se encargará de que la sesión sea reconocida.
       router.push('/dashboard');
-      router.refresh();
     }
     
     setIsPending(false);
