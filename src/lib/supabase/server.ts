@@ -9,6 +9,9 @@ export const createClient = () => {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
+          db: {
+            schema: 'rutasegura',
+          },
           cookies: {
             get(name: string) {
               return cookieStore.get(name)?.value
