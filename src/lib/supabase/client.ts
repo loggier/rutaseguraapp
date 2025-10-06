@@ -7,6 +7,10 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
+    db: {
+      // Se especifica el esquema a utilizar para todas las consultas.
+      schema: 'rutasegura',
+    },
     auth: {
       // Asegura que la persistencia está configurada para el almacenamiento local.
       persistSession: true, 

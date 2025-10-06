@@ -34,8 +34,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // Solo ejecutar si el usuario está disponible.
       if (!user) {
-        // We wait for the user object to be available.
         return;
       }
 
@@ -47,7 +47,8 @@ export default function SettingsPage() {
           .eq('id', user.id)
           .single();
   
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+        // PGRST116 significa "no rows found", lo cual es un caso válido (el perfil aún no existe).
+        if (error && error.code !== 'PGRST116') { 
           throw error;
         } 
         
@@ -61,7 +62,7 @@ export default function SettingsPage() {
         toast({
           variant: "destructive",
           title: "Error al cargar el perfil",
-          description: "No se pudo recuperar la información del perfil.",
+          description: error.message || "No se pudo recuperar la información del perfil.",
         });
       } finally {
         setIsLoadingProfile(false);
@@ -77,13 +78,14 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     
+    // upsert se encarga de crear el registro si no existe, o actualizarlo si existe.
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       nombre: firstName,
       apellido: lastName,
       updated_at: new Date().toISOString(),
     }, {
-        onConflict: 'id'
+        onConflict: 'id' // Especifica la columna de conflicto para el upsert.
     }).select().single();
 
     if (error) {
@@ -101,7 +103,8 @@ export default function SettingsPage() {
 
     setIsSaving(false);
   };
-
+  
+  // Muestra el loader mientras el contexto de usuario se está poblando
   if (!user) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
