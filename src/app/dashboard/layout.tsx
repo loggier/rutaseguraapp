@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import {
+import React, {
   Users,
   User,
   Bus,
@@ -134,36 +134,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const supabase = createClient();
   
   useEffect(() => {
-    const initializeSession = () => {
-      try {
-        const sessionDataString = localStorage.getItem('supabase_session');
-        console.log('Session data from localStorage:', sessionDataString);
-
-        if (sessionDataString) {
-          const session = JSON.parse(sessionDataString);
-          if (session && session.user) {
-            supabase.auth.setSession({
-              access_token: session.access_token,
-              refresh_token: session.refresh_token,
-            });
-            setUser(session.user);
-          }
-        }
-      } catch (error) {
-        console.error("Error processing session data from localStorage", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+    const initializeSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
       }
+      setIsLoading(false);
     };
 
     initializeSession();
     
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         const currentUser = session?.user ?? null;
-        if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
-            setUser(currentUser);
-        }
+        setUser(currentUser);
         if (isLoading) {
           setIsLoading(false);
         }
@@ -172,8 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => {
         authListener?.subscription.unsubscribe();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase.auth, isLoading]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -199,6 +181,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
+  
+  // Clonamos el elemento hijo para inyectarle la prop `user`.
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // @ts-ignore
+      return React.cloneElement(child, { user });
+    }
+    return child;
+  });
 
   return (
     <SidebarProvider>
@@ -265,7 +256,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenu>
             </header>
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-            {children}
+              {childrenWithProps}
             </main>
         </div>
       </div>

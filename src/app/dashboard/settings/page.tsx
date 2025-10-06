@@ -20,29 +20,26 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import type { Profile } from "@/lib/types";
 
-export default function SettingsPage() {
+// El componente ahora acepta `user` como una prop.
+export default function SettingsPage({ user }: { user: User | null }) {
   const supabase = createClient();
   const { toast } = useToast();
 
-  const [userId, setUserId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  // El email se tomará directamente de la prop `user`
+  const email = user?.email || '';
 
   useEffect(() => {
+    // Este useEffect ahora solo se encarga de cargar los datos del *perfil*
+    // ya que los datos del *usuario* vienen por props.
     const fetchUserProfile = async () => {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
-        setUserId(user.id);
-        setEmail(user.email || '');
-
         const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
@@ -51,6 +48,11 @@ export default function SettingsPage() {
 
         if (error) {
           console.error("Error fetching profile:", error);
+          toast({
+            variant: "destructive",
+            title: "Error al cargar el perfil",
+            description: "No se pudo recuperar la información del perfil.",
+          });
         } else if (profileData) {
           setFirstName(profileData.nombre || '');
           setLastName(profileData.apellido || '');
@@ -60,18 +62,18 @@ export default function SettingsPage() {
     };
 
     fetchUserProfile();
-  }, [supabase]);
+  }, [user, supabase, toast]);
 
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!userId) return;
+    if (!user) return;
     
     setIsSaving(true);
     
     const { error } = await supabase.from('profiles').update({
       nombre: firstName,
       apellido: lastName,
-    }).eq('id', userId);
+    }).eq('id', user.id);
 
     if (error) {
         toast({
@@ -116,11 +118,11 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="firstName">Nombre</Label>
-                                <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                                <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={isSaving} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="lastName">Apellido</Label>
-                                <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                                <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSaving}/>
                             </div>
                         </div>
                         <div className="space-y-2">
