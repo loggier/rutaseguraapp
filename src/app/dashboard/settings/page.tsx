@@ -26,20 +26,23 @@ export default function SettingsPage() {
   const supabase = createClient();
   const { toast } = useToast();
 
-  const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
 
       if (user) {
+        setUserId(user.id);
+        setEmail(user.email || '');
+
         const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
@@ -48,11 +51,6 @@ export default function SettingsPage() {
 
         if (error) {
           console.error("Error fetching profile:", error);
-          toast({
-            variant: "destructive",
-            title: "Error al cargar el perfil",
-            description: "No se pudo encontrar la información del usuario.",
-          });
         } else if (profileData) {
           setFirstName(profileData.nombre || '');
           setLastName(profileData.apellido || '');
@@ -62,18 +60,18 @@ export default function SettingsPage() {
     };
 
     fetchUserProfile();
-  }, [supabase, toast]);
+  }, [supabase]);
 
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    if (!userId) return;
     
     setIsSaving(true);
     
     const { error } = await supabase.from('profiles').update({
       nombre: firstName,
       apellido: lastName,
-    }).eq('id', user.id);
+    }).eq('id', userId);
 
     if (error) {
         toast({
@@ -127,7 +125,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Correo Electrónico</Label>
-                            <Input id="email" type="email" value={user?.email || ''} disabled />
+                            <Input id="email" type="email" value={email} disabled />
                         </div>
                     </CardContent>
                     <CardFooter>
