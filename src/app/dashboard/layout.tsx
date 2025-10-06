@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 import {
   Users,
   User,
@@ -46,7 +48,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { useSession } from '@/contexts/SessionContext';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -129,16 +130,41 @@ function MobileNav() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isLoggedIn, loading, logout } = useSession();
+  const supabase = createClient();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Solo redirigir si la carga ha terminado y el usuario no está logueado.
-    if (!loading && !isLoggedIn) {
-      router.replace('/');
-    }
-  }, [loading, isLoggedIn, router]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      
+      if (!session) {
+        router.replace('/');
+      } else {
+        setLoading(false);
+      }
+    };
 
-  // Mientras se carga la sesión, muestra una pantalla de carga.
+    checkSession();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (!session) {
+        router.replace('/')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [router, supabase.auth]);
+
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('supabase_session');
+    router.replace('/');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -147,9 +173,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
-
-  // Si no está logueado (y la carga ha terminado), muestra un mensaje mientras ocurre la redirección.
-  if (!isLoggedIn) {
+  
+  if (!session) {
      return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -158,7 +183,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Si está logueado, muestra el dashboard.
   return (
     <SidebarProvider>
       <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
@@ -216,7 +240,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Cerrar Sesión</span>
                 </DropdownMenuItem>

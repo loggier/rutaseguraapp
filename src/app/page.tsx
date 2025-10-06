@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
@@ -25,75 +24,37 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
-  const { login, isLoggedIn, loading } = useSession();
-
-  useEffect(() => {
-    // Si la sesión termina de cargar y el usuario está logueado, redirigir.
-    if (!loading && isLoggedIn) {
-      router.replace('/dashboard');
-    }
-  }, [loading, isLoggedIn, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) {
-        toast({
-            variant: "destructive",
-            title: "Error al iniciar sesión",
-            description: error.message || "Ocurrió un error inesperado.",
-        });
-      } else if (data.session) {
-        // La función `login` del contexto se encargará de todo:
-        // actualizar el estado, guardar en localStorage y redirigir.
-        login(data.session);
-        
-        toast({
-          title: "¡Login Correcto!",
-          description: "Serás redirigido al dashboard.",
-        });
-        
-        // No necesitamos `setIsPending(false)` aquí porque la redirección ocurrirá.
-        return;
-
-      } else {
-        toast({
+    if (error) {
+      toast({
           variant: "destructive",
-          title: "Error inesperado",
-          description: "No se recibió una sesión del servidor.",
-        });
-      }
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Error de sistema",
-            description: error.message || "Ocurrió un error durante el proceso de inicio de sesión.",
-        });
-    } finally {
-        // Esto solo se ejecutará si el login falla.
-        setIsPending(false);
+          title: "Error al iniciar sesión",
+          description: error.message || "Ocurrió un error inesperado.",
+      });
+      setIsPending(false);
+    } else if (data.session) {
+      // 1. Guardar la sesión explícitamente (aunque Supabase lo hace internamente)
+      localStorage.setItem('supabase_session', JSON.stringify(data.session));
+      
+      toast({
+        title: "¡Login Correcto!",
+        description: "Serás redirigido al dashboard.",
+      });
+      
+      // 2. Redirigir al dashboard
+      router.replace('/dashboard');
     }
   };
   
-  // Mientras se valida la sesión, mostramos un loader.
-  // Si ya está logueado, también muestra el loader mientras redirige.
-  if (loading || isLoggedIn) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Cargando sesión...</p>
-      </div>
-    );
-  }
-
-  // Si no está cargando Y no está logueado, mostramos el formulario.
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
       <div className="flex items-center justify-center py-12">
