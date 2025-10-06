@@ -156,11 +156,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     initializeSession();
     
-    // También escuchamos cambios por si la sesión se actualiza en otra pestaña
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
         console.log('Auth event:', event, 'Session:', session);
         const currentUser = session?.user ?? null;
-        // Solo actualiza si el usuario ha cambiado para evitar bucles de renderizado
         if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
             setUser(currentUser);
         }
