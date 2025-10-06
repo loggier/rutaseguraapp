@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
-// El componente ahora acepta `user` como una prop.
+// The component now accepts `user` as a prop from the layout.
 export default function SettingsPage({ user }: { user: User | null }) {
   const supabase = createClient();
   const { toast } = useToast();
@@ -31,12 +31,13 @@ export default function SettingsPage({ user }: { user: User | null }) {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  // El email se tomará directamente de la prop `user`
+  
+  // The email is taken directly from the `user` prop.
   const email = user?.email || '';
 
   useEffect(() => {
-    // Este useEffect ahora solo se encarga de cargar los datos del *perfil*
-    // ya que los datos del *usuario* vienen por props.
+    // This useEffect is now only responsible for loading the *profile* data
+    // as the *user* data is passed in via props.
     const fetchUserProfile = async () => {
       setIsLoading(true);
       if (user) {
