@@ -130,34 +130,31 @@ function MobileNav() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const supabase = createClient();
-  const router = useRouter();
   
   useEffect(() => {
-    // Primero, intenta obtener la sesión actual al cargar.
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-       // Puede que esto sea null inicialmente, es normal.
-      if (session) {
-        console.log('Session data from getSession():', session);
-        setUser(session.user);
+    const initializeSession = async () => {
+      // Intenta leer la sesión de Supabase, que a su vez usa localStorage.
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log('Session data from getSession():', currentSession);
+      
+      if (currentSession) {
+        setUser(currentSession.user);
       }
-    };
-    
-    fetchUser();
+      
+      // Escucha cambios de estado para mantener la sesión actualizada.
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth event:', event);
+        console.log('Session data from onAuthStateChange:', session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+      });
 
-    // Luego, escucha los cambios de estado de la autenticación.
-    // Esta es la forma más fiable de saber cuando el usuario está logueado.
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event);
-      console.log('Session data from onAuthStateChange:', session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-    });
-
-    // La función de limpieza se ejecuta cuando el componente se desmonta.
-    return () => {
-      authListener.subscription.unsubscribe();
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
     };
+
+    initializeSession();
   }, [supabase.auth]);
   
   const handleLogout = async () => {
@@ -228,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user?.user_metadata.name || user?.email || 'Admin'}</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.user_metadata.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                 <DropdownMenuItem>Soporte</DropdownMenuItem>
