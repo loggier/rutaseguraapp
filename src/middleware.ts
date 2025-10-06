@@ -56,18 +56,26 @@ export async function middleware(request: NextRequest) {
   )
 
   // This is the crucial part: it refreshes the session cookie and makes it available to server components.
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    console.log(`Middleware: Sesión de servidor encontrada para el usuario: ${user.id}`);
+  } else {
+    console.log('Middleware: No se encontró sesión de servidor.');
+  }
 
   const { pathname } = request.nextUrl;
 
   // If there's no user and they're trying to access the dashboard, redirect to login.
   if (!user && pathname.startsWith('/dashboard')) {
+    console.log('Middleware: Usuario no autenticado intentando acceder a /dashboard. Redirigiendo a /');
     const url = new URL('/', request.url);
     return NextResponse.redirect(url);
   }
 
   // If there is a user and they're on the login page, redirect to the dashboard.
   if (user && pathname === '/') {
+    console.log('Middleware: Usuario autenticado en /. Redirigiendo a /dashboard');
     const url = new URL('/dashboard', request.url);
     return NextResponse.redirect(url);
   }

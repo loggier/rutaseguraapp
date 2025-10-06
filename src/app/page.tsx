@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { AuthApiError, type Session } from '@supabase/supabase-js';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
@@ -30,7 +29,10 @@ export default function LoginPage() {
   useEffect(() => {
     const session = localStorage.getItem('supabase_session');
     if (session) {
+      console.log('Sesión encontrada en localStorage:', JSON.parse(session));
       router.push('/dashboard');
+    } else {
+      console.log('No se encontró sesión en localStorage.');
     }
   }, [router]);
   
@@ -51,6 +53,7 @@ export default function LoginPage() {
             description: error.message || "Ocurrió un error inesperado.",
         });
       } else if (data.session) {
+        console.log('Login correcto, guardando sesión en localStorage...');
         localStorage.setItem('supabase_session', JSON.stringify(data.session));
         toast({
           title: "¡Login Correcto!",
