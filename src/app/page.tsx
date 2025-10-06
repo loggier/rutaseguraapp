@@ -43,33 +43,42 @@ export default function LoginPage() {
     e.preventDefault();
     setIsPending(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      if (error instanceof AuthApiError && error.message === 'Invalid login credentials') {
-        toast({
-            variant: "destructive",
-            title: "Error al iniciar sesión",
-            description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
-        });
+      if (error) {
+        if (error instanceof AuthApiError && error.message === 'Invalid login credentials') {
+          toast({
+              variant: "destructive",
+              title: "Error al iniciar sesión",
+              description: "Credenciales inválidas. Por favor, revisa tu correo y contraseña.",
+          });
+        } else {
+          toast({
+              variant: "destructive",
+              title: "Error de autenticación",
+              description: error.message || "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+          });
+        }
       } else {
         toast({
-            variant: "destructive",
-            title: "Error de autenticación",
-            description: "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
+          title: "Inicio de sesión exitoso",
+          description: "¡Bienvenido de nuevo a RutaSegura!",
         });
+        // Forzamos una recarga completa para asegurar que el middleware detecte la nueva sesión.
+        window.location.href = '/dashboard';
       }
-      setIsPending(false);
-    } else {
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: "¡Bienvenido de nuevo a RutaSegura!",
-      });
-      // Forzamos una recarga completa para asegurar que el middleware detecte la nueva sesión.
-      window.location.href = '/dashboard';
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error inesperado",
+            description: error.message || "Ocurrió un error durante el inicio de sesión.",
+        });
+    } finally {
+        setIsPending(false);
     }
   };
 
