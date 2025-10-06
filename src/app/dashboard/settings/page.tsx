@@ -94,7 +94,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
     }
 
     setIsSaving(false);
-  }
+  };
 
   // The main loading state from the layout handles the initial user loading.
   // This component's loading state is only for the profile-specific fields.
