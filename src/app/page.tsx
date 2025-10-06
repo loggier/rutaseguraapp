@@ -22,7 +22,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  
+  // Initialize Supabase client with variables from process.env
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
