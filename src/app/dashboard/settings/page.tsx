@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +16,92 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import type { Profile } from "@/lib/types";
 
 export default function SettingsPage() {
+  const supabase = createClient();
+  const { toast } = useToast();
+
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast({
+            variant: "destructive",
+            title: "Error al cargar el perfil",
+            description: "No se pudo encontrar la información del usuario.",
+          });
+        } else {
+          setProfile(profileData);
+          setFirstName(profileData.nombre || '');
+          setLastName(profileData.apellido || '');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchUserProfile();
+  }, [supabase, toast]);
+
+  const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    setIsSaving(true);
+    
+    const { error } = await supabase.from('profiles').update({
+      nombre: firstName,
+      apellido: lastName,
+    }).eq('id', user.id);
+
+    if (error) {
+        toast({
+            variant: "destructive",
+            title: "Error al actualizar",
+            description: error.message,
+        });
+    } else {
+        toast({
+            title: "Perfil actualizado",
+            description: "Tu información ha sido guardada correctamente.",
+        });
+    }
+
+    setIsSaving(false);
+  }
+
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando perfil...</p>
+        </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -24,31 +110,36 @@ export default function SettingsPage() {
       />
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Perfil</CardTitle>
-                    <CardDescription>Esta es la información que se mostrará públicamente.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="firstName">Nombre</Label>
-                            <Input id="firstName" defaultValue="Admin" />
+            <form onSubmit={handleUpdateProfile}>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Perfil</CardTitle>
+                        <CardDescription>Esta es la información que se mostrará públicamente.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="firstName">Nombre</Label>
+                                <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="lastName">Apellido</Label>
+                                <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                            </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lastName">Apellido</Label>
-                            <Input id="lastName" defaultValue="RutaSegura" />
+                            <Label htmlFor="email">Correo Electrónico</Label>
+                            <Input id="email" type="email" value={user?.email || ''} disabled />
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Correo Electrónico</Label>
-                        <Input id="email" type="email" defaultValue="admin@rutasegura.com" />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button>Guardar Cambios</Button>
-                </CardFooter>
-            </Card>
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar Cambios
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
 
             <Card className="mt-6">
                 <CardHeader>

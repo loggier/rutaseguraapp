@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   nombre: string;
@@ -8,6 +9,14 @@ export type User = {
   estado: "activo" | "suspendido" | "en_revision" | "sin_monedas";
   fecha_registro: string;
   avatarUrl: string;
+};
+
+export type Profile = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  avatar_url?: string;
+  // Agrega cualquier otro campo que tengas en tu tabla de perfiles
 };
 
 export type Estudiante = User & {
