@@ -131,7 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const router = usePathname();
+  const pathname = usePathname();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     fetchUser();
-  }, [supabase.auth, router]);
+  }, [supabase.auth, pathname]);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -158,6 +158,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const getAvatarFallback = () => {
     if (!user) return "AD";
     const email = user.email || '';
+    const name = user.user_metadata?.name;
+    if (name) {
+      return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+    }
     return email.substring(0, 2).toUpperCase();
   }
 
