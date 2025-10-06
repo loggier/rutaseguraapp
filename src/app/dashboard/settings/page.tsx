@@ -21,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
-// The component now accepts `user` as a prop from the layout.
 export default function SettingsPage({ user }: { user: User | null }) {
   const supabase = createClient();
   const { toast } = useToast();
@@ -32,12 +31,9 @@ export default function SettingsPage({ user }: { user: User | null }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-  // The email is taken directly from the `user` prop and should always be available.
   const email = user?.email || '';
 
   useEffect(() => {
-    // This useEffect is now only responsible for loading the *profile* data
-    // as the *user* data is passed in via props.
     const fetchUserProfile = async () => {
       if (!user) {
         setIsLoadingProfile(false);
@@ -51,7 +47,7 @@ export default function SettingsPage({ user }: { user: User | null }) {
         .eq('id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is not a fatal error
+      if (error && error.code !== 'PGRST116') {
         console.error("Error fetching profile:", error);
         toast({
           variant: "destructive",
@@ -77,7 +73,6 @@ export default function SettingsPage({ user }: { user: User | null }) {
     const { error } = await supabase.from('profiles').update({
       nombre: firstName,
       apellido: lastName,
-      // Ensure the 'updated_at' field is handled by Supabase policies if needed
     }).eq('id', user.id);
 
     if (error) {
@@ -96,8 +91,6 @@ export default function SettingsPage({ user }: { user: User | null }) {
     setIsSaving(false);
   };
 
-  // The main loading state from the layout handles the initial user loading.
-  // This component's loading state is only for the profile-specific fields.
   const isFormDisabled = isSaving || isLoadingProfile;
 
   return (
