@@ -1,26 +1,21 @@
--- docs/migrations/005_create_colegios_view.sql
+-- Elimina la vista si existe para asegurar que se apliquen los cambios.
+DROP VIEW IF EXISTS rutasegura.colegios_view;
 
--- Esta vista resuelve la ambigüedad de la relación entre 'colegios' y 'users'.
--- Selecciona todas las columnas de 'colegios' y añade el 'email' de la tabla 'users'
--- uniendo explícitamente por el ID de la cuenta del colegio.
-
-CREATE OR REPLACE VIEW rutasegura.colegios_view AS
+-- Crea la vista uniendo 'colegios' y 'users' para incluir el email del usuario.
+-- El JOIN se hace sobre colegios.usuario_id = users.id para obtener el email de la cuenta.
+CREATE VIEW rutasegura.colegios_view AS
 SELECT
-    c.id,
-    c.nombre,
-    c.ruc,
-    c.email_contacto,
-    c.telefono,
-    c.direccion,
-    c.codigo_postal,
-    c.activo,
-    c.creado_por,
-    u.email
+  c.id,
+  c.nombre,
+  c.ruc,
+  c.email_contacto,
+  c.telefono,
+  c.direccion,
+  c.codigo_postal,
+  c.activo,
+  c.usuario_id,
+  c.creado_por,
+  u.email
 FROM
-    rutasegura.colegios c
-JOIN
-    rutasegura.users u ON c.id = u.id;
-
--- Con esta vista, el frontend puede hacer una consulta simple como:
--- SELECT * FROM rutasegura.colegios_view;
--- Y obtener todos los datos necesarios sin ambigüedad.
+  rutasegura.colegios c
+  JOIN rutasegura.users u ON c.usuario_id = u.id;

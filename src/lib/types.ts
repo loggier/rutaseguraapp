@@ -23,9 +23,10 @@ export type Profile = {
 
 export type Colegio = {
     id: string;
+    usuario_id: string; // Foreign key to users.id
     nombre: string;
     ruc: string;
-    email: string; // Email de la cuenta de usuario
+    email: string; // Email de la cuenta de usuario (desde la vista)
     email_contacto: string;
     telefono: string;
     direccion: string;

@@ -11,37 +11,46 @@ import { MoreHorizontal, School, Loader2 } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 import type { Colegio } from '@/lib/types';
 import { AddSchoolDialog } from './add-school-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SchoolsPage() {
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   
-  useEffect(() => {
-    async function fetchColegios() {
-      const supabase = createClient();
-      // Consultamos la VISTA 'colegios_view' que ya tiene el email unido.
-      const { data, error } = await supabase
-        .from('colegios_view')
-        .select('*');
+  async function fetchColegios() {
+    setLoading(true);
+    const supabase = createClient();
+    // Consultamos la VISTA 'colegios_view' que ya tiene el email unido.
+    const { data, error } = await supabase
+      .from('colegios_view')
+      .select('*')
+      .order('nombre', { ascending: true });
 
-      if (error) {
-        console.error("Error cargando colegios desde la vista:", error);
-        setError("No se pudieron cargar los colegios.");
-      } else {
-        // Los datos ya vienen aplanados desde la vista, por lo que el mapeo es directo.
-        setColegios(data as Colegio[]);
-      }
-      setLoading(false);
+    if (error) {
+      console.error("Error cargando colegios desde la vista:", error);
+      setError(`Error cargando colegios: ${error.message}`);
+      toast({
+        variant: "destructive",
+        title: "Error de Carga",
+        description: `No se pudieron cargar los colegios: ${error.message}`,
+      });
+    } else {
+      // Los datos ya vienen aplanados desde la vista, por lo que el mapeo es directo.
+      setColegios(data as Colegio[]);
     }
+    setLoading(false);
+  }
 
+  useEffect(() => {
     fetchColegios();
   }, []);
 
   const handleSchoolAdded = (newSchool: Colegio) => {
-    // Para que el nuevo colegio aparezca con su email, lo ideal es volver a cargar los datos
-    // o añadirlo con el email que ya viene en la respuesta de la API.
-    setColegios(prev => [{...newSchool},...prev ]);
+    // Para asegurar que todos los datos se reflejen, recargamos la lista.
+    // Es la forma más fiable de obtener todos los campos de la vista.
+    fetchColegios();
   };
 
   return (
@@ -65,7 +74,7 @@ export default function SchoolsPage() {
               <p className="ml-4 text-muted-foreground">Cargando colegios...</p>
             </div>
           ) : error ? (
-             <div className="text-center text-destructive">{error}</div>
+             <div className="text-center text-destructive py-8">{error}</div>
           ) : (
             <Table>
               <TableHeader>
