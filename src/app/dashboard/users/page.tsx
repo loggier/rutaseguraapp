@@ -22,7 +22,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Profile } from "@/lib/types";
-import { createClient } from "@/lib/supabase/server";
 
 function getRoleVariant(role: string | null) {
   switch (role) {
@@ -83,7 +82,7 @@ export default async function UsersPage() {
   const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
   if (authError) {
-    console.error("Error de autenticación al listar usuarios:", authError.message);
+    console.error("Error de autenticación al listar usuarios:", authError);
     return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios. Error: {authError.message}</p></CardContent></Card>
   }
   
