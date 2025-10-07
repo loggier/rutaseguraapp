@@ -20,7 +20,7 @@ export default function SchoolsPage() {
   useEffect(() => {
     async function fetchColegios() {
       const supabase = createClient();
-      // Seleccionamos los datos de la tabla colegios y hacemos un JOIN implícito
+      // Seleccionamos los datos de la tabla colegios y hacemos un JOIN explícito
       // con la tabla users para obtener el email.
       const { data, error } = await supabase
         .from('colegios')
@@ -31,20 +31,19 @@ export default function SchoolsPage() {
           email_contacto,
           telefono,
           direccion,
+          codigo_postal,
           activo,
-          users (
-            email
-          )
+          user:users ( email )
         `);
 
       if (error) {
-        console.error("Error cargando colegios:", error);
+        console.error("Error cargando colegios:", error.message);
         setError("No se pudieron cargar los colegios.");
       } else {
         const formattedData: Colegio[] = data.map((item: any) => ({
           ...item,
-          email: item.users.email, // Movemos el email al nivel superior del objeto
-          users: undefined, // Opcional: removemos el objeto anidado si no se necesita
+          email: item.user?.email || 'N/A', // Movemos el email al nivel superior del objeto
+          user: undefined, // Opcional: removemos el objeto anidado si no se necesita
         }));
         setColegios(formattedData);
       }

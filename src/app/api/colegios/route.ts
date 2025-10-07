@@ -85,8 +85,7 @@ export async function POST(request: Request) {
         direccion, codigo_postal, creado_por, activo: true
       })
       .select(`
-          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo,
-          users ( email )
+          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo
       `)
       .single();
 
@@ -99,8 +98,7 @@ export async function POST(request: Request) {
 
     const responseData = {
         ...newSchool,
-        email: (newSchool as any).users.email,
-        users: undefined
+        email: email
     };
 
     return NextResponse.json({ message: 'Colegio creado con éxito', colegio: responseData }, { status: 201 });
