@@ -17,14 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client"; // Changed to client
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { AddUserDialog } from "./add-user-dialog";
+import { EditUserDialog } from "./edit-user-dialog";
 
 function getRoleVariant(role: string | null) {
   switch (role) {
@@ -82,6 +83,10 @@ export default function UsersPage() {
 
   const handleUserAdded = (newUser: Profile) => {
     setProfiles(prev => [...prev, newUser]);
+  }
+
+  const handleUserUpdated = (updatedUser: Profile) => {
+    setProfiles(prev => prev.map(p => p.id === updatedUser.id ? updatedUser : p));
   }
 
   if (error) {
@@ -148,7 +153,11 @@ export default function UsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem>Editar Rol</DropdownMenuItem>
+                          <EditUserDialog user={profile} onUserUpdated={handleUserUpdated}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                Editar Usuario
+                            </DropdownMenuItem>
+                          </EditUserDialog>
                           <DropdownMenuItem
                             className="text-destructive"
                             disabled={profile.rol === 'master'}
