@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Shield } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,31 +40,33 @@ function getRoleVariant(role: string) {
 }
 
 export default async function UsersPage() {
-  const cookieStore = cookies();
   const supabase = createClient();
   
-  const { data: profiles, error } = await supabase
+  // 1. Obtener todos los perfiles de `rutasegura.profiles`
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select(`
-      id,
-      nombre,
-      apellido,
-      rol,
-      user:auth_users(email)
-    `);
+    .select('*');
+    
+  if (profilesError) {
+    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
+  }
 
-  // Supabase en RLS devuelve un array vacío si no hay data, no un error.
-  // Pero si hay un error de conexión o de sintaxis, lo mostramos.
-  if (error) {
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los usuarios: {error.message}</p></CardContent></Card>
+  // 2. Obtener todos los usuarios de `auth.users`
+  const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+
+  if (authError) {
+    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los usuarios de autenticación: {authError.message}</p></CardContent></Card>
   }
   
-  // Como `user` puede ser un array o un objeto, lo normalizamos.
-  const formattedProfiles = profiles?.map(p => ({
-    ...p,
-    // @ts-ignore
-    email: Array.isArray(p.user) ? p.user[0]?.email : p.user?.email,
-  })) || [];
+  // 3. Unir los datos en el código
+  const formattedProfiles = profiles?.map(profile => {
+    const authUser = authUsers.find(u => u.id === profile.id);
+    return {
+      ...profile,
+      email: authUser?.email || 'Sin email',
+      avatar_url: authUser?.user_metadata?.avatar_url || null,
+    };
+  }) || [];
 
 
   return (
@@ -102,12 +104,12 @@ export default async function UsersPage() {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={profile.avatar_url || ''} alt={`${profile.nombre} ${profile.apellido}`} data-ai-hint="person face" />
+                        <AvatarImage src={profile.avatar_url || ''} alt={`${profile.nombre || ''} ${profile.apellido || ''}`} data-ai-hint="person face" />
                         <AvatarFallback>{(profile.nombre?.[0] || '')}{(profile.apellido?.[0] || '')}</AvatarFallback>
                       </Avatar>
                       <div>
                         {profile.nombre || 'Sin'} {profile.apellido || 'Nombre'}
-                        <div className="text-sm text-muted-foreground">{profile.email || 'Sin email'}</div>
+                        <div className="text-sm text-muted-foreground">{profile.email}</div>
                       </div>
                     </div>
                   </TableCell>
@@ -141,3 +143,4 @@ export default async function UsersPage() {
     </div>
   );
 }
+
