@@ -1,5 +1,5 @@
 
-import { createClient as createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies, type CookieOptions } from "next/headers";
 import {
   Table,
@@ -52,9 +52,6 @@ export default async function UsersPage() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        db: {
-          schema: 'rutasegura'
-        },
         cookies: {
             get(name: string) {
                 return cookieStore.get(name)?.value
@@ -78,9 +75,6 @@ export default async function UsersPage() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
-        db: {
-          schema: 'rutasegura'
-        },
         cookies: {
             get(name: string) {
                 return cookieStore.get(name)?.value
@@ -99,7 +93,7 @@ export default async function UsersPage() {
 
   if (authError) {
     console.error("Error de autenticación al listar usuarios:", authError.message);
-    return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios.</p></CardContent></Card>
+    return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios. Error: {authError.message}</p></CardContent></Card>
   }
   
   // 3. Unir los datos en el código
