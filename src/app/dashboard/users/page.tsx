@@ -1,5 +1,4 @@
 
-
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import {
   Table,
@@ -23,8 +22,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Profile } from "@/lib/types";
+import { createClient } from "@/lib/supabase/server";
 
-function getRoleVariant(role: string) {
+function getRoleVariant(role: string | null) {
   switch (role) {
     case 'master':
       return 'destructive';
