@@ -33,7 +33,7 @@ export default function SchoolsPage() {
           direccion,
           codigo_postal,
           activo,
-          user:users ( email )
+          users:users!inner ( email )
         `);
 
       if (error) {
@@ -42,8 +42,8 @@ export default function SchoolsPage() {
       } else {
         const formattedData: Colegio[] = data.map((item: any) => ({
           ...item,
-          email: item.user?.email || 'N/A', // Movemos el email al nivel superior del objeto
-          user: undefined, // Opcional: removemos el objeto anidado si no se necesita
+          email: item.users?.email || 'N/A', // Movemos el email al nivel superior del objeto
+          users: undefined, // Opcional: removemos el objeto anidado si no se necesita
         }));
         setColegios(formattedData);
       }
