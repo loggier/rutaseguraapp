@@ -1,4 +1,4 @@
-import type { Estudiante, Conductor, Autobus, Ruta, Plan, Viaje } from "./types";
+import type { Estudiante, Conductor, Autobus, Ruta, Plan, Viaje, Colegio } from "./types";
 
 export const estudiantes: Estudiante[] = [
   {
@@ -183,3 +183,32 @@ export const studentLocationsForOptimization = [
   { studentId: 'E003', latitude: 34.06, longitude: -118.24 },
   { studentId: 'E004', latitude: 34.045, longitude: -118.23 },
 ];
+
+export const colegios: Colegio[] = [
+    {
+        id: "c1",
+        nombre: "Colegio San Francisco",
+        ruc: "1791234567001",
+        email: "colegio.sf@example.com",
+        email_contacto: "contacto@sanfrancisco.edu.ec",
+        telefono: "022555777",
+        direccion: "Av. 12 de Octubre, Quito",
+        codigo_postal: "170150",
+        activo: true,
+        creado_por: "master_user_id"
+    },
+    {
+        id: "c2",
+        nombre: "Unidad Educativa La Sabiduría",
+        ruc: "0998765432001",
+        email: "colegio.ls@example.com",
+        email_contacto: "info@lasabiduria.edu.ec",
+        telefono: "042123456",
+        direccion: "Av. de las Américas, Guayaquil",
+        codigo_postal: "090101",
+        activo: false,
+        creado_por: "manager_user_id"
+    }
+];
+
+    

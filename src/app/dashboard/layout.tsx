@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
-  Menu, Bell, LogOut, Loader2, Shield,
+  Menu, Bell, LogOut, Loader2, Shield, School,
 } from 'lucide-react';
 import {
   Sheet, SheetContent, SheetTrigger,
@@ -30,6 +30,7 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/users', icon: Shield, label: 'Usuarios' },
+  { href: '/dashboard/schools', icon: School, label: 'Colegios' },
   { href: '/dashboard/students', icon: Users, label: 'Estudiantes' },
   { href: '/dashboard/drivers', icon: User, label: 'Conductores' },
   { href: '/dashboard/buses', icon: Bus, label: 'Autobuses' },
@@ -49,7 +50,7 @@ function SidebarNav() {
          <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
-              isActive={pathname === item.href}
+              isActive={pathname.startsWith(item.href)}
               tooltip={open ? undefined : item.label}
             >
               <Link href={item.href}>
@@ -231,3 +232,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
+
+    

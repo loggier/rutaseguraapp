@@ -21,6 +21,19 @@ export type Profile = {
   activo: boolean;
 };
 
+export type Colegio = {
+    id: string;
+    nombre: string;
+    ruc: string;
+    email: string;
+    email_contacto: string;
+    telefono: string;
+    direccion: string;
+    codigo_postal: string;
+    activo: boolean;
+    creado_por: string; // Foreign key to users.id
+}
+
 export type Estudiante = User & {
   rol: "estudiante";
   id_estudiante: string;
@@ -72,3 +85,5 @@ export type Viaje = {
   autobus: string;
   estado: 'activo' | 'suspendido' | 'papelera';
 }
+
+    
