@@ -1,4 +1,5 @@
 
+
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import {
@@ -157,7 +158,10 @@ export default async function UsersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem>Editar Rol</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          disabled={profile.rol === 'master'}
+                        >
                           Eliminar Usuario
                         </DropdownMenuItem>
                       </DropdownMenuContent>
