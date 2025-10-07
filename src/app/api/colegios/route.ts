@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     if (userError || !newUser) {
       console.error('Error al crear usuario para colegio:', userError);
-      return NextResponse.json({ message: 'Error interno al crear la cuenta de usuario del colegio.' }, { status: 500 });
+      return NextResponse.json({ message: 'Error al crear la cuenta de usuario: ' + userError?.message }, { status: 500 });
     }
     const newUserId = newUser.id;
 
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     if (profileError) {
       console.error('Error al crear perfil para colegio:', profileError);
       await supabaseAdmin.from('users').delete().eq('id', newUserId); // Rollback
-      return NextResponse.json({ message: 'Error interno al crear el perfil del colegio.' }, { status: 500 });
+      return NextResponse.json({ message: 'Error al crear el perfil: ' + profileError.message }, { status: 500 });
     }
 
     // 4. Crear colegio
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       console.error('Error al crear colegio:', schoolError);
       await supabaseAdmin.from('profiles').delete().eq('id', newUserId); // Rollback
       await supabaseAdmin.from('users').delete().eq('id', newUserId); // Rollback
-      return NextResponse.json({ message: 'Error interno al registrar los datos del colegio.' }, { status: 500 });
+      return NextResponse.json({ message: 'Error al registrar los datos del colegio: ' + schoolError?.message }, { status: 500 });
     }
 
     const responseData = {
@@ -110,8 +110,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: 'Colegio creado con éxito', colegio: responseData }, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error inesperado en API de creación de colegios:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+    return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
   }
 }
