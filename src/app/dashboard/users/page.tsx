@@ -48,8 +48,8 @@ type FormattedProfile = Profile & {
 export default async function UsersPage() {
   const cookieStore = cookies()
   
-  // Usaremos un único cliente de administrador para todas las operaciones
-  // que requieren acceso privilegiado.
+  // Se debe crear un cliente específico para esta operación
+  // que utilice la service_role_key para saltarse RLS.
   const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
