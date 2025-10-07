@@ -1,6 +1,6 @@
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies, type CookieOptions } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Shield } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -47,33 +47,8 @@ type FormattedProfile = Profile & {
 export default async function UsersPage() {
   const cookieStore = cookies()
   
-  // 1. Obtener todos los perfiles de `rutasegura.profiles`
-  const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        db: {
-            schema: 'rutasegura'
-        },
-        cookies: {
-            get(name: string) {
-                return cookieStore.get(name)?.value
-            }
-        }
-      }
-  );
-
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select('*');
-    
-  if (profilesError) {
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
-  }
-
-  // 2. Obtener todos los usuarios de `auth.users`
-  // Esta es una operación de administrador y requiere la service_role_key
-  // Se debe crear un cliente específico para esta operación
+  // Usaremos un único cliente de administrador para todas las operaciones
+  // que requieren acceso privilegiado.
   const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -95,6 +70,16 @@ export default async function UsersPage() {
       }
   );
 
+  // 1. Obtener todos los perfiles usando el cliente de administrador
+  const { data: profiles, error: profilesError } = await supabaseAdmin
+    .from("profiles")
+    .select('*');
+    
+  if (profilesError) {
+    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
+  }
+
+  // 2. Obtener todos los usuarios de auth.users usando el mismo cliente de administrador
   const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
   if (authError) {
