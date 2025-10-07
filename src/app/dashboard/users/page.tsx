@@ -1,46 +1,13 @@
 'use client';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { AddUserDialog } from "./add-user-dialog";
-import { EditUserDialog } from "./edit-user-dialog";
-
-function getRoleVariant(role: string | null) {
-  switch (role) {
-    case 'master':
-      return 'destructive';
-    case 'manager':
-      return 'default';
-    case 'colegio':
-      return 'secondary';
-    case 'padre':
-      return 'outline';
-    default:
-      return 'outline';
-  }
-}
+import { UsersTable } from "./users-table";
+import { Loader2 } from "lucide-react";
 
 export default function UsersPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -50,6 +17,8 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchProfiles() {
       const supabase = createClient();
+      // Usamos el cliente de servicio para poder obtener todos los perfiles,
+      // incluyendo el email de la tabla auth.users que está protegida.
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -66,7 +35,7 @@ export default function UsersPage() {
         console.error("Error cargando perfiles:", error);
         setError(`No se pudieron cargar los perfiles: ${error.message}`);
       } else {
-        const formattedProfiles: Profile[] = data?.map((p: any) => ({
+         const formattedProfiles: Profile[] = data?.map((p: any) => ({
           id: p.id,
           nombre: p.nombre,
           apellido: p.apellido,
@@ -82,11 +51,15 @@ export default function UsersPage() {
   }, []);
 
   const handleUserAdded = (newUser: Profile) => {
-    setProfiles(prev => [...prev, newUser]);
+    setProfiles(prev => [newUser, ...prev]);
   }
 
   const handleUserUpdated = (updatedUser: Profile) => {
     setProfiles(prev => prev.map(p => p.id === updatedUser.id ? updatedUser : p));
+  }
+
+  const handleUserDeleted = (deletedUserId: string) => {
+    setProfiles(prev => prev.filter(p => p.id !== deletedUserId));
   }
 
   if (error) {
@@ -108,70 +81,18 @@ export default function UsersPage() {
           <CardDescription>Un total de {profiles.length} usuarios registrados en el sistema.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead className="hidden md:table-cell">ID de Usuario</TableHead>
-                <TableHead>
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">Cargando...</TableCell>
-                </TableRow>
-              ) : (
-                profiles.map((profile) => (
-                  <TableRow key={profile.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={profile.avatar_url || ''} alt={`${profile.nombre || ''} ${profile.apellido || ''}`} data-ai-hint="person face" />
-                          <AvatarFallback>{(profile.nombre?.[0] || '')}{(profile.apellido?.[0] || '')}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          {profile.nombre || 'Sin'} {profile.apellido || 'Nombre'}
-                          <div className="text-sm text-muted-foreground">{profile.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleVariant(profile.rol)}>{profile.rol}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell font-mono text-xs">{profile.id}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <EditUserDialog user={profile} onUserUpdated={handleUserUpdated}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                Editar Usuario
-                            </DropdownMenuItem>
-                          </EditUserDialog>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            disabled={profile.rol === 'master'}
-                          >
-                            Eliminar Usuario
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+           {loading ? (
+             <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Cargando usuarios...</p>
+             </div>
+           ) : (
+             <UsersTable 
+                profiles={profiles}
+                onUserUpdated={handleUserUpdated}
+                onUserDeleted={handleUserDeleted}
+              />
+           )}
         </CardContent>
       </Card>
     </div>
