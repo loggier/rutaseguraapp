@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -13,9 +14,10 @@ export type User = {
 
 export type Profile = {
   id: string;
-  nombre: string;
-  apellido: string;
-  avatar_url?: string;
+  nombre: string | null;
+  apellido: string | null;
+  avatar_url?: string | null;
+  rol: "master" | "manager" | "colegio" | "padre";
   // Agrega cualquier otro campo que tengas en tu tabla de perfiles
 };
 
