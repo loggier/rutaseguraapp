@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const { data: newSchool, error: schoolError } = await supabaseAdmin
       .from('colegios')
       .insert({
-        id: newUserId, // <-- CORRECCIÓN: Pasar explícitamente el ID
+        id: newUserId,
         nombre, 
         ruc, 
         email_contacto, 

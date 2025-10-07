@@ -16,10 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { Colegio } from '@/lib/types';
 import { useUser } from '@/contexts/user-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre del colegio es requerido'),
-  ruc: z.string().min(13, 'El RUC debe tener 13 dígitos').max(13, 'El RUC debe tener 13 dígitos'),
+  ruc: z.string().length(13, 'El RUC debe tener 13 dígitos'),
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'El teléfono es requerido'),
   direccion: z.string().min(1, 'La dirección es requerida'),
@@ -101,7 +102,7 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
           <span>Agregar Colegio</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-4xl">
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Agregar Nuevo Colegio</DialogTitle>
@@ -109,8 +110,12 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
               Completa los datos para registrar un nuevo colegio y su cuenta de usuario asociada.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-96 pr-6">
-            <div className="grid gap-4 py-4">
+          <ScrollArea className="h-[60vh] pr-6">
+            <div className="grid md:grid-cols-2 gap-8 py-4">
+              {/* Columna de Datos del Colegio */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-foreground">Datos del Colegio</h4>
+                <Separator />
                 <div className='space-y-2'>
                     <Label htmlFor="nombre">Nombre del Colegio</Label>
                     <Input id="nombre" {...form.register('nombre')} />
@@ -141,22 +146,26 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
                     <Input id="codigo_postal" {...form.register('codigo_postal')} />
                     {form.formState.errors.codigo_postal && <p className="text-sm text-destructive">{form.formState.errors.codigo_postal.message}</p>}
                 </div>
-                
-                <hr className='my-4'/>
+              </div>
 
+              {/* Columna de Datos de la Cuenta */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-foreground">Cuenta de Usuario</h4>
+                <Separator />
                  <div className='space-y-2'>
-                    <Label htmlFor="email">Email (Cuenta de Usuario)</Label>
+                    <Label htmlFor="email">Email (para inicio de sesión)</Label>
                     <Input id="email" type="email" {...form.register('email')} />
                     {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
                 </div>
                  <div className='space-y-2'>
-                    <Label htmlFor="password">Contraseña (Cuenta de Usuario)</Label>
+                    <Label htmlFor="password">Contraseña</Label>
                     <Input id="password" type="password" {...form.register('password')} />
                     {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>}
                 </div>
+              </div>
             </div>
             </ScrollArea>
-          <DialogFooter>
+          <DialogFooter className="pt-6">
             <DialogClose asChild>
                 <Button type="button" variant="outline" disabled={isPending}>Cancelar</Button>
             </DialogClose>
