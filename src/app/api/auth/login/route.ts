@@ -2,44 +2,14 @@
 
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { verifyPassword } from '@/lib/auth-utils';
 import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 
-// Definición del tipo para el usuario con su contraseña hasheada
+// Definición del tipo para la respuesta de la tabla 'users'
 type UserWithPassword = {
   id: string;
   password: string; // Este es el hash de la contraseña desde la BD
 };
-
-// Función helper para verificar la contraseña llamando a una función RPC de PostgreSQL
-async function verifyPassword(password: string, hash: string): Promise<any> {
-  // Se crea un cliente con privilegios de servicio para poder llamar a la función RPC.
-  // Es crucial pasarle un objeto de cookies con funciones vacías para que no intente usar la sesión del cliente.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get: () => undefined,
-        set: () => {},
-        remove: () => {},
-      },
-      db: { schema: 'rutasegura' }
-    }
-  ); 
-  // Llamada a la función 'verify_password' definida en la base de datos
-  const { data, error } = await supabase.rpc('verify_password', {
-    password_param: password,
-    hash_param: hash,
-  });
-  
-  return JSON.stringify(error);
-
-  if (error) {
-    console.error('Error al verificar la contraseña con RPC:', error);
-    return false;
-  }
-  return data;
-}
 
 export async function POST(request: Request) {
   try {
@@ -51,7 +21,6 @@ export async function POST(request: Request) {
     }
     
     // Se crea un cliente de Supabase con rol de servicio para esta operación.
-    // Esto es necesario para poder leer la tabla 'users' que no debe ser pública.
     const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -80,12 +49,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
-    // 4. Verificar la contraseña usando la función segura de la base de datos
+    // 4. Verificar la contraseña usando bcrypt
     const isValidPassword = await verifyPassword(password, user.password);
-    return NextResponse.json({ message: isValidPassword }, { status: 401 });
+    
     if (!isValidPassword) {
-      console.error('Intento de contraseña inválida para el usuario:', email);
-      return NextResponse.json({ message: 'Credenciales2 inválidas.' }, { status: 401 });
+      return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
     // 5. Si las credenciales son válidas, obtener el perfil completo del usuario
