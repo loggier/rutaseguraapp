@@ -11,7 +11,7 @@ type UserWithPassword = {
 };
 
 // Función helper para verificar la contraseña llamando a una función RPC de PostgreSQL
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
+async function verifyPassword(password: string, hash: string): Promise<any> {
   // Se crea un cliente con privilegios de servicio para poder llamar a la función RPC.
   // Es crucial pasarle un objeto de cookies con funciones vacías para que no intente usar la sesión del cliente.
   const supabase = createServerClient(
@@ -31,6 +31,8 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
     password_param: password,
     hash_param: hash,
   });
+  
+  return JSON.stringify(error);
 
   if (error) {
     console.error('Error al verificar la contraseña con RPC:', error);
@@ -80,10 +82,10 @@ export async function POST(request: Request) {
 
     // 4. Verificar la contraseña usando la función segura de la base de datos
     const isValidPassword = await verifyPassword(password, user.password);
-
+    return NextResponse.json({ message: isValidPassword }, { status: 401 });
     if (!isValidPassword) {
       console.error('Intento de contraseña inválida para el usuario:', email);
-      return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
+      return NextResponse.json({ message: 'Credenciales2 inválidas.' }, { status: 401 });
     }
 
     // 5. Si las credenciales son válidas, obtener el perfil completo del usuario
