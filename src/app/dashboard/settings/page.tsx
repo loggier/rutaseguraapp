@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from "react";
@@ -27,8 +28,12 @@ export default function SettingsPage() {
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const email = user?.email || '';
 
@@ -47,7 +52,6 @@ export default function SettingsPage() {
           .eq('id', user.id)
           .single();
   
-        // PGRST116 significa "no rows found", lo cual es un caso válido (el perfil aún no existe).
         if (error && error.code !== 'PGRST116') { 
           throw error;
         } 
@@ -69,7 +73,9 @@ export default function SettingsPage() {
       }
     };
 
-    fetchUserProfile();
+    if (user) {
+      fetchUserProfile();
+    }
   }, [user, supabase, toast]);
 
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -78,16 +84,12 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     
-    // La operación 'upsert' es ideal aquí:
-    // 1. Intenta insertar el registro.
-    // 2. Si encuentra un conflicto en la columna 'id' (porque el usuario ya existe),
-    //    en lugar de fallar, actualiza el registro existente.
     const { error } = await supabase.from('profiles').upsert({
-      id: user.id, // El ID del usuario autenticado
+      id: user.id,
       nombre: firstName,
       apellido: lastName,
     }, {
-        onConflict: 'id' // Le dice a Supabase que la columna 'id' es la clave para detectar conflictos.
+        onConflict: 'id'
     }).select().single();
 
     if (error) {
@@ -105,6 +107,59 @@ export default function SettingsPage() {
 
     setIsSaving(false);
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Campos requeridos",
+        description: "Por favor, completa los campos de contraseña.",
+      });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Las contraseñas no coinciden",
+        description: "Por favor, verifica la nueva contraseña.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+        toast({
+            variant: "destructive",
+            title: "Contraseña insegura",
+            description: "La nueva contraseña debe tener al menos 6 caracteres.",
+        });
+        return;
+    }
+
+    setIsUpdatingPassword(true);
+
+    const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+    });
+
+    if (error) {
+        toast({
+            variant: "destructive",
+            title: "Error al actualizar contraseña",
+            description: error.message,
+        });
+    } else {
+        toast({
+            title: "Contraseña actualizada",
+            description: "Tu contraseña ha sido cambiada con éxito.",
+        });
+        setNewPassword('');
+        setConfirmPassword('');
+    }
+
+    setIsUpdatingPassword(false);
+  };
   
   if (!user) {
     return (
@@ -116,6 +171,7 @@ export default function SettingsPage() {
   }
 
   const isFormDisabled = isSaving || isLoadingProfile;
+  const isPasswordFormDisabled = isUpdatingPassword;
 
   return (
     <div className="flex flex-col gap-6">
@@ -165,25 +221,30 @@ export default function SettingsPage() {
                 </Card>
             </form>
 
-            <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle>Seguridad</CardTitle>
-                    <CardDescription>Gestiona tu contraseña.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Contraseña Actual</Label>
-                        <Input id="currentPassword" type="password" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="newPassword">Nueva Contraseña</Label>
-                        <Input id="newPassword" type="password" />
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button>Actualizar Contraseña</Button>
-                </CardFooter>
-            </Card>
+            <form onSubmit={handleUpdatePassword}>
+                <Card className="mt-6">
+                    <CardHeader>
+                        <CardTitle>Seguridad</CardTitle>
+                        <CardDescription>Gestiona tu contraseña.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                            <Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isPasswordFormDisabled} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isPasswordFormDisabled} />
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" disabled={isPasswordFormDisabled}>
+                            {isUpdatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Actualizar Contraseña
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
         </div>
         <div>
             <Card>
@@ -223,3 +284,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
