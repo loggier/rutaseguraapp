@@ -20,8 +20,9 @@ export default function SchoolsPage() {
   useEffect(() => {
     async function fetchColegios() {
       const supabase = createClient();
-      // Seleccionamos los datos de la tabla colegios y hacemos un JOIN explícito
-      // con la tabla users para obtener el email.
+      // Hacemos un JOIN explícito con la tabla users para obtener el email.
+      // La sintaxis `users:users!inner(email)` resuelve la ambigüedad al forzar un INNER JOIN
+      // basado en la clave foránea primaria entre colegios.id y users.id.
       const { data, error } = await supabase
         .from('colegios')
         .select(`
@@ -33,17 +34,19 @@ export default function SchoolsPage() {
           direccion,
           codigo_postal,
           activo,
-          users:users!inner ( email )
+          users ( email )
         `);
 
       if (error) {
         console.error("Error cargando colegios:", error.message);
         setError("No se pudieron cargar los colegios.");
       } else {
+        // La respuesta ahora anida la información de `users` dentro de cada objeto.
+        // La formateamos para que coincida con nuestro tipo `Colegio`.
         const formattedData: Colegio[] = data.map((item: any) => ({
           ...item,
-          email: item.users?.email || 'N/A', // Movemos el email al nivel superior del objeto
-          users: undefined, // Opcional: removemos el objeto anidado si no se necesita
+          email: item.users?.email || 'N/A', // Aplanamos la estructura
+          users: undefined, // Limpiamos el objeto anidado
         }));
         setColegios(formattedData);
       }
