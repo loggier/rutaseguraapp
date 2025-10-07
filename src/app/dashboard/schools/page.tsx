@@ -20,9 +20,8 @@ export default function SchoolsPage() {
   useEffect(() => {
     async function fetchColegios() {
       const supabase = createClient();
-      // La sintaxis `users(email)` le indica a Supabase que use la relación
-      // directa (basada en la clave foránea `colegios.id` -> `users.id`) para obtener el email.
-      // Esto resuelve la ambigüedad causada por la segunda clave foránea (`creado_por`).
+      // Desambiguamos la relación especificando la clave foránea a usar para el join.
+      // colegios.id es la clave foránea que referencia a users.id
       const { data, error } = await supabase
         .from('colegios')
         .select(`
@@ -34,7 +33,7 @@ export default function SchoolsPage() {
           direccion,
           codigo_postal,
           activo,
-          users ( email )
+          users:users!colegios_id_fkey(email)
         `);
 
       if (error) {
