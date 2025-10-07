@@ -14,15 +14,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, UserCheck, UserX } from "lucide-react";
+import { MoreHorizontal, UserCheck, UserX, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types";
 import { EditUserDialog } from "./edit-user-dialog";
 import { UpdateStatusAlert } from "./update-status-alert";
+import { DeleteUserAlert } from "./delete-user-alert";
 
 function getRoleVariant(role: string | null) {
   switch (role) {
@@ -43,10 +45,12 @@ type UsersTableProps = {
     profiles: Profile[];
     onUserUpdated: (updatedUser: Profile) => void;
     onUserStatusChanged: (userId: string, newStatus: boolean) => void;
+    onUserDeleted: (userId: string) => void;
 }
 
-export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged }: UsersTableProps) {
+export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged, onUserDeleted }: UsersTableProps) {
     const [userToUpdateStatus, setUserToUpdateStatus] = useState<Profile | null>(null);
+    const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
 
     return (
         <>
@@ -81,7 +85,7 @@ export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged }: Use
                         <Badge variant={getRoleVariant(profile.rol)}>{profile.rol}</Badge>
                     </TableCell>
                      <TableCell>
-                        <Badge variant={profile.activo ? 'default' : 'destructive'}>
+                        <Badge variant={profile.activo ? 'default' : 'secondary'}>
                           {profile.activo ? 'Activo' : 'Inactivo'}
                         </Badge>
                     </TableCell>
@@ -102,12 +106,20 @@ export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged }: Use
                                 </DropdownMenuItem>
                             </EditUserDialog>
                             <DropdownMenuItem
-                                className={profile.activo ? 'text-destructive' : 'text-green-600'}
                                 disabled={profile.rol === 'master'}
                                 onClick={() => setUserToUpdateStatus(profile)}
                             >
                                 {profile.activo ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                 {profile.activo ? 'Desactivar' : 'Activar'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                className='text-destructive'
+                                disabled={profile.rol === 'master'}
+                                onClick={() => setUserToDelete(profile)}
+                            >
+                               <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar Usuario
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                         </DropdownMenu>
@@ -116,12 +128,22 @@ export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged }: Use
                 ))}
                 </TableBody>
             </Table>
+            
             {userToUpdateStatus && (
                 <UpdateStatusAlert
                     user={userToUpdateStatus}
                     isOpen={!!userToUpdateStatus}
                     onClose={() => setUserToUpdateStatus(null)}
                     onUserStatusChanged={onUserStatusChanged}
+                />
+            )}
+
+            {userToDelete && (
+                <DeleteUserAlert
+                    user={userToDelete}
+                    isOpen={!!userToDelete}
+                    onClose={() => setUserToDelete(null)}
+                    onUserDeleted={onUserDeleted}
                 />
             )}
         </>

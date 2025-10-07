@@ -17,7 +17,6 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchProfiles() {
       const supabase = createClient();
-      // Unimos la tabla `profiles` con `users` para obtener todos los datos
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -62,6 +61,10 @@ export default function UsersPage() {
   const handleUserStatusChanged = (userId: string, newStatus: boolean) => {
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, activo: newStatus } : p));
   }
+  
+  const handleUserDeleted = (userId: string) => {
+    setProfiles(prev => prev.filter(p => p.id !== userId));
+  }
 
   if (error) {
     return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>{error}</p></CardContent></Card>
@@ -92,6 +95,7 @@ export default function UsersPage() {
                 profiles={profiles}
                 onUserUpdated={handleUserUpdated}
                 onUserStatusChanged={handleUserStatusChanged}
+                onUserDeleted={handleUserDeleted}
               />
            )}
         </CardContent>
