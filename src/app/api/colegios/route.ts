@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const { data: newSchool, error: schoolError } = await supabaseAdmin
       .from('colegios')
       .insert({
-        usuario_id: newUserId, // <-- CORRECCIÓN CLAVE
+        usuario_id: newUserId, 
         nombre, 
         ruc, 
         email_contacto, 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         activo: true
       })
       .select(`
-          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo
+          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo, usuario_id, creado_por
       `)
       .single();
 
@@ -103,6 +103,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Error al registrar los datos del colegio: ' + schoolError?.message }, { status: 500 });
     }
 
+    // Se construye la respuesta con el email para la UI
     const responseData = {
         ...newSchool,
         email: email
