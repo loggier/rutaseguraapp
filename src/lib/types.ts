@@ -25,7 +25,7 @@ export type Colegio = {
     id: string;
     nombre: string;
     ruc: string;
-    email: string;
+    email: string; // Email de la cuenta de usuario
     email_contacto: string;
     telefono: string;
     direccion: string;

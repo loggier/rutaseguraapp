@@ -1,39 +1,70 @@
-
 'use client';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, School } from "lucide-react";
+import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { colegios } from "@/lib/data";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, School, Loader2 } from "lucide-react";
+import { createClient } from '@/lib/supabase/client';
+import type { Colegio } from '@/lib/types';
+import { AddSchoolDialog } from './add-school-dialog';
 
 export default function SchoolsPage() {
+  const [colegios, setColegios] = useState<Colegio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    async function fetchColegios() {
+      const supabase = createClient();
+      // Seleccionamos los datos de la tabla colegios y hacemos un JOIN implícito
+      // con la tabla users para obtener el email.
+      const { data, error } = await supabase
+        .from('colegios')
+        .select(`
+          id,
+          nombre,
+          ruc,
+          email_contacto,
+          telefono,
+          direccion,
+          activo,
+          users (
+            email
+          )
+        `);
+
+      if (error) {
+        console.error("Error cargando colegios:", error);
+        setError("No se pudieron cargar los colegios.");
+      } else {
+        const formattedData: Colegio[] = data.map((item: any) => ({
+          ...item,
+          email: item.users.email, // Movemos el email al nivel superior del objeto
+          users: undefined, // Opcional: removemos el objeto anidado si no se necesita
+        }));
+        setColegios(formattedData);
+      }
+      setLoading(false);
+    }
+
+    fetchColegios();
+  }, []);
+
+  const handleSchoolAdded = (newSchool: Colegio) => {
+    setColegios(prev => [newSchool, ...prev]);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Gestión de Colegios"
         description="Administra las cuentas de los colegios, sus datos y usuarios asociados."
       >
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-3.5 w-3.5" />
-          <span>Agregar Colegio</span>
-        </Button>
+        <AddSchoolDialog onSchoolAdded={handleSchoolAdded} />
       </PageHeader>
 
       <Card>
@@ -42,69 +73,75 @@ export default function SchoolsPage() {
           <CardDescription>Un total de {colegios.length} colegios registrados en el sistema.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre del Colegio</TableHead>
-                <TableHead>RUC</TableHead>
-                <TableHead className="hidden md:table-cell">Contacto</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {colegios.map((colegio) => (
-                <TableRow key={colegio.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <School className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        {colegio.nombre}
-                         <div className="text-sm text-muted-foreground">{colegio.direccion}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{colegio.ruc}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div>
-                      {colegio.email_contacto}
-                      <div className="text-sm text-muted-foreground">{colegio.telefono}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={colegio.activo ? 'default' : 'secondary'}>
-                      {colegio.activo ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem>Gestionar Usuarios</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Desactivar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Cargando colegios...</p>
+            </div>
+          ) : error ? (
+             <div className="text-center text-destructive">{error}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre del Colegio</TableHead>
+                  <TableHead>RUC</TableHead>
+                  <TableHead className="hidden md:table-cell">Contacto</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Acciones</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {colegios.map((colegio) => (
+                  <TableRow key={colegio.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <School className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          {colegio.nombre}
+                          <div className="text-sm text-muted-foreground">{colegio.direccion}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{colegio.ruc}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <div>
+                        {colegio.email_contacto}
+                        <div className="text-sm text-muted-foreground">{colegio.telefono}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={colegio.activo ? 'default' : 'secondary'}>
+                        {colegio.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem>Gestionar Usuarios</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Desactivar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-
-    
