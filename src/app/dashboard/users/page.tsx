@@ -1,6 +1,6 @@
 
-import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { createClient as createServerClient } from "@supabase/ssr";
+import { cookies, type CookieOptions } from "next/headers";
 import {
   Table,
   TableBody,
@@ -45,9 +45,24 @@ type FormattedProfile = Profile & {
 }
 
 export default async function UsersPage() {
-  const supabase = createClient();
+  const cookieStore = cookies()
   
   // 1. Obtener todos los perfiles de `rutasegura.profiles`
+  const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        db: {
+          schema: 'rutasegura'
+        },
+        cookies: {
+            get(name: string) {
+                return cookieStore.get(name)?.value
+            }
+        }
+      }
+  );
+
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select('*');
@@ -59,7 +74,6 @@ export default async function UsersPage() {
   // 2. Obtener todos los usuarios de `auth.users`
   // Esta es una operación de administrador y requiere la service_role_key
   // Se debe crear un cliente específico para esta operación
-  const cookieStore = cookies()
   const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -72,10 +86,10 @@ export default async function UsersPage() {
                 return cookieStore.get(name)?.value
             },
             set(name: string, value: string, options: CookieOptions) {
-                // No-op
+                // No-op for server components
             },
             remove(name: string, options: CookieOptions) {
-                // No-op
+                // No-op for server components
             },
         }
       }
@@ -84,8 +98,7 @@ export default async function UsersPage() {
   const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
   if (authError) {
-    // No exponer el error directamente al cliente si es sensible
-    console.error("Auth Error:", authError.message);
+    console.error("Error de autenticación al listar usuarios:", authError.message);
     return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios.</p></CardContent></Card>
   }
   
