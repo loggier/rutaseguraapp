@@ -20,33 +20,17 @@ export default function SchoolsPage() {
   useEffect(() => {
     async function fetchColegios() {
       const supabase = createClient();
-      // Desambiguamos la relación especificando la clave foránea a usar para el join.
-      // colegios.id es la clave foránea que referencia a users.id
+      // Consultamos la VISTA 'colegios_view' que ya tiene el email unido.
       const { data, error } = await supabase
-        .from('colegios')
-        .select(`
-          id,
-          nombre,
-          ruc,
-          email_contacto,
-          telefono,
-          direccion,
-          codigo_postal,
-          activo,
-          users:users!colegios_id_fkey(email)
-        `);
+        .from('colegios_view')
+        .select('*');
 
       if (error) {
-        console.error("Error cargando colegios:", error.message);
+        console.error("Error cargando colegios desde la vista:", error);
         setError("No se pudieron cargar los colegios.");
       } else {
-        // La respuesta ahora anida la información de `users` dentro de cada objeto.
-        // La formateamos para que coincida con nuestro tipo `Colegio`.
-        const formattedData: Colegio[] = data.map((item: any) => ({
-          ...item,
-          email: item.users?.email || 'N/A', // Aplanamos la estructura
-        }));
-        setColegios(formattedData);
+        // Los datos ya vienen aplanados desde la vista, por lo que el mapeo es directo.
+        setColegios(data as Colegio[]);
       }
       setLoading(false);
     }
@@ -55,7 +39,9 @@ export default function SchoolsPage() {
   }, []);
 
   const handleSchoolAdded = (newSchool: Colegio) => {
-    setColegios(prev => [newSchool, ...prev]);
+    // Para que el nuevo colegio aparezca con su email, lo ideal es volver a cargar los datos
+    // o añadirlo con el email que ya viene en la respuesta de la API.
+    setColegios(prev => [{...newSchool},...prev ]);
   };
 
   return (
@@ -85,6 +71,7 @@ export default function SchoolsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre del Colegio</TableHead>
+                  <TableHead>Email Cuenta</TableHead>
                   <TableHead>RUC</TableHead>
                   <TableHead className="hidden md:table-cell">Contacto</TableHead>
                   <TableHead>Estado</TableHead>
@@ -105,6 +92,7 @@ export default function SchoolsPage() {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell>{colegio.email}</TableCell>
                     <TableCell>{colegio.ruc}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div>
