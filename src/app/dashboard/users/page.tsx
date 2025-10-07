@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -41,16 +40,31 @@ function getRoleVariant(role: string | null) {
 export default async function UsersPage() {
   const supabase = createClient();
 
-  const { data: profiles, error } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select('*');
+    .select(`
+      id,
+      nombre,
+      apellido,
+      rol,
+      user:users (
+        email
+      )
+    `);
     
-  if (error) {
-    console.error("Error cargando perfiles:", error);
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {error.message}</p></CardContent></Card>
+  if (profilesError) {
+    console.error("Error cargando perfiles:", profilesError);
+    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
   }
-
-  const formattedProfiles: Profile[] = profiles || [];
+  
+  // Flatten the structure
+  const formattedProfiles: Profile[] = profiles?.map((p: any) => ({
+    id: p.id,
+    nombre: p.nombre,
+    apellido: p.apellido,
+    rol: p.rol,
+    email: p.user.email,
+  })) || [];
 
 
   return (

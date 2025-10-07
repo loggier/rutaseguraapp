@@ -14,30 +14,54 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
-    // TODO: Implement custom login logic here
-    toast({
-      title: "Inicio de Sesión (Simulado)",
-      description: "La lógica de autenticación personalizada se implementará aquí.",
-    });
-    // For now, let's simulate a redirect
-    setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 1000);
-    // setIsPending(false);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Ocurrió un error al iniciar sesión.');
+      }
+      
+      toast({
+        title: "Inicio de Sesión Exitoso",
+        description: "Redirigiendo al dashboard...",
+      });
+
+      // Redirect to dashboard on success
+      router.push('/dashboard');
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error de Autenticación",
+        description: error.message,
+      });
+      setIsPending(false);
+    }
   };
   
   return (
-    <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       <div className="flex items-center justify-center py-12">
         <Card className="mx-auto max-w-sm w-full">
           <CardHeader>

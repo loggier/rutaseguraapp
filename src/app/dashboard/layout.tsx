@@ -110,24 +110,19 @@ function MobileNav() {
 
 // --- Layout Content ---
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>({ 
-      id: 'mock-user-id', 
-      nombre: 'Usuario',
-      apellido: 'Maestro',
-      email: 'master@rutasegura.com',
-      rol: 'master'
+  // NOTE: This is a MOCK user. We will replace this with real session management logic.
+  const [user, setUser] = useState<AppUser | null>({
+    id: 'a4e3b2b1-6b7a-4468-9844-472643365e69', // Example UUID
+    nombre: 'Usuario',
+    apellido: 'Maestro',
+    email: 'master@rutasegura.com',
+    rol: 'master'
   });
-  const [isLoading, setIsLoading] = useState(false); // Assume user is loaded for now
+  const [isLoading, setIsLoading] = useState(false); // No loading state needed for mock user
   const router = useRouter(); 
   
-  // TODO: Replace with custom session loading logic
-  useEffect(() => {
-    //
-  }, []);
-
-
   const handleLogout = async () => {
-    // TODO: Implement custom logout logic
+    // TODO: Implement custom logout logic (e.g., clear session cookie)
     router.replace('/');
   };
 
@@ -135,21 +130,23 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Cargando sesión...</p>
+        <p className="ml-4 text-muted-foreground">Cargando...</p>
       </div>
     );
   }
   
   if (!user) {
-      // This will be handled by middleware in the future
+      // This will be handled by our custom session middleware in the future
+      // For now, let's assume the user is always logged in for the dashboard.
+      // You might want to redirect to '/' if the user is null in a real scenario.
       return null;
   }
 
   const getAvatarFallback = () => {
     if (!user) return "AD";
     const name = user.nombre;
-    if (name && typeof name === 'string') {
-      return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+    if (name && typeof name === 'string' && user.apellido) {
+      return (user.nombre[0] + user.apellido[0]).toUpperCase();
     }
     return (user.email || '').substring(0, 2).toUpperCase();
   }

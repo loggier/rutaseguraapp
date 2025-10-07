@@ -1,15 +1,16 @@
 -- Aseguramos que el schema existe
 CREATE SCHEMA IF NOT EXISTS rutasegura;
 
--- Borramos cualquier tabla o tipo existente para empezar de cero (¡cuidado en producción!)
+-- Habilitamos la extensión pgcrypto si no existe (necesaria para crypt())
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Borramos cualquier tabla o tipo existente para empezar de cero
 DROP TABLE IF EXISTS rutasegura.permissions CASCADE;
 DROP TABLE IF EXISTS rutasegura.profiles CASCADE;
-DROP TABLE IF EXISTS rutasegura.users CASCADE;
+DROP TABLE IF EXISTS rutasegura.users CASCADE; -- Se borra la nueva tabla users
 DROP TYPE IF EXISTS rutasegura.user_role CASCADE;
 DROP TYPE IF EXISTS rutasegura.module CASCADE;
 
--- Habilitamos la extensión para encriptar contraseñas
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ****************
 -- 1. CREACIÓN DE TIPOS Y TABLAS
@@ -23,38 +24,37 @@ CREATE TYPE rutasegura.user_role AS ENUM (
   'padre'
 );
 
--- 2. Creamos la tabla de usuarios para credenciales.
+-- 2. Creamos la tabla de usuarios (users) para credenciales
 CREATE TABLE rutasegura.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL, -- Almacenará el hash de la contraseña
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Creamos la tabla de perfiles (profiles) que referencia a users.
+-- 3. Creamos la tabla de perfiles (profiles) para datos adicionales.
 CREATE TABLE rutasegura.profiles (
   id UUID PRIMARY KEY REFERENCES rutasegura.users(id) ON DELETE CASCADE,
   nombre TEXT,
   apellido TEXT,
   rol rutasegura.user_role NOT NULL DEFAULT 'padre',
   avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ
 );
+
 
 -- 4. Creamos un tipo ENUM para los módulos de la aplicación.
 CREATE TYPE rutasegura.module AS ENUM (
   'dashboard',
   'users',
-  'students',
-  'drivers',
-  'buses',
-  'routes',
+  'estudiantes',
+  'conductores',
+  'autobuses',
+  'rutas',
   'tracking',
-  'optimize-route',
-  'plans',
-  'settings'
+  'optimizar_ruta',
+  'planes',
+  'configuracion'
 );
 
 -- 5. Creamos la tabla de permisos (permissions).
@@ -66,7 +66,7 @@ CREATE TABLE rutasegura.permissions (
   puede_crear BOOLEAN DEFAULT false,
   puede_editar BOOLEAN DEFAULT false,
   puede_eliminar BOOLEAN DEFAULT false,
-  UNIQUE (rol, modulo)
+  UNIQUE (rol, modulo) 
 );
 
 
@@ -74,33 +74,27 @@ CREATE TABLE rutasegura.permissions (
 -- 2. PRIVILEGIOS Y RLS
 -- ****************
 
--- Concedemos uso del schema a los roles de Supabase (aunque no usemos su auth, es buena práctica)
+-- Concedemos uso del schema
 GRANT USAGE ON SCHEMA rutasegura TO anon, authenticated, service_role;
 
--- Por ahora, no habilitaremos RLS para simplificar la migración.
--- La seguridad se manejará en la capa de API.
--- ALTER TABLE rutasegura.users ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE rutasegura.profiles ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE rutasegura.permissions ENABLE ROW LEVEL SECURITY;
+-- Concedemos permisos sobre las tablas al rol service_role (usado por el servidor)
+GRANT ALL ON TABLE rutasegura.users TO service_role;
+GRANT ALL ON TABLE rutasegura.profiles TO service_role;
+GRANT ALL ON TABLE rutasegura.permissions TO service_role;
 
--- Concedemos permisos directos a las tablas para el rol 'authenticated'
--- que usaremos con nuestro cliente de Supabase.
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE rutasegura.users TO authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE rutasegura.profiles TO authenticated, service_role;
-GRANT SELECT ON TABLE rutasegura.permissions TO authenticated, service_role;
-GRANT USAGE, SELECT ON SEQUENCE rutasegura.permissions_id_seq TO authenticated, service_role;
+-- Por ahora, permitimos acceso amplio para anon y authenticated para simplificar el desarrollo inicial.
+-- La seguridad real vendrá de las llamadas a la API validadas.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE rutasegura.users TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE rutasegura.profiles TO anon, authenticated;
+GRANT SELECT ON TABLE rutasegura.permissions TO anon, authenticated;
 
-ALTER DEFAULT PRIVILEGES IN SCHEMA rutasegura
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA rutasegura
-    GRANT USAGE, SELECT ON SEQUENCES TO authenticated, service_role;
 
 -- ****************
--- 3. FUNCIONES Y TRIGGERS
+-- 3. FUNCIONES, TRIGGERS E INSERCIONES
 -- ****************
 
--- Función para manejar el 'updated_at' en la tabla USERS
-CREATE OR REPLACE FUNCTION rutasegura.handle_users_updated_at()
+-- Función para manejar el 'updated_at' en profiles
+CREATE OR REPLACE FUNCTION rutasegura.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
@@ -108,69 +102,69 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER on_users_update
-  BEFORE UPDATE ON rutasegura.users
-  FOR EACH ROW
-  EXECUTE PROCEDURE rutasegura.handle_users_updated_at();
-
--- Función para manejar el 'updated_at' en la tabla PROFILES
-CREATE OR REPLACE FUNCTION rutasegura.handle_profiles_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER on_profiles_update
+CREATE TRIGGER on_profile_update
   BEFORE UPDATE ON rutasegura.profiles
   FOR EACH ROW
-  EXECUTE PROCEDURE rutasegura.handle_profiles_updated_at();
+  EXECUTE PROCEDURE rutasegura.handle_updated_at();
+  
+-- Función para verificar la contraseña
+CREATE OR REPLACE FUNCTION rutasegura.verify_password(password text, hash text)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN crypt(password, hash) = hash;
+END;
+$$;
 
 
--- ****************
--- 4. INSERCIONES INICIALES
--- ****************
+-- Inserción del usuario master
+DO $$
+DECLARE
+  master_user_id UUID;
+BEGIN
+  -- Insertar en la tabla de usuarios y obtener el ID generado
+  INSERT INTO rutasegura.users (email, password)
+  VALUES ('master@rutasegura.com', crypt('Martes13', gen_salt('bf')))
+  RETURNING id INTO master_user_id;
 
--- Insertamos los permisos por rol y módulo.
+  -- Insertar en la tabla de perfiles usando el ID del usuario
+  INSERT INTO rutasegura.profiles (id, nombre, apellido, rol)
+  VALUES (master_user_id, 'Master', 'Admin', 'master');
+END $$;
+
+
+-- Insertamos los permisos iniciales
 INSERT INTO rutasegura.permissions (rol, modulo, puede_ver, puede_crear, puede_editar, puede_eliminar) VALUES
   ('master', 'dashboard', true, true, true, true),
   ('master', 'users', true, true, true, true),
-  ('master', 'students', true, true, true, true),
-  ('master', 'drivers', true, true, true, true),
-  ('master', 'buses', true, true, true, true),
-  ('master', 'routes', true, true, true, true),
+  ('master', 'estudiantes', true, true, true, true),
+  ('master', 'conductores', true, true, true, true),
+  ('master', 'autobuses', true, true, true, true),
+  ('master', 'rutas', true, true, true, true),
   ('master', 'tracking', true, true, true, true),
-  ('master', 'optimize-route', true, true, true, true),
-  ('master', 'plans', true, true, true, true),
-  ('master', 'settings', true, true, true, true),
+  ('master', 'optimizar_ruta', true, true, true, true),
+  ('master', 'planes', true, true, true, true),
+  ('master', 'configuracion', true, true, true, true),
   ('manager', 'dashboard', true, false, false, false),
-  ('manager', 'students', true, true, true, true),
-  ('manager', 'drivers', true, true, true, true),
-  ('manager', 'buses', true, true, true, true),
-  ('manager', 'routes', true, true, true, true),
+  ('manager', 'estudiantes', true, true, true, true),
+  ('manager', 'conductores', true, true, true, true),
+  ('manager', 'autobuses', true, true, true, true),
+  ('manager', 'rutas', true, true, true, true),
   ('manager', 'tracking', true, false, false, false),
-  ('manager', 'optimize-route', true, false, false, false),
-  ('manager', 'plans', false, false, false, false),
-  ('manager', 'settings', true, false, true, false),
+  ('manager', 'optimizar_ruta', true, false, false, false),
+  ('manager', 'planes', false, false, false, false),
+  ('manager', 'configuracion', true, false, true, false),
   ('colegio', 'dashboard', true, false, false, false),
-  ('colegio', 'students', true, true, true, false),
-  ('colegio', 'drivers', true, false, false, false),
-  ('colegio', 'buses', true, false, false, false),
-  ('colegio', 'routes', true, false, false, false),
+  ('colegio', 'estudiantes', true, true, true, false),
+  ('colegio', 'conductores', true, false, false, false),
+  ('colegio', 'autobuses', true, false, false, false),
+  ('colegio', 'rutas', true, false, false, false),
   ('colegio', 'tracking', true, false, false, false),
-  ('colegio', 'optimize-route', false, false, false, false),
-  ('colegio', 'plans', true, false, false, false),
-  ('colegio', 'settings', true, false, true, false),
+  ('colegio', 'optimizar_ruta', false, false, false, false),
+  ('colegio', 'planes', true, false, false, false),
+  ('colegio', 'configuracion', true, false, true, false),
   ('padre', 'dashboard', true, false, false, false),
   ('padre', 'tracking', true, false, false, false),
-  ('padre', 'settings', true, false, true, false);
+  ('padre', 'configuracion', true, false, true, false);
 
--- Insertamos el usuario master
-WITH master_user AS (
-  INSERT INTO rutasegura.users (email, password)
-  VALUES ('master@rutasegura.com', crypt('Martes13', gen_salt('bf')))
-  RETURNING id
-)
-INSERT INTO rutasegura.profiles (id, nombre, apellido, rol)
-SELECT id, 'Master', 'Admin', 'master' FROM master_user;

@@ -15,10 +15,9 @@ export type Profile = {
   id: string;
   nombre: string | null;
   apellido: string | null;
-  email?: string; // Email is now part of the profile table
+  email?: string; 
   avatar_url?: string | null;
   rol: "master" | "manager" | "colegio" | "padre";
-  // We might add password hash here later
 };
 
 export type Estudiante = User & {
