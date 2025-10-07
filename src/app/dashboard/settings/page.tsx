@@ -86,7 +86,6 @@ export default function SettingsPage() {
       id: user.id, // El ID del usuario autenticado
       nombre: firstName,
       apellido: lastName,
-      updated_at: new Date().toISOString(),
     }, {
         onConflict: 'id' // Le dice a Supabase que la columna 'id' es la clave para detectar conflictos.
     }).select().single();
