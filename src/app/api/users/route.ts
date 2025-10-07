@@ -54,12 +54,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Ya existe un usuario con este correo electrónico.' }, { status: 409 });
     }
     
-    // 2. Crear el usuario en la tabla `users`
+    // 2. Crear el usuario en la tabla `users` con el campo `activo` en true
     const { data: newUser, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
         email: email,
         password: hashedPassword,
+        activo: true, // Aseguramos que el usuario se cree como activo
       })
       .select('id')
       .single();
@@ -89,7 +90,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Error interno al crear el perfil de usuario.' }, { status: 500 });
     }
 
-    const responseData = { ...newProfile, email: email };
+    // Se construye la respuesta con el estado 'activo' para la UI
+    const responseData = { ...newProfile, email: email, activo: true };
 
     return NextResponse.json({ message: 'Usuario creado con éxito', user: responseData }, { status: 201 });
 
