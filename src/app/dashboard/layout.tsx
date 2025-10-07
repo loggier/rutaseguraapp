@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { UserProvider, type User as AppUser } from '@/contexts/user-context';
+import { createClient } from '@/lib/supabase/client';
 
 
 // --- Constantes de Navegación ---
@@ -111,16 +112,40 @@ function MobileNav() {
 
 // --- Layout Content ---
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  // NOTE: This is a MOCK user. We will replace this with real session management logic.
-  const [user, setUser] = useState<AppUser | null>({
-    id: 'a4e3b2b1-6b7a-4468-9844-472643365e69', // Example UUID
-    nombre: 'Usuario',
-    apellido: 'Maestro',
-    email: 'master@rutasegura.com',
-    rol: 'master'
-  });
-  const [isLoading, setIsLoading] = useState(false); // No loading state needed for mock user
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
+  
+  useEffect(() => {
+    async function fetchMasterUser() {
+        const supabase = createClient();
+        const { data, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', 'master@rutasegura.com')
+            .single();
+
+        if (error || !data) {
+            console.error("Error fetching master user:", error);
+            // Handle error, maybe redirect to login or show a message
+            setIsLoading(false);
+            return;
+        }
+
+        // We set a mock user object but with the REAL ID from the database
+        setUser({
+            id: data.id, // REAL ID
+            nombre: 'Usuario',
+            apellido: 'Maestro',
+            email: 'master@rutasegura.com',
+            rol: 'master',
+            activo: true, // Assuming the master user is always active
+        });
+        setIsLoading(false);
+    }
+
+    fetchMasterUser();
+  }, []);
   
   const handleLogout = async () => {
     // TODO: Implement custom logout logic (e.g., clear session cookie)
@@ -137,9 +162,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
-      // This will be handled by our custom session middleware in the future
-      // For now, let's assume the user is always logged in for the dashboard.
-      // You might want to redirect to '/' if the user is null in a real scenario.
+      // This could happen if the master user is not found.
+      // Redirecting to login for safety.
+      router.replace('/');
       return null;
   }
 
@@ -232,5 +257,3 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
-
-    
