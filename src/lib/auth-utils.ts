@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
  * @param hashedPassword El hash almacenado.
  * @returns Una promesa que se resuelve a `true` si las contraseñas coinciden, de lo contrario `false`.
  */
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+export async function verifyPassword(password: string, hashedPassword: string): Promise<any> {
   try {
     return await bcrypt.compare(password, hashedPassword);
   } catch (error) {

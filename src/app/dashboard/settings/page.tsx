@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from "react";
@@ -48,7 +47,8 @@ export default function SettingsPage() {
     if (!user) return;
     
     setIsSaving(true);
-    // TODO: Implement custom profile update logic
+    // TODO: Implementar lógica para actualizar el perfil en la tabla `profiles`
+    // Por ahora, simulamos la actualización.
     toast({
         title: "Perfil actualizado (Simulado)",
         description: "Tu información ha sido guardada correctamente.",
@@ -58,6 +58,10 @@ export default function SettingsPage() {
 
   const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "No se ha encontrado el usuario." });
+        return;
+    }
     if (!newPassword || !confirmPassword) {
       toast({
         variant: "destructive",
@@ -86,14 +90,35 @@ export default function SettingsPage() {
     }
 
     setIsUpdatingPassword(true);
-    // TODO: Implement custom password update logic
-    toast({
-        title: "Contraseña actualizada (Simulado)",
-        description: "Tu contraseña ha sido cambiada con éxito.",
-    });
-    setNewPassword('');
-    setConfirmPassword('');
-    setIsUpdatingPassword(false);
+    try {
+        const response = await fetch('/api/auth/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id, newPassword: newPassword }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Ocurrió un error al actualizar la contraseña.');
+        }
+
+        toast({
+            title: "Contraseña actualizada",
+            description: "Tu contraseña ha sido cambiada con éxito.",
+        });
+        setNewPassword('');
+        setConfirmPassword('');
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message,
+        });
+    } finally {
+        setIsUpdatingPassword(false);
+    }
   };
   
   if (!user && isLoadingProfile) {
