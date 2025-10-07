@@ -20,9 +20,9 @@ export default function SchoolsPage() {
   useEffect(() => {
     async function fetchColegios() {
       const supabase = createClient();
-      // Hacemos un JOIN explícito con la tabla users para obtener el email.
-      // La sintaxis `users:users!inner(email)` resuelve la ambigüedad al forzar un INNER JOIN
-      // basado en la clave foránea primaria entre colegios.id y users.id.
+      // La sintaxis `users(email)` le indica a Supabase que use la relación
+      // directa (basada en la clave foránea `colegios.id` -> `users.id`) para obtener el email.
+      // Esto resuelve la ambigüedad causada por la segunda clave foránea (`creado_por`).
       const { data, error } = await supabase
         .from('colegios')
         .select(`
@@ -46,7 +46,6 @@ export default function SchoolsPage() {
         const formattedData: Colegio[] = data.map((item: any) => ({
           ...item,
           email: item.users?.email || 'N/A', // Aplanamos la estructura
-          users: undefined, // Limpiamos el objeto anidado
         }));
         setColegios(formattedData);
       }
