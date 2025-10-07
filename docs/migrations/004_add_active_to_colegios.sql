@@ -1,0 +1,2 @@
+ALTER TABLE rutasegura.colegios
+ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT true;
