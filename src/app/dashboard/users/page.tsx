@@ -1,7 +1,6 @@
 
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import {
   Table,
   TableBody,
@@ -46,10 +45,9 @@ type FormattedProfile = Profile & {
 }
 
 export default async function UsersPage() {
-  const cookieStore = cookies()
   
-  // Se debe crear un cliente específico para esta operación
-  // que utilice la service_role_key para saltarse RLS.
+  // Cliente de Administrador que usa la SERVICE_ROLE_KEY para saltarse RLS.
+  // Se le pasa un gestor de cookies vacío para que no use la sesión del usuario.
   const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -59,13 +57,13 @@ export default async function UsersPage() {
         },
         cookies: {
             get(name: string) {
-                return cookieStore.get(name)?.value
+                return undefined;
             },
             set(name: string, value: string, options: CookieOptions) {
-                // No-op for server components
+                // No-op
             },
             remove(name: string, options: CookieOptions) {
-                // No-op for server components
+                // No-op
             },
         }
       }
@@ -77,6 +75,7 @@ export default async function UsersPage() {
     .select('*');
     
   if (profilesError) {
+    console.error("Error cargando perfiles:", profilesError);
     return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
   }
 
