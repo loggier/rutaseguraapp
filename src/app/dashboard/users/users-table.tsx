@@ -18,11 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, UserCheck, UserX } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types";
 import { EditUserDialog } from "./edit-user-dialog";
-import { DeleteUserAlert } from "./delete-user-alert";
+import { UpdateStatusAlert } from "./update-status-alert";
 
 function getRoleVariant(role: string | null) {
   switch (role) {
@@ -42,11 +42,11 @@ function getRoleVariant(role: string | null) {
 type UsersTableProps = {
     profiles: Profile[];
     onUserUpdated: (updatedUser: Profile) => void;
-    onUserDeleted: (deletedUserId: string) => void;
+    onUserStatusChanged: (userId: string, newStatus: boolean) => void;
 }
 
-export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTableProps) {
-    const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
+export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged }: UsersTableProps) {
+    const [userToUpdateStatus, setUserToUpdateStatus] = useState<Profile | null>(null);
 
     return (
         <>
@@ -55,6 +55,7 @@ export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTabl
                 <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Rol</TableHead>
+                    <TableHead>Estado</TableHead>
                     <TableHead className="hidden md:table-cell">ID de Usuario</TableHead>
                     <TableHead>
                     <span className="sr-only">Acciones</span>
@@ -63,7 +64,7 @@ export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTabl
                 </TableHeader>
                 <TableBody>
                 {profiles.map((profile) => (
-                    <TableRow key={profile.id}>
+                    <TableRow key={profile.id} className={!profile.activo ? 'bg-muted/50' : ''}>
                     <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
                         <Avatar>
@@ -78,6 +79,11 @@ export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTabl
                     </TableCell>
                     <TableCell>
                         <Badge variant={getRoleVariant(profile.rol)}>{profile.rol}</Badge>
+                    </TableCell>
+                     <TableCell>
+                        <Badge variant={profile.activo ? 'default' : 'destructive'}>
+                          {profile.activo ? 'Activo' : 'Inactivo'}
+                        </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-mono text-xs">{profile.id}</TableCell>
                     <TableCell>
@@ -96,11 +102,12 @@ export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTabl
                                 </DropdownMenuItem>
                             </EditUserDialog>
                             <DropdownMenuItem
-                                className="text-destructive"
+                                className={profile.activo ? 'text-destructive' : 'text-green-600'}
                                 disabled={profile.rol === 'master'}
-                                onClick={() => setUserToDelete(profile)}
+                                onClick={() => setUserToUpdateStatus(profile)}
                             >
-                                Eliminar Usuario
+                                {profile.activo ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                {profile.activo ? 'Desactivar' : 'Activar'}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                         </DropdownMenu>
@@ -109,12 +116,12 @@ export function UsersTable({ profiles, onUserUpdated, onUserDeleted }: UsersTabl
                 ))}
                 </TableBody>
             </Table>
-            {userToDelete && (
-                <DeleteUserAlert
-                    user={userToDelete}
-                    isOpen={!!userToDelete}
-                    onClose={() => setUserToDelete(null)}
-                    onUserDeleted={onUserDeleted}
+            {userToUpdateStatus && (
+                <UpdateStatusAlert
+                    user={userToUpdateStatus}
+                    isOpen={!!userToUpdateStatus}
+                    onClose={() => setUserToUpdateStatus(null)}
+                    onUserStatusChanged={onUserStatusChanged}
                 />
             )}
         </>

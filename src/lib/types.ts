@@ -18,6 +18,7 @@ export type Profile = {
   email?: string; 
   avatar_url?: string | null;
   rol: "master" | "manager" | "colegio" | "padre";
+  activo: boolean;
 };
 
 export type Estudiante = User & {

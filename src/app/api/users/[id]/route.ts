@@ -75,10 +75,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         return NextResponse.json({ message: 'Error interno al actualizar el perfil de usuario.' }, { status: 500 });
     }
     
-    // 3. Obtener el email de la tabla `users` para devolver el objeto completo
+    // 3. Obtener el email y estado de la tabla `users` para devolver el objeto completo
      const { data: user, error: userError } = await supabaseAdmin
         .from('users')
-        .select('email')
+        .select('email, activo')
         .eq('id', userId)
         .single();
     
@@ -86,7 +86,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
          return NextResponse.json({ message: 'Error interno: no se pudo encontrar el email del usuario.' }, { status: 500 });
     }
 
-    const responseData: Profile = { ...updatedProfile, email: user.email };
+    const responseData: Profile = { ...updatedProfile, email: user.email, activo: user.activo };
 
     return NextResponse.json({ message: 'Usuario actualizado con éxito', user: responseData }, { status: 200 });
 
@@ -97,12 +97,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 
-// --- FUNCIÓN DELETE PARA ELIMINAR ---
+// --- FUNCIÓN DELETE PARA DESACTIVAR/ACTIVAR ---
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const userId = params.id;
 
   try {
-     // Cliente con privilegios de servicio para poder eliminar usuarios
+     // Cliente con privilegios de servicio para poder actualizar usuarios
     const supabaseAdmin = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -118,52 +118,40 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       }
     );
 
-    // 1. Verificar que el usuario a eliminar no sea 'master'
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('rol')
+    // 1. Obtener el estado actual del usuario
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('activo, rol:profiles(rol)')
       .eq('id', userId)
       .single();
       
-    if (profileError || !profile) {
+    if (userError || !user) {
       return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
     }
 
-    if (profile.rol === 'master') {
-      return NextResponse.json({ message: 'No se puede eliminar a un usuario Master.' }, { status: 403 });
+    const userRole = Array.isArray(user.rol) ? user.rol[0]?.rol : user.rol?.rol;
+    if (userRole === 'master') {
+      return NextResponse.json({ message: 'No se puede cambiar el estado de un usuario Master.' }, { status: 403 });
     }
 
-    // 2. Eliminar el perfil de la tabla 'profiles'
-    // La FK en 'profiles' está configurada con 'ON DELETE CASCADE' hacia la tabla 'users'
-    // Por lo tanto, al eliminar el usuario de `auth.users`, el perfil se eliminará automáticamente.
-    // Pero como usamos tablas separadas, tenemos que hacerlo manualmente.
-    const { error: deleteProfileError } = await supabaseAdmin
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    // 2. Cambiar el estado (si está activo se desactiva y viceversa)
+    const newStatus = !user.activo;
     
-    if (deleteProfileError) {
-      console.error("Error al eliminar perfil:", deleteProfileError);
-      return NextResponse.json({ message: 'Error interno al eliminar el perfil.' }, { status: 500 });
-    }
-    
-    // 3. Eliminar el usuario de la tabla 'users'
-    const { error: deleteUserError } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('users')
-      .delete()
+      .update({ activo: newStatus })
       .eq('id', userId);
       
-    if (deleteUserError) {
-      console.error("Error al eliminar usuario:", deleteUserError);
-      // Idealmente, aquí habría una lógica de rollback si la eliminación del usuario falla
-      // pero la del perfil tuvo éxito. Por simplicidad, se omite.
-      return NextResponse.json({ message: 'Error interno al eliminar el usuario.' }, { status: 500 });
+    if (updateError) {
+      console.error("Error al actualizar el estado del usuario:", updateError);
+      return NextResponse.json({ message: 'Error interno al cambiar el estado del usuario.' }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'Usuario eliminado con éxito.' }, { status: 200 });
+    const message = `Usuario ${newStatus ? 'activado' : 'desactivado'} con éxito.`;
+    return NextResponse.json({ message, newStatus }, { status: 200 });
 
   } catch (error) {
-    console.error('Error inesperado en la API de eliminación de usuarios:', error);
+    console.error('Error inesperado en la API de cambio de estado de usuario:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
 }

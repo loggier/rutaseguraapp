@@ -6,9 +6,10 @@ import { verifyPassword } from '@/lib/auth-utils';
 import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Definición del tipo para la respuesta de la tabla 'users'
-type UserWithPassword = {
+type UserData = {
   id: string;
   password: string; // Este es el hash de la contraseña desde la BD
+  activo: boolean;
 };
 
 export async function POST(request: Request) {
@@ -37,9 +38,9 @@ export async function POST(request: Request) {
     );
 
     // 2. Buscar al usuario por email en la tabla 'users'
-    const { data: user, error: userError }: PostgrestSingleResponse<UserWithPassword> = await supabaseAdmin
+    const { data: user, error: userError }: PostgrestSingleResponse<UserData> = await supabaseAdmin
       .from('users')
-      .select('id, password')
+      .select('id, password, activo')
       .eq('email', email)
       .single();
 
@@ -48,15 +49,20 @@ export async function POST(request: Request) {
       console.error('Error de BD o usuario no encontrado para:', email, userError);
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
+    
+    // 4. Verificar si el usuario está activo
+    if (!user.activo) {
+        return NextResponse.json({ message: 'El usuario se encuentra inactivo.' }, { status: 403 });
+    }
 
-    // 4. Verificar la contraseña usando bcrypt
+    // 5. Verificar la contraseña usando bcrypt
     const isValidPassword = await verifyPassword(password, user.password);
     
     if (!isValidPassword) {
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
-    // 5. Si las credenciales son válidas, obtener el perfil completo del usuario
+    // 6. Si las credenciales son válidas, obtener el perfil completo del usuario
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('nombre, apellido, rol')
@@ -68,13 +74,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Error interno: no se pudo encontrar el perfil del usuario.' }, { status: 500 });
     }
 
-    // 6. Construir y devolver la respuesta exitosa con los datos del usuario
+    // 7. Construir y devolver la respuesta exitosa con los datos del usuario
     const sessionData = {
       id: user.id,
       email: email,
       nombre: profile.nombre,
       apellido: profile.apellido,
       rol: profile.rol,
+      activo: user.activo,
     };
 
     return NextResponse.json({ message: 'Inicio de sesión exitoso', user: sessionData }, { status: 200 });

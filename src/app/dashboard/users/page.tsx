@@ -17,8 +17,7 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchProfiles() {
       const supabase = createClient();
-      // Usamos el cliente de servicio para poder obtener todos los perfiles,
-      // incluyendo el email de la tabla auth.users que está protegida.
+      // Unimos la tabla `profiles` con `users` para obtener todos los datos
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -27,7 +26,8 @@ export default function UsersPage() {
           apellido,
           rol,
           user:users (
-            email
+            email,
+            activo
           )
         `);
 
@@ -41,6 +41,7 @@ export default function UsersPage() {
           apellido: p.apellido,
           rol: p.rol,
           email: p.user.email,
+          activo: p.user.activo,
         })) || [];
         setProfiles(formattedProfiles);
       }
@@ -58,8 +59,8 @@ export default function UsersPage() {
     setProfiles(prev => prev.map(p => p.id === updatedUser.id ? updatedUser : p));
   }
 
-  const handleUserDeleted = (deletedUserId: string) => {
-    setProfiles(prev => prev.filter(p => p.id !== deletedUserId));
+  const handleUserStatusChanged = (userId: string, newStatus: boolean) => {
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, activo: newStatus } : p));
   }
 
   if (error) {
@@ -90,7 +91,7 @@ export default function UsersPage() {
              <UsersTable 
                 profiles={profiles}
                 onUserUpdated={handleUserUpdated}
-                onUserDeleted={handleUserDeleted}
+                onUserStatusChanged={handleUserStatusChanged}
               />
            )}
         </CardContent>

@@ -16,36 +16,38 @@ import { useToast } from "@/hooks/use-toast";
 import type { Profile } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
-type DeleteUserAlertProps = {
+type UpdateStatusAlertProps = {
   user: Profile;
   isOpen: boolean;
   onClose: () => void;
-  onUserDeleted: (deletedUserId: string) => void;
+  onUserStatusChanged: (userId: string, newStatus: boolean) => void;
 };
 
-export function DeleteUserAlert({ user, isOpen, onClose, onUserDeleted }: DeleteUserAlertProps) {
+export function UpdateStatusAlert({ user, isOpen, onClose, onUserStatusChanged }: UpdateStatusAlertProps) {
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
+  const newStatus = !user.activo;
+  const actionText = newStatus ? 'activar' : 'desactivar';
 
-  const handleDelete = async () => {
+  const handleUpdateStatus = async () => {
     setIsPending(true);
     try {
       const response = await fetch(`/api/users/${user.id}`, {
-        method: 'DELETE',
+        method: 'DELETE', // Our DELETE endpoint handles status changes
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error al eliminar el usuario.');
+        throw new Error(data.message || `Error al ${actionText} el usuario.`);
       }
 
       toast({
         title: 'Éxito',
-        description: 'El usuario ha sido eliminado correctamente.',
+        description: `El usuario ha sido ${actionText} correctamente.`,
       });
 
-      onUserDeleted(user.id);
+      onUserStatusChanged(user.id, data.newStatus);
       onClose();
 
     } catch (error: any) {
@@ -63,22 +65,22 @@ export function DeleteUserAlert({ user, isOpen, onClose, onUserDeleted }: Delete
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+          <AlertDialogTitle>¿Estás seguro de que quieres {actionText} al usuario?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario{' '}
-            <span className="font-semibold">{user.nombre} {user.apellido} ({user.email})</span>{' '}
-            y borrará sus datos de nuestros servidores.
+            Esta acción cambiará el estado del usuario{' '}
+            <span className="font-semibold">{user.nombre} {user.apellido} ({user.email})</span>.
+            {newStatus ? ' El usuario podrá iniciar sesión y acceder al sistema.' : ' El usuario no podrá iniciar sesión.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={handleUpdateStatus}
             disabled={isPending}
-            className="bg-destructive hover:bg-destructive/90"
+            className={!newStatus ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-700"}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sí, eliminar usuario
+            Sí, {actionText}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
