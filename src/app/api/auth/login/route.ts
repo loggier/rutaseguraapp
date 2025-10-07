@@ -13,12 +13,16 @@ type UserWithPassword = {
 // Función helper para verificar la contraseña llamando a una función RPC de PostgreSQL
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
   // Se crea un cliente con privilegios de servicio para poder llamar a la función RPC.
-  // Es crucial pasarle un objeto de cookies vacío para que no intente usar la sesión del cliente.
+  // Es crucial pasarle un objeto de cookies con funciones vacías para que no intente usar la sesión del cliente.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: {},
+      cookies: {
+        get: () => undefined,
+        set: () => {},
+        remove: () => {},
+      },
       db: { schema: 'rutasegura' }
     }
   );
@@ -37,19 +41,6 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 }
 
 export async function POST(request: Request) {
-  // Se crea un cliente de Supabase con rol de servicio para esta operación.
-  // Esto es necesario para poder leer la tabla 'users' que no debe ser pública.
-  const supabaseAdmin = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {},
-      db: {
-        schema: 'rutasegura',
-      },
-    }
-  );
-
   try {
     const { email, password } = await request.json();
 
@@ -57,6 +48,23 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json({ message: 'Correo electrónico y contraseña son requeridos.' }, { status: 400 });
     }
+    
+    // Se crea un cliente de Supabase con rol de servicio para esta operación.
+    // Esto es necesario para poder leer la tabla 'users' que no debe ser pública.
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+            get: () => undefined,
+            set: () => {},
+            remove: () => {},
+        },
+        db: {
+          schema: 'rutasegura',
+        },
+      }
+    );
 
     // 2. Buscar al usuario por email en la tabla 'users'
     const { data: user, error: userError }: PostgrestSingleResponse<UserWithPassword> = await supabaseAdmin
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
 
     // 3. Si el usuario no existe, devolver error de credenciales inválidas.
     if (userError || !user) {
-      console.error('Intento de login para usuario no existente o error de BD:', email, userError);
+      console.error('Error de BD o usuario no encontrado para:', email, userError);
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
@@ -87,8 +95,8 @@ export async function POST(request: Request) {
       .single();
 
     if (profileError || !profile) {
-      // Este error no debería ocurrir si la base de datos está bien estructurada (cada usuario tiene un perfil)
-      return NextResponse.json({ message: 'No se pudo encontrar el perfil del usuario.' }, { status: 404 });
+      console.error('Error: No se pudo encontrar el perfil para el usuario con ID:', user.id, profileError);
+      return NextResponse.json({ message: 'Error interno: no se pudo encontrar el perfil del usuario.' }, { status: 500 });
     }
 
     // 6. Construir y devolver la respuesta exitosa con los datos del usuario
