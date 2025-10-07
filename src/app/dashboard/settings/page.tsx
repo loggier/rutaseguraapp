@@ -34,8 +34,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      // Solo ejecutar si el usuario está disponible.
       if (!user) {
+        setIsLoadingProfile(true);
         return;
       }
 
@@ -78,14 +78,17 @@ export default function SettingsPage() {
     
     setIsSaving(true);
     
-    // upsert se encarga de crear el registro si no existe, o actualizarlo si existe.
+    // La operación 'upsert' es ideal aquí:
+    // 1. Intenta insertar el registro.
+    // 2. Si encuentra un conflicto en la columna 'id' (porque el usuario ya existe),
+    //    en lugar de fallar, actualiza el registro existente.
     const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
+      id: user.id, // El ID del usuario autenticado
       nombre: firstName,
       apellido: lastName,
       updated_at: new Date().toISOString(),
     }, {
-        onConflict: 'id' // Especifica la columna de conflicto para el upsert.
+        onConflict: 'id' // Le dice a Supabase que la columna 'id' es la clave para detectar conflictos.
     }).select().single();
 
     if (error) {
@@ -104,7 +107,6 @@ export default function SettingsPage() {
     setIsSaving(false);
   };
   
-  // Muestra el loader mientras el contexto de usuario se está poblando
   if (!user) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
