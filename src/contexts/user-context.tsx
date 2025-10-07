@@ -1,7 +1,13 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
+import type { Profile } from '@/lib/types';
+
+// Let's use our own Profile type, which we can control.
+export type User = Profile & {
+    email?: string;
+    avatar_url?: string | null;
+};
 
 interface UserContextType {
   user: User | null;

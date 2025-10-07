@@ -1,8 +1,9 @@
 import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+// import { updateSession } from '@/lib/supabase/middleware' // Disabled for now
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  // return await updateSession(request) // All custom auth logic is temporarily disabled
+  return;
 }
 
 export const config = {

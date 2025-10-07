@@ -16,14 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 
 export default function SettingsPage() {
   const { user } = useUser();
-  const supabase = createClient();
   const { toast } = useToast();
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -38,73 +36,23 @@ export default function SettingsPage() {
   const email = user?.email || '';
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) {
-        setIsLoadingProfile(true);
-        return;
-      }
-
-      setIsLoadingProfile(true);
-      try {
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-  
-        if (error && error.code !== 'PGRST116') { 
-          throw error;
-        } 
-        
-        if (profileData) {
-          setFirstName(profileData.nombre || '');
-          setLastName(profileData.apellido || '');
-        }
-
-      } catch (error: any) {
-        console.error("Error fetching profile:", error);
-        toast({
-          variant: "destructive",
-          title: "Error al cargar el perfil",
-          description: error.message || "No se pudo recuperar la información del perfil.",
-        });
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
     if (user) {
-      fetchUserProfile();
+      setFirstName(user.nombre || '');
+      setLastName(user.apellido || '');
+      setIsLoadingProfile(false);
     }
-  }, [user, supabase, toast]);
+  }, [user]);
 
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
     
     setIsSaving(true);
-    
-    const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
-      nombre: firstName,
-      apellido: lastName,
-    }, {
-        onConflict: 'id'
-    }).select().single();
-
-    if (error) {
-        toast({
-            variant: "destructive",
-            title: "Error al actualizar",
-            description: error.message,
-        });
-    } else {
-        toast({
-            title: "Perfil actualizado",
-            description: "Tu información ha sido guardada correctamente.",
-        });
-    }
-
+    // TODO: Implement custom profile update logic
+    toast({
+        title: "Perfil actualizado (Simulado)",
+        description: "Tu información ha sido guardada correctamente.",
+    });
     setIsSaving(false);
   };
 
@@ -138,30 +86,17 @@ export default function SettingsPage() {
     }
 
     setIsUpdatingPassword(true);
-
-    const { error } = await supabase.auth.updateUser({
-        password: newPassword,
+    // TODO: Implement custom password update logic
+    toast({
+        title: "Contraseña actualizada (Simulado)",
+        description: "Tu contraseña ha sido cambiada con éxito.",
     });
-
-    if (error) {
-        toast({
-            variant: "destructive",
-            title: "Error al actualizar contraseña",
-            description: error.message,
-        });
-    } else {
-        toast({
-            title: "Contraseña actualizada",
-            description: "Tu contraseña ha sido cambiada con éxito.",
-        });
-        setNewPassword('');
-        setConfirmPassword('');
-    }
-
+    setNewPassword('');
+    setConfirmPassword('');
     setIsUpdatingPassword(false);
   };
   
-  if (!user) {
+  if (!user && isLoadingProfile) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -284,5 +219,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

@@ -2,6 +2,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// This creates a Supabase client for server-side operations,
+// using the anon key. It can be used for RLS-protected data fetching.
 export const createClient = () => {
     const cookieStore = cookies()
 
@@ -21,8 +23,7 @@ export const createClient = () => {
                   cookieStore.set({ name, value, ...options })
                 } catch (error) {
                   // The `set` method was called from a Server Component.
-                  // This can be ignored if you have middleware refreshing
-                  // user sessions.
+                  // This can be ignored if you have middleware refreshing sessions.
                 }
             },
             remove(name: string, options: CookieOptions) {
@@ -30,8 +31,7 @@ export const createClient = () => {
                     cookieStore.set({ name, value: '', ...options })
                 } catch (error) {
                     // The `delete` method was called from a Server Component.
-                    // This can be ignored if you have middleware refreshing
-                    // user sessions.
+                    // This can be ignored if you have middleware refreshing sessions.
                 }
             },
           },

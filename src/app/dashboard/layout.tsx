@@ -23,9 +23,7 @@ import {
   SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { UserProvider } from '@/contexts/user-context';
+import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 
 
 // --- Constantes de Navegación ---
@@ -112,51 +110,25 @@ function MobileNav() {
 
 // --- Layout Content ---
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const [user, setUser] = useState<AppUser | null>({ 
+      id: 'mock-user-id', 
+      nombre: 'Usuario',
+      apellido: 'Maestro',
+      email: 'master@rutasegura.com',
+      rol: 'master'
+  });
+  const [isLoading, setIsLoading] = useState(false); // Assume user is loaded for now
   const router = useRouter(); 
   
+  // TODO: Replace with custom session loading logic
   useEffect(() => {
-    const loadSession = () => {
-      try {
-        const sessionDataString = localStorage.getItem('supabase_session');
-        if (sessionDataString) {
-          const sessionData = JSON.parse(sessionDataString);
-          setUser(sessionData.user ?? null);
-        }
-      } catch (error) {
-        console.error("Error reading session from localStorage", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadSession();
+    //
+  }, []);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        router.replace('/');
-      } else if (session?.user && session.user.id !== user?.id) {
-        setUser(session.user);
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router, supabase.auth, user?.id]);
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/');
-    }
-  }, [isLoading, user, router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // TODO: Implement custom logout logic
+    router.replace('/');
   };
 
   if (isLoading) {
@@ -169,17 +141,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
+      // This will be handled by middleware in the future
       return null;
   }
 
   const getAvatarFallback = () => {
     if (!user) return "AD";
-    const email = user.email || '';
-    const name = user.user_metadata?.name;
+    const name = user.nombre;
     if (name && typeof name === 'string') {
       return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
     }
-    return email.substring(0, 2).toUpperCase();
+    return (user.email || '').substring(0, 2).toUpperCase();
   }
 
   return (
@@ -228,14 +200,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                       <Avatar className='h-8 w-8'>
-                          <AvatarImage src={user?.user_metadata?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                          <AvatarImage src={user?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
                           <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                       </Avatar>
                       <span className="sr-only">Menú de usuario</span>
                   </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user?.user_metadata?.name || user?.email || 'Cargando...'}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild><Link href="/dashboard/settings">Configuración</Link></DropdownMenuItem>
                   <DropdownMenuItem>Soporte</DropdownMenuItem>

@@ -1,5 +1,4 @@
 
-
 export type User = {
   id: string;
   nombre: string;
@@ -16,9 +15,10 @@ export type Profile = {
   id: string;
   nombre: string | null;
   apellido: string | null;
+  email?: string; // Email is now part of the profile table
   avatar_url?: string | null;
   rol: "master" | "manager" | "colegio" | "padre";
-  // Agrega cualquier otro campo que tengas en tu tabla de perfiles
+  // We might add password hash here later
 };
 
 export type Estudiante = User & {

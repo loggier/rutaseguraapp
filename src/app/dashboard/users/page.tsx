@@ -1,5 +1,4 @@
 
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import {
   Table,
   TableBody,
@@ -21,6 +20,7 @@ import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 function getRoleVariant(role: string | null) {
@@ -38,63 +38,19 @@ function getRoleVariant(role: string | null) {
   }
 }
 
-type FormattedProfile = Profile & {
-    email: string;
-    avatar_url: string | null;
-}
-
 export default async function UsersPage() {
-  
-  // Cliente de Administrador que usa la SERVICE_ROLE_KEY para saltarse RLS.
-  // Se le pasa un gestor de cookies vacío para que no use la sesión del usuario.
-  const supabaseAdmin = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        db: {
-            schema: 'rutasegura'
-        },
-        cookies: {
-            get(name: string) {
-                return undefined;
-            },
-            set(name: string, value: string, options: CookieOptions) {
-                // No-op
-            },
-            remove(name: string, options: CookieOptions) {
-                // No-op
-            },
-        }
-      }
-  );
+  const supabase = createClient();
 
-  // 1. Obtener todos los perfiles usando el cliente de administrador
-  const { data: profiles, error: profilesError } = await supabaseAdmin
+  const { data: profiles, error } = await supabase
     .from("profiles")
     .select('*');
     
-  if (profilesError) {
-    console.error("Error cargando perfiles:", profilesError);
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {profilesError.message}</p></CardContent></Card>
+  if (error) {
+    console.error("Error cargando perfiles:", error);
+    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los perfiles: {error.message}</p></CardContent></Card>
   }
 
-  // 2. Obtener todos los usuarios de auth.users usando el mismo cliente de administrador
-  const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-
-  if (authError) {
-    console.error("Error de autenticación al listar usuarios:", authError);
-    return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios. Error: {authError.message}</p></CardContent></Card>
-  }
-  
-  // 3. Unir los datos en el código
-  const formattedProfiles: FormattedProfile[] = profiles?.map(profile => {
-    const authUser = authUsers.find(u => u.id === profile.id);
-    return {
-      ...profile,
-      email: authUser?.email || 'Sin email',
-      avatar_url: authUser?.user_metadata?.avatar_url || null,
-    };
-  }) || [];
+  const formattedProfiles: Profile[] = profiles || [];
 
 
   return (

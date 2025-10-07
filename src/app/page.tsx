@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -20,43 +19,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
-  const supabase = createClient();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-            variant: "destructive",
-            title: "Error al iniciar sesión",
-            description: error.message || "Ocurrió un error inesperado.",
-        });
-        setIsPending(false);
-      } else if (data.session) {
-        toast({
-          title: "¡Login Correcto!",
-          description: "Serás redirigido al dashboard.",
-        });
-        
-        // Forzar una recarga completa para que el middleware valide la nueva sesión.
-        window.location.href = '/dashboard';
-      }
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Error inesperado",
-            description: error.message || "No se pudo iniciar sesión.",
-        });
-        setIsPending(false);
-    }
+    // TODO: Implement custom login logic here
+    toast({
+      title: "Inicio de Sesión (Simulado)",
+      description: "La lógica de autenticación personalizada se implementará aquí.",
+    });
+    // For now, let's simulate a redirect
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 1000);
+    // setIsPending(false);
   };
   
   return (
