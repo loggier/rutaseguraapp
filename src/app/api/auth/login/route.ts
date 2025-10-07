@@ -4,49 +4,46 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 
-// This type is for internal use within this API route
+// Definición del tipo para el usuario con su contraseña hasheada
 type UserWithPassword = {
   id: string;
-  password: string; // This is the hashed password from the DB
+  password: string; // Este es el hash de la contraseña desde la BD
 };
 
-/**
- * Verifies the plaintext password against the stored hash using pgcrypto's crypt() function.
- * @param password - The plaintext password.
- * @param hash - The stored hash from the database.
- * @returns - True if the password is valid, false otherwise.
- */
+// Función helper para verificar la contraseña llamando a una función RPC de PostgreSQL
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  // The admin client is created here to ensure access to env vars at runtime.
+  // Se crea un cliente con privilegios de servicio para poder llamar a la función RPC.
+  // Es crucial pasarle un objeto de cookies vacío para que no intente usar la sesión del cliente.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: {}, // Use an empty cookies object to ensure the service role is used
+      cookies: {},
       db: { schema: 'rutasegura' }
     }
   );
 
+  // Llamada a la función 'verify_password' definida en la base de datos
   const { data, error } = await supabase.rpc('verify_password', {
     password: password,
     hash: hash,
   });
 
   if (error) {
-    console.error('Error verifying password with RPC:', error);
+    console.error('Error al verificar la contraseña con RPC:', error);
     return false;
   }
   return data;
 }
 
 export async function POST(request: Request) {
-  // The admin client must be created within the function to ensure
-  // environment variables are available in the serverless environment.
+  // Se crea un cliente de Supabase con rol de servicio para esta operación.
+  // Esto es necesario para poder leer la tabla 'users' que no debe ser pública.
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: {}, // Crucial: Use an empty cookies object to bypass user session and use service_role
+      cookies: {},
       db: {
         schema: 'rutasegura',
       },
@@ -56,33 +53,33 @@ export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
+    // 1. Validar que se recibieron los datos necesarios
     if (!email || !password) {
       return NextResponse.json({ message: 'Correo electrónico y contraseña son requeridos.' }, { status: 400 });
     }
 
-    // 1. Find the user by email in the 'users' table
+    // 2. Buscar al usuario por email en la tabla 'users'
     const { data: user, error: userError }: PostgrestSingleResponse<UserWithPassword> = await supabaseAdmin
       .from('users')
       .select('id, password')
       .eq('email', email)
       .single();
 
-    // For security, we don't differentiate between "user not found" and "wrong password".
-    // We check for the user first, and if they exist, we check the password.
+    // 3. Si el usuario no existe, devolver error de credenciales inválidas.
     if (userError || !user) {
-      console.error('Login attempt for non-existent user or DB error:', email, userError);
+      console.error('Intento de login para usuario no existente o error de BD:', email, userError);
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
-    // 2. Verify the password using the database function
+    // 4. Verificar la contraseña usando la función segura de la base de datos
     const isValidPassword = await verifyPassword(password, user.password);
 
     if (!isValidPassword) {
-      console.error('Invalid password attempt for user:', email);
+      console.error('Intento de contraseña inválida para el usuario:', email);
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
     }
 
-    // 3. If the password is valid, get the user's full profile
+    // 5. Si las credenciales son válidas, obtener el perfil completo del usuario
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('nombre, apellido, rol')
@@ -90,24 +87,23 @@ export async function POST(request: Request) {
       .single();
 
     if (profileError || !profile) {
+      // Este error no debería ocurrir si la base de datos está bien estructurada (cada usuario tiene un perfil)
       return NextResponse.json({ message: 'No se pudo encontrar el perfil del usuario.' }, { status: 404 });
     }
 
-    // 4. Combine information and prepare it for the session
+    // 6. Construir y devolver la respuesta exitosa con los datos del usuario
     const sessionData = {
       id: user.id,
-      email: email, // We already have the email from the request
+      email: email,
       nombre: profile.nombre,
       apellido: profile.apellido,
       rol: profile.rol,
     };
 
-    // TODO: In the future, this is where a JWT would be generated and signed
-    // and set in an HttpOnly cookie.
     return NextResponse.json({ message: 'Inicio de sesión exitoso', user: sessionData }, { status: 200 });
 
   } catch (error) {
-    console.error('Error in Login API:', error);
+    console.error('Error inesperado en la API de Login:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
 }
