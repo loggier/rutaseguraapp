@@ -25,12 +25,11 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
       },
       db: { schema: 'rutasegura' }
     }
-  );
-
+  ); 
   // Llamada a la función 'verify_password' definida en la base de datos
   const { data, error } = await supabase.rpc('verify_password', {
-    password: password,
-    hash: hash,
+    password_param: password,
+    hash_param: hash,
   });
 
   if (error) {
