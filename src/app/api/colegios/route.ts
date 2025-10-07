@@ -77,11 +77,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Error al crear el perfil: ' + profileError.message }, { status: 500 });
     }
 
-    // 4. Crear colegio
+    // 4. Crear colegio, usando el ID del nuevo usuario
     const { data: newSchool, error: schoolError } = await supabaseAdmin
       .from('colegios')
       .insert({
-        id: newUserId,
+        id: newUserId, // <-- CORRECCIÓN CLAVE
         nombre, 
         ruc, 
         email_contacto, 
