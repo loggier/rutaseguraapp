@@ -39,6 +39,11 @@ function getRoleVariant(role: string) {
   }
 }
 
+type FormattedProfile = Profile & {
+    email: string;
+    avatar_url: string | null;
+}
+
 export default async function UsersPage() {
   const supabase = createClient();
   
@@ -52,14 +57,40 @@ export default async function UsersPage() {
   }
 
   // 2. Obtener todos los usuarios de `auth.users`
-  const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+  // Esta es una operación de administrador y requiere la service_role_key
+  // Se debe crear un cliente específico para esta operación
+  const cookieStore = cookies()
+  const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        db: {
+          schema: 'rutasegura'
+        },
+        cookies: {
+            get(name: string) {
+                return cookieStore.get(name)?.value
+            },
+            set(name: string, value: string, options: CookieOptions) {
+                // No-op
+            },
+            remove(name: string, options: CookieOptions) {
+                // No-op
+            },
+        }
+      }
+  );
+
+  const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
   if (authError) {
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>No se pudieron cargar los usuarios de autenticación: {authError.message}</p></CardContent></Card>
+    // No exponer el error directamente al cliente si es sensible
+    console.error("Auth Error:", authError.message);
+    return <Card><CardHeader><CardTitle>Error de Autorización</CardTitle></CardHeader><CardContent><p>No tienes permiso para ver los usuarios.</p></CardContent></Card>
   }
   
   // 3. Unir los datos en el código
-  const formattedProfiles = profiles?.map(profile => {
+  const formattedProfiles: FormattedProfile[] = profiles?.map(profile => {
     const authUser = authUsers.find(u => u.id === profile.id);
     return {
       ...profile,
@@ -143,4 +174,3 @@ export default async function UsersPage() {
     </div>
   );
 }
-
