@@ -81,8 +81,15 @@ export async function POST(request: Request) {
     const { data: newSchool, error: schoolError } = await supabaseAdmin
       .from('colegios')
       .insert({
-        id: newUserId, nombre, ruc, email_contacto, telefono, 
-        direccion, codigo_postal, creado_por, activo: true
+        id: newUserId, // <-- CORRECCIÓN: Pasar explícitamente el ID
+        nombre, 
+        ruc, 
+        email_contacto, 
+        telefono, 
+        direccion, 
+        codigo_postal, 
+        creado_por, 
+        activo: true
       })
       .select(`
           id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo
