@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -46,6 +47,7 @@ export type Estudiante = {
   student_id: string;
   email: string | null;
   telefono: string | null;
+  avatar_url?: string | null;
   colegio_id: string;
   padre_id: string;
   creado_por: string;

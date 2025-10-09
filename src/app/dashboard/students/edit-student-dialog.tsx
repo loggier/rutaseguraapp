@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Combobox } from './combobox';
 import { getParentsForSchool } from '@/lib/services/student-services';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -129,6 +130,15 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-6">
             <div className="space-y-4 py-4">
+                <div className="flex items-center space-x-4">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src={student.avatar_url || ''} />
+                        <AvatarFallback className="text-3xl">
+                            {(student.nombre?.[0] || '')}{(student.apellido?.[0] || '')}
+                        </AvatarFallback>
+                    </Avatar>
+                    <Button type="button" variant="outline" disabled>Cambiar Foto</Button>
+                </div>
                <div className='space-y-1'>
                   <Label>Student ID</Label>
                   <Input value={student.student_id} disabled />

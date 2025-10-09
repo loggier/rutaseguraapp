@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Estudiante } from "@/lib/types";
 import { DeleteStudentAlert } from "./delete-student-alert";
 import { EditStudentDialog } from "./edit-student-dialog";
@@ -53,6 +53,7 @@ export function StudentsTable({ students, onStudentUpdated, onStudentDeleted }: 
                         <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
                                 <Avatar>
+                                    <AvatarImage src={student.avatar_url || ''} alt={`${student.nombre} ${student.apellido}`} data-ai-hint="child face" />
                                     <AvatarFallback>{(student.nombre?.[0] || '')}{(student.apellido?.[0] || '')}</AvatarFallback>
                                 </Avatar>
                                 <div>

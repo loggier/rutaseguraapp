@@ -18,6 +18,7 @@ import { useUser } from '@/contexts/user-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Combobox } from './combobox';
 import { getParentsForSchool } from '@/lib/services/student-services';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 
 const formSchema = z.object({
@@ -111,6 +112,9 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
     }
   };
 
+  const nombre = form.watch('nombre');
+  const apellido = form.watch('apellido');
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -129,6 +133,14 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-6">
             <div className="space-y-4 py-4">
+                <div className="flex items-center space-x-4">
+                    <Avatar className="h-20 w-20">
+                        <AvatarFallback className="text-3xl">
+                            {(nombre?.[0] || '')}{(apellido?.[0] || '')}
+                        </AvatarFallback>
+                    </Avatar>
+                    <Button type="button" variant="outline" disabled>Subir Foto</Button>
+                </div>
                 <div className='grid grid-cols-2 gap-4'>
                     <div className='space-y-1'>
                         <Label htmlFor="nombre">Nombre</Label>
