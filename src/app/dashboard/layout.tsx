@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
-  Menu, Bell, LogOut, Loader2, Shield, School,
+  Menu, Bell, LogOut, Loader2, Shield, School, Contact,
 } from 'lucide-react';
 import {
   Sheet, SheetContent, SheetTrigger,
@@ -32,6 +32,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['master', 'manager', 'colegio'] },
   { href: '/dashboard/users', icon: Shield, label: 'Usuarios', allowedRoles: ['master', 'manager'] },
   { href: '/dashboard/schools', icon: School, label: 'Colegios', allowedRoles: ['master', 'manager'] },
+  { href: '/dashboard/parents', icon: Contact, label: 'Padres/Tutores', allowedRoles: ['master', 'manager', 'colegio'] },
   { href: '/dashboard/students', icon: Users, label: 'Estudiantes', allowedRoles: ['master', 'manager', 'colegio'] },
   { href: '/dashboard/drivers', icon: User, label: 'Conductores', allowedRoles: ['master', 'manager', 'colegio'] },
   { href: '/dashboard/buses', icon: Bus, label: 'Autobuses', allowedRoles: ['master', 'manager', 'colegio'] },
@@ -151,12 +152,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 return;
             }
             
-            const masterUser = {
+            const masterUser: AppUser = {
                 id: data.id,
                 nombre: 'Usuario',
                 apellido: 'Maestro',
                 email: 'master@rutasegura.com',
-                rol: 'master' as const,
+                rol: 'master',
                 activo: true,
             };
             sessionStorage.setItem('rutasegura_user', JSON.stringify(masterUser));
@@ -283,5 +284,3 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
-
-    

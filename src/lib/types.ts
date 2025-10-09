@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -19,6 +20,7 @@ export type Profile = {
   avatar_url?: string | null;
   rol: "master" | "manager" | "colegio" | "padre";
   activo: boolean;
+  colegio_id?: string | null; // ID del colegio al que pertenece el padre/tutor
 };
 
 export type Colegio = {
@@ -30,7 +32,6 @@ export type Colegio = {
     email_contacto: string;
     telefono: string;
     direccion: string;
-    codigo_postal: string;
     activo: boolean;
     creado_por: string; // Foreign key to users.id
 }

@@ -1,4 +1,4 @@
-import type { Estudiante, Conductor, Autobus, Ruta, Plan, Viaje, Colegio } from "./types";
+import type { Estudiante, Conductor, Autobus, Ruta, Plan, Viaje, Colegio, Profile } from "./types";
 
 export const estudiantes: Estudiante[] = [
   {
@@ -184,4 +184,32 @@ export const studentLocationsForOptimization = [
   { studentId: 'E004', latitude: 34.045, longitude: -118.23 },
 ];
 
-    
+export const padres: Profile[] = [
+    {
+        id: "p001",
+        nombre: "Carlos",
+        apellido: "García",
+        email: "carlos.garcia@example.com",
+        rol: "padre",
+        activo: true,
+        colegio_id: "COLEGIO_ID_1"
+    },
+    {
+        id: "p002",
+        nombre: "Maria",
+        apellido: "Rodriguez",
+        email: "maria.r@example.com",
+        rol: "padre",
+        activo: true,
+        colegio_id: "COLEGIO_ID_1"
+    },
+     {
+        id: "p003",
+        nombre: "Juan",
+        apellido: "Martinez",
+        email: "juan.m@example.com",
+        rol: "padre",
+        activo: false,
+        colegio_id: "COLEGIO_ID_2"
+    }
+];
