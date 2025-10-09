@@ -136,8 +136,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         router.replace('/');
     }
     setIsLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pathname]);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
