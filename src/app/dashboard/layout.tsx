@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
 import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
-import { createClient } from '@/lib/supabase/client';
 
 
 // --- Constantes de Navegación ---
@@ -126,20 +125,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
-  const pathname = usePathname();
   
   useEffect(() => {
+    // Session is now managed by middleware. We just read from sessionStorage for UI purposes.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
         setUser(JSON.parse(sessionUserString));
-    } else {
-        router.replace('/');
     }
+    // No need to redirect here, middleware handles it.
     setIsLoading(false);
-  }, [pathname]);
+  }, []);
   
   const handleLogout = async () => {
+    // Clear session storage and cookie
     sessionStorage.removeItem('rutasegura_user');
+    document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
 
@@ -153,8 +153,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
-    // Esto previene el renderizado del layout si el usuario no está, mientras la redirección ocurre.
-    return null;
+    // This can briefly show while middleware redirects.
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Verificando sesión...</p>
+      </div>
+    );
   }
 
   const getAvatarFallback = () => {
