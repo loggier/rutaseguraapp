@@ -49,30 +49,30 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const { nombre, ruc, email_contacto, telefono, direccion } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // Actualizar la tabla `colegios`
-    const { data: updatedSchool, error: schoolError } = await supabaseAdmin
+    // 1. Actualizar la tabla `colegios`
+    const { error: updateError } = await supabaseAdmin
       .from('colegios')
       .update({ nombre, ruc, email_contacto, telefono, direccion })
-      .eq('id', schoolId)
-      .select(`
-          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo, usuario_id, creado_por,
-          user:users (email)
-      `)
-      .single();
-
-    if (schoolError || !updatedSchool) {
-        console.error('Error al actualizar el colegio:', schoolError);
-        return NextResponse.json({ message: 'Error interno al actualizar los datos del colegio: ' + schoolError?.message }, { status: 500 });
+      .eq('id', schoolId);
+      
+    if (updateError) {
+        console.error('Error al actualizar el colegio:', updateError);
+        return NextResponse.json({ message: 'Error interno al actualizar los datos del colegio: ' + updateError?.message }, { status: 500 });
     }
 
-    // Aplanar la respuesta para que coincida con la vista
-    const responseData = {
-        ...updatedSchool,
-        email: updatedSchool.user?.email || ''
-    };
-    delete (responseData as any).user;
-
-    return NextResponse.json({ message: 'Colegio actualizado con éxito', colegio: responseData }, { status: 200 });
+    // 2. Obtener los datos actualizados desde la VISTA para evitar joins ambiguos
+    const { data: updatedSchool, error: schoolError } = await supabaseAdmin
+        .from('colegios_view')
+        .select('*')
+        .eq('id', schoolId)
+        .single();
+    
+    if (schoolError || !updatedSchool) {
+        console.error('Error al obtener el colegio actualizado desde la vista:', schoolError);
+        return NextResponse.json({ message: 'Error al recuperar los datos actualizados.' }, { status: 500 });
+    }
+    
+    return NextResponse.json({ message: 'Colegio actualizado con éxito', colegio: updatedSchool }, { status: 200 });
 
   } catch (error: any) {
     console.error('Error inesperado en PUT /api/colegios/[id]:', error);
@@ -184,10 +184,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     // 4. Eliminar de `users` (la cuenta de autenticación)
-    const { error: deleteUserError } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', userIdToDelete);
+    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userIdToDelete);
+
 
     if (deleteUserError) {
       // Este es un problema más serio porque deja un registro huérfano.

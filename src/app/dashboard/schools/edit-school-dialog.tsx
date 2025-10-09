@@ -7,14 +7,13 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle, DialogTrigger, DialogClose,
+  DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Colegio } from '@/lib/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
@@ -82,12 +81,18 @@ export function EditSchoolDialog({ school, children, onSchoolUpdated }: EditScho
       setIsPending(false);
     }
   };
+  
+  // Need to use onSelect to stop the dropdown from closing
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setOpen(true);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <div onClick={handleTriggerClick} className="w-full">
         {children}
-      </DialogTrigger>
+      </div>
       <DialogContent className="sm:max-w-4xl">
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
@@ -139,9 +144,7 @@ export function EditSchoolDialog({ school, children, onSchoolUpdated }: EditScho
               </div>
             </div>
           <DialogFooter className="pt-6">
-            <DialogClose asChild>
-                <Button type="button" variant="outline" disabled={isPending}>Cancelar</Button>
-            </DialogClose>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Cancelar</Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar Cambios
