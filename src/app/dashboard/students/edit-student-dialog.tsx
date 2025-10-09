@@ -17,9 +17,9 @@ import type { Estudiante, Profile } from '@/lib/types';
 import { useUser } from '@/contexts/user-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getParentsForSchool } from '@/lib/services/student-services';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -121,76 +121,84 @@ export function EditStudentDialog({ student, onStudentUpdated, children }: EditS
         {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <DialogHeader>
-            <DialogTitle>Editar Estudiante</DialogTitle>
-            <DialogDescription>
-              Actualiza los datos del estudiante y reasigna su padre/tutor si es necesario.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="h-[60vh] pr-6">
-            <div className="space-y-4 py-4">
-                <div className="flex items-center space-x-4">
-                    <Avatar className="h-20 w-20">
-                        <AvatarImage src={student.avatar_url || ''} />
-                        <AvatarFallback className="text-3xl">
-                            {(student.nombre?.[0] || '')}{(student.apellido?.[0] || '')}
-                        </AvatarFallback>
-                    </Avatar>
-                    <Button type="button" variant="outline" disabled>Cambiar Foto</Button>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Editar Estudiante</DialogTitle>
+              <DialogDescription>
+                Actualiza los datos del estudiante y reasigna su padre/tutor si es necesario.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[60vh] pr-6">
+              <div className="space-y-4 py-4">
+                  <div className="flex items-center space-x-4">
+                      <Avatar className="h-20 w-20">
+                          <AvatarImage src={student.avatar_url || ''} />
+                          <AvatarFallback className="text-3xl">
+                              {(student.nombre?.[0] || '')}{(student.apellido?.[0] || '')}
+                          </AvatarFallback>
+                      </Avatar>
+                      <Button type="button" variant="outline" disabled>Cambiar Foto</Button>
+                  </div>
+                <div className='space-y-1'>
+                    <Label>Student ID</Label>
+                    <Input value={student.student_id} disabled />
                 </div>
-               <div className='space-y-1'>
-                  <Label>Student ID</Label>
-                  <Input value={student.student_id} disabled />
+                <div className='grid grid-cols-2 gap-4'>
+                      <div className='space-y-1'>
+                          <Label htmlFor="nombre">Nombre</Label>
+                          <Input id="nombre" {...form.register('nombre')} />
+                          {form.formState.errors.nombre && <p className="text-sm text-destructive">{form.formState.errors.nombre.message}</p>}
+                      </div>
+                      <div className='space-y-1'>
+                          <Label htmlFor="apellido">Apellido</Label>
+                          <Input id="apellido" {...form.register('apellido')} />
+                          {form.formState.errors.apellido && <p className="text-sm text-destructive">{form.formState.errors.apellido.message}</p>}
+                      </div>
+                  </div>
+                  <div className='space-y-1'>
+                      <Label htmlFor="email">Email (Opcional)</Label>
+                      <Input id="email" type="email" {...form.register('email')} />
+                      {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+                  </div>
+                  <div className='space-y-1'>
+                      <Label htmlFor="telefono">Teléfono (Opcional)</Label>
+                      <Input id="telefono" {...form.register('telefono')} />
+                      {form.formState.errors.telefono && <p className="text-sm text-destructive">{form.formState.errors.telefono.message}</p>}
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="padre_id"
+                    render={({ field }) => (
+                      <FormItem className='space-y-1'>
+                        <Label>Padre/Tutor</Label>
+                         <FormControl>
+                            <Combobox
+                                items={parents.map(p => ({ value: p.id, label: `${p.nombre} ${p.apellido} (${p.email})` }))}
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Selecciona un padre/tutor..."
+                                searchPlaceholder="Buscar padre/tutor..."
+                                notFoundMessage="No se encontraron padres/tutores."
+                            />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
               </div>
-               <div className='grid grid-cols-2 gap-4'>
-                    <div className='space-y-1'>
-                        <Label htmlFor="nombre">Nombre</Label>
-                        <Input id="nombre" {...form.register('nombre')} />
-                        {form.formState.errors.nombre && <p className="text-sm text-destructive">{form.formState.errors.nombre.message}</p>}
-                    </div>
-                    <div className='space-y-1'>
-                        <Label htmlFor="apellido">Apellido</Label>
-                        <Input id="apellido" {...form.register('apellido')} />
-                        {form.formState.errors.apellido && <p className="text-sm text-destructive">{form.formState.errors.apellido.message}</p>}
-                    </div>
-                </div>
-                <div className='space-y-1'>
-                    <Label htmlFor="email">Email (Opcional)</Label>
-                    <Input id="email" type="email" {...form.register('email')} />
-                    {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
-                </div>
-                <div className='space-y-1'>
-                    <Label htmlFor="telefono">Teléfono (Opcional)</Label>
-                    <Input id="telefono" {...form.register('telefono')} />
-                    {form.formState.errors.telefono && <p className="text-sm text-destructive">{form.formState.errors.telefono.message}</p>}
-                </div>
-                <div className='space-y-1'>
-                    <Label>Padre/Tutor</Label>
-                     <Select onValueChange={(value) => form.setValue('padre_id', value, { shouldValidate: true })} defaultValue={form.getValues('padre_id')}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un padre/tutor..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {parents.map((parent) => (
-                                <SelectItem key={parent.id} value={parent.id}>
-                                    {parent.nombre} {parent.apellido} ({parent.email})
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {form.formState.errors.padre_id && <p className="text-sm text-destructive">{form.formState.errors.padre_id.message}</p>}
-                </div>
-            </div>
-          </ScrollArea>
-          <DialogFooter className='pt-6'>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar Cambios
-            </Button>
-          </DialogFooter>
-        </form>
+            </ScrollArea>
+            <DialogFooter className='pt-6'>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar Cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
