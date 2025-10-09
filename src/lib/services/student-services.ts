@@ -32,17 +32,11 @@ export async function getParentsForSchool(userId: string, userRole: Profile['rol
 
     let query = supabaseAdmin
         .from('profiles')
-        .select(`
-            id,
-            nombre,
-            apellido,
-            email:users (email)
-        `)
+        .select('id, nombre, apellido')
         .eq('rol', 'padre')
         .eq('activo', true);
 
     if (userRole === 'colegio') {
-        // Find the colegio_id for the current 'colegio' user
         const { data: colegioData, error: colegioError } = await supabaseAdmin
             .from('colegios')
             .select('id')
@@ -53,23 +47,37 @@ export async function getParentsForSchool(userId: string, userRole: Profile['rol
             console.error('Could not find colegio for user:', userId);
             return [];
         }
-        // Filter parents by that colegio_id
         query = query.eq('colegio_id', colegioData.id);
     }
-    // For 'master' or 'manager', we fetch all active parents
 
-    const { data, error } = await query;
-    if (error) {
-        console.error("Error fetching parents:", error);
-        throw new Error('Failed to fetch parents.');
+    const { data: profiles, error: profileError } = await query;
+    if (profileError) {
+        console.error("Error fetching parent profiles:", profileError);
+        throw new Error('Failed to fetch parent profiles.');
+    }
+    
+    const parentIds = profiles.map(p => p.id);
+    if(parentIds.length === 0) return [];
+    
+    const { data: users, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('id, email')
+        .in('id', parentIds);
+
+    if (userError) {
+        console.error("Error fetching parent emails:", userError);
+        throw new Error('Failed to fetch parent emails.');
     }
 
-    const formattedData = data.map((p: any) => ({
-        id: p.id,
-        nombre: p.nombre,
-        apellido: p.apellido,
-        email: p.email.email, // Unnest the email
-    })) as Profile[];
+    const emailMap = users.reduce((acc, user) => {
+        acc[user.id] = user.email;
+        return acc;
+    }, {} as Record<string, string>);
 
+    const formattedData = profiles.map(p => ({
+        ...p,
+        email: emailMap[p.id] || 'N/A',
+    })) as Profile[];
+    
     return formattedData;
 }

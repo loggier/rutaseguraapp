@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import type { Estudiante } from "@/lib/types";
+import type { Estudiante, Profile } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
 import { AddStudentDialog } from "./add-student-dialog";
 import { StudentsTable } from "./students-table";
@@ -19,12 +19,13 @@ export default function StudentsPage() {
   const fetchStudents = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setError(null);
 
     try {
       const supabase = createClient();
       let query = supabase.from('estudiantes').select(`
         *,
-        padre:profiles(nombre, apellido, email),
+        padre:profiles(id, nombre, apellido),
         colegio:colegios(nombre)
       `);
 
@@ -41,14 +42,32 @@ export default function StudentsPage() {
         query = query.eq('colegio_id', currentColegio.id);
       }
 
-      const { data, error: studentsError } = await query.order('apellido').order('nombre');
+      const { data: studentsData, error: studentsError } = await query.order('apellido').order('nombre');
 
       if (studentsError) throw studentsError;
+        
+      // Extract parent IDs
+      const parentIds = studentsData.map(s => s.padre_id).filter(Boolean);
+      let parentEmails: { [key: string]: string } = {};
 
-      const formattedStudents = data.map((s: any) => ({
+      if (parentIds.length > 0) {
+          const { data: usersData, error: usersError } = await supabase
+              .from('users')
+              .select('id, email')
+              .in('id', parentIds);
+          
+          if (usersError) throw usersError;
+
+          parentEmails = usersData.reduce((acc, u) => {
+              acc[u.id] = u.email;
+              return acc;
+          }, {} as { [key: string]: string });
+      }
+
+      const formattedStudents = studentsData.map((s: any) => ({
         ...s,
         padre_nombre: s.padre ? `${s.padre.nombre} ${s.padre.apellido}` : 'No asignado',
-        padre_email: s.padre ? s.padre.email : '-',
+        padre_email: s.padre_id ? parentEmails[s.padre_id] || '-' : '-',
         colegio_nombre: s.colegio ? s.colegio.nombre : 'No asignado'
       }));
 
@@ -67,13 +86,13 @@ export default function StudentsPage() {
   }, [fetchStudents]);
 
   const handleStudentAdded = (newStudent: Estudiante) => {
-    setStudents(prev => [newStudent, ...prev].sort((a,b) => (a.apellido ?? '').localeCompare(b.apellido ?? '')));
-    fetchStudents(); // Re-fetch to get all relations correctly
+    // Re-fetch to get all relations correctly
+    fetchStudents(); 
   }
 
   const handleStudentUpdated = (updatedStudent: Estudiante) => {
-    setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-    fetchStudents(); // Re-fetch to get all relations correctly
+     // Re-fetch to get all relations correctly
+    fetchStudents();
   }
   
   const handleStudentDeleted = (studentId: string) => {
@@ -115,6 +134,8 @@ export default function StudentsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-4 text-muted-foreground">Cargando...</p>
              </div>
+           ) : error ? (
+            <div className="text-center text-destructive py-8">{error}</div>
            ) : (
              <StudentsTable 
                 students={students}
