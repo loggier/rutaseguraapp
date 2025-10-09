@@ -125,20 +125,23 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
+  const pathname = usePathname();
   
   useEffect(() => {
-    // Session is now managed by middleware. We just read from sessionStorage for UI purposes.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
-        setUser(JSON.parse(sessionUserString));
+      setUser(JSON.parse(sessionUserString));
+    } else {
+        if (pathname.startsWith('/dashboard')) {
+            router.replace('/');
+        }
     }
-    // No need to redirect here, middleware handles it.
     setIsLoading(false);
-  }, []);
+  }, [pathname, router]);
   
   const handleLogout = async () => {
-    // Clear session storage and cookie
     sessionStorage.removeItem('rutasegura_user');
+    // Also remove the cookie if it exists
     document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
@@ -153,7 +156,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
-    // This can briefly show while middleware redirects.
+    // This can briefly show while the effect above redirects.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

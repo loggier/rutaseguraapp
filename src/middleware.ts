@@ -2,20 +2,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 
+// This middleware is currently not in use but can be adapted for session management.
 export function middleware(request: NextRequest) {
-  const userCookie = request.cookies.get('rutasegura_user');
-  const { pathname } = request.nextUrl;
-
-  // Si no hay cookie y se intenta acceder al dashboard, redirigir a login.
-  if (!userCookie && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  // Si hay cookie y se está en la página de login, redirigir al dashboard.
-  if (userCookie && pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
   return NextResponse.next();
 }
 

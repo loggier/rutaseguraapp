@@ -16,16 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-function setCookie(name: string, value: string, days: number) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-}
-
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
@@ -55,9 +45,6 @@ export default function LoginPage() {
       const userDataString = JSON.stringify(data.user);
       // Store user data in session storage for immediate use in the client
       sessionStorage.setItem('rutasegura_user', userDataString);
-      // Store user data in a cookie for middleware to verify session
-      setCookie('rutasegura_user', userDataString, 1);
-
 
       toast({
         title: "Inicio de Sesión Exitoso",
