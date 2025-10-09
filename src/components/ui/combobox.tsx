@@ -55,10 +55,10 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
               {items.map((item) => (
                 <CommandItem
                   key={item.value}
-                  value={item.value} // Use value for selection and filtering
-                  onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue)
-                    setOpen(false)
+                  value={item.label} // Search by label
+                  onSelect={() => {
+                    onChange(item.value);
+                    setOpen(false);
                   }}
                 >
                   <Check
