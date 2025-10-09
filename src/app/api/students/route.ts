@@ -10,6 +10,7 @@ const studentSchema = z.object({
   apellido: z.string().min(1, "El apellido es requerido."),
   email: z.string().email("El email no es válido.").optional().nullable().or(z.literal('')),
   telefono: z.string().optional().nullable(),
+  avatar_url: z.string().url().optional().nullable(),
   padre_id: z.string().uuid("ID de padre/tutor inválido."),
   creador_id: z.string().uuid("ID de creador inválido."),
   user_rol: z.enum(['master', 'manager', 'colegio', 'padre']),
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { nombre, apellido, email, telefono, padre_id, creador_id, user_rol } = validation.data;
+    const { nombre, apellido, email, telefono, avatar_url, padre_id, creador_id, user_rol } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
     // 1. Determine the colegio_id
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
         apellido,
         email,
         telefono,
+        avatar_url,
         padre_id,
         colegio_id,
         student_id,

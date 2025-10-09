@@ -10,6 +10,7 @@ const updateStudentSchema = z.object({
   email: z.string().email("El email no es válido.").optional().nullable().or(z.literal('')),
   telefono: z.string().optional().nullable(),
   padre_id: z.string().uuid("ID de padre/tutor inválido."),
+  avatar_url: z.string().url().optional().nullable(),
 });
 
 // Helper to create a Supabase admin client
@@ -36,13 +37,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { nombre, apellido, email, telefono, padre_id } = validation.data;
+    const { nombre, apellido, email, telefono, padre_id, avatar_url } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
     // Update the student record
     const { data: updatedStudent, error: updateError } = await supabaseAdmin
       .from('estudiantes')
-      .update({ nombre, apellido, email, telefono, padre_id })
+      .update({ nombre, apellido, email, telefono, padre_id, avatar_url })
       .eq('id', studentId)
       .select(`
         *,
