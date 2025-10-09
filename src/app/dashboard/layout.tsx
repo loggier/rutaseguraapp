@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
   Menu, Bell, LogOut, Loader2, Shield, School, Contact,
@@ -22,7 +22,6 @@ import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
   SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
-import { usePathname } from 'next/navigation';
 import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
 
 
@@ -132,16 +131,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
     } else {
-        if (pathname.startsWith('/dashboard')) {
-            router.replace('/');
-        }
+      router.replace('/');
     }
     setIsLoading(false);
   }, [pathname, router]);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
-    // Also remove the cookie if it exists
     document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
@@ -254,3 +250,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
+
+    
