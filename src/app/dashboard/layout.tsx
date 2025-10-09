@@ -132,16 +132,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
         setUser(JSON.parse(sessionUserString));
-        setIsLoading(false);
     } else {
-        // If there's no session and we are not on the login page, redirect.
-        if (pathname !== '/') {
-            router.replace('/');
-        } else {
-            setIsLoading(false);
-        }
+        router.replace('/');
     }
-  }, [pathname, router]);
+    setIsLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
@@ -157,11 +153,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (!user && pathname.startsWith('/dashboard')) {
-      // This case should be caught by the useEffect, but as a safeguard:
-      // If still no user and trying to access dashboard, redirect.
-      router.replace('/');
-      return null;
+  if (!user) {
+    // Esto previene el renderizado del layout si el usuario no está, mientras la redirección ocurre.
+    return null;
   }
 
   const getAvatarFallback = () => {
@@ -253,5 +247,3 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
-
-    
