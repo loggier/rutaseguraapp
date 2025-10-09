@@ -52,7 +52,7 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
       apellido: '',
       email: '',
       password: '',
-      colegio_id: null,
+      colegio_id: undefined,
     },
   });
 
@@ -66,8 +66,9 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
     }
     if (open) {
         fetchColegios();
+        form.reset(); // Reset form when opening
     }
-  }, [user, open]);
+  }, [user, open, form]);
   
   useEffect(() => {
       async function setColegioForUser() {
@@ -87,10 +88,22 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
     try {
+      // For 'colegio' role, ensure colegio_id is set from their context.
+      const finalValues = { ...values };
+      if (user?.rol === 'colegio' && !finalValues.colegio_id) {
+          const supabase = createClient();
+          const { data: currentColegio } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
+          if (currentColegio?.id) {
+              finalValues.colegio_id = currentColegio.id;
+          } else {
+              throw new Error("No se pudo determinar el colegio para el usuario actual.");
+          }
+      }
+        
       const response = await fetch('/api/parents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify(finalValues),
       });
 
       const data = await response.json();
@@ -105,7 +118,6 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
       });
       onParentAdded(data.user);
       setOpen(false);
-      form.reset();
 
     } catch (error: any) {
       toast({
@@ -158,11 +170,12 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
              {(user?.rol === 'master' || user?.rol === 'manager') && (
                  <div className='space-y-1'>
                     <Label htmlFor="colegio_id">Colegio</Label>
-                    <Select onValueChange={(value) => form.setValue('colegio_id', value)}>
+                    <Select onValueChange={(value) => form.setValue('colegio_id', value)} value={form.watch('colegio_id') || undefined}>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecciona un colegio" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="">Sin colegio asignado</SelectItem>
                             {colegios.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
                         </SelectContent>
                     </Select>

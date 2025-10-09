@@ -60,7 +60,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     if (profileError || !updatedProfile) {
         console.error('Error al actualizar el perfil del padre/tutor:', profileError);
-        return NextResponse.json({ message: 'Error interno al actualizar el perfil.' }, { status: 500 });
+        return NextResponse.json({ message: 'Error interno al actualizar el perfil: ' + profileError?.message }, { status: 500 });
     }
     
     // 2. Obtener datos de la tabla `users` para la respuesta completa
@@ -77,7 +77,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const responseData: Profile = { ...updatedProfile, email: user.email, activo: user.activo };
     return NextResponse.json({ message: 'Padre/Tutor actualizado con éxito', user: responseData }, { status: 200 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error inesperado en PUT /api/parents/[id]:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
@@ -111,7 +111,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const message = `Padre/Tutor ${activo ? 'activado' : 'desactivado'} con éxito.`;
     return NextResponse.json({ message, newStatus: activo }, { status: 200 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error inesperado en PATCH /api/parents/[id]:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
@@ -135,10 +135,13 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     
     if (deleteProfileError) {
       console.error('Error al eliminar el perfil:', deleteProfileError);
-      return NextResponse.json({ message: 'Error interno al eliminar el perfil.' }, { status: 500 });
+      return NextResponse.json({ message: 'Error interno al eliminar el perfil: ' + deleteProfileError.message }, { status: 500 });
     }
 
     // 2. Eliminar de la tabla `users` local
+    // Nota: Esto debería idealmente estar envuelto en una transacción de base de datos
+    // o usar onDelete: 'CASCADE' en la clave foránea.
+    // Por simplicidad, lo hacemos en dos pasos.
     const { error: deleteUserError } = await supabaseAdmin
       .from('users')
       .delete()
@@ -146,7 +149,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     if (deleteUserError) {
       console.error('Error al eliminar el usuario de la tabla `users`:', deleteUserError);
-      return NextResponse.json({ message: 'Error interno al eliminar la entrada del usuario.' }, { status: 500 });
+      // No se pudo eliminar al usuario, pero el perfil sí se borró. Esto es un estado inconsistente.
+      return NextResponse.json({ message: 'Error crítico: se eliminó el perfil pero no la cuenta de usuario. ' + deleteUserError.message }, { status: 500 });
     }
     
     return NextResponse.json({ message: 'Padre/Tutor eliminado permanentemente con éxito.' }, { status: 200 });

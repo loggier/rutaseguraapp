@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     if (userError || !newUser) {
       console.error('Error al crear cuenta para padre/tutor:', userError);
-      return NextResponse.json({ message: 'Error interno al crear la cuenta.' }, { status: 500 });
+      return NextResponse.json({ message: 'Error interno al crear la cuenta: ' + userError?.message }, { status: 500 });
     }
 
     // 3. Crear el perfil en la tabla `profiles`
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         console.error('Error al crear el perfil de padre/tutor:', profileError);
         // Rollback: eliminar el usuario recién creado si falla el perfil
         await supabaseAdmin.from('users').delete().eq('id', newUser.id);
-        return NextResponse.json({ message: 'Error interno al crear el perfil de usuario.' }, { status: 500 });
+        return NextResponse.json({ message: 'Error interno al crear el perfil de usuario: ' + profileError?.message }, { status: 500 });
     }
 
     // Se construye la respuesta con el estado 'activo' para la UI
