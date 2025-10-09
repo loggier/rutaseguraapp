@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { z } from 'zod';
 import type { Profile } from '@/lib/types';
+import { hashPassword } from '@/lib/auth-utils';
 
 const updateUserSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido."),
@@ -168,7 +169,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: 'No se puede eliminar a un usuario Master.' }, { status: 403 });
     }
 
-    // 2. Eliminar de `profiles`
+    // --- Transacción de eliminación ---
+    // 2. Eliminar de `colegios` si el usuario es de rol 'colegio'
+    if (profile.rol === 'colegio') {
+      const { error: deleteSchoolError } = await supabaseAdmin
+        .from('colegios')
+        .delete()
+        .eq('usuario_id', userId);
+      
+      if (deleteSchoolError) {
+        console.error("Error eliminando el registro de colegio asociado:", deleteSchoolError);
+        // Podríamos decidir detener la operación aquí o solo registrarla
+      }
+    }
+    
+    // 3. Eliminar de `profiles`
     const { error: deleteProfileError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -176,25 +191,26 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     
     if (deleteProfileError) {
       console.error('Error al eliminar el perfil:', deleteProfileError);
+      // Dependiendo de la política, podríamos querer detenernos aquí
       return NextResponse.json({ message: 'Error interno al eliminar el perfil.' }, { status: 500 });
     }
 
-    // 3. Eliminar de `users`
+    // 4. Eliminar de la tabla `users` local
     const { error: deleteUserError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', userId);
 
     if (deleteUserError) {
-      // Nota: En un caso real, aquí se debería implementar un rollback o una estrategia para manejar la inconsistencia.
-      console.error('Error al eliminar el usuario (el perfil fue eliminado):', deleteUserError);
-      return NextResponse.json({ message: 'Error interno al eliminar el usuario.' }, { status: 500 });
+      console.error('Error al eliminar el usuario de la tabla `users`:', deleteUserError);
+      // Podríamos necesitar una lógica de rollback si esto falla
+      return NextResponse.json({ message: 'Error interno al eliminar la entrada del usuario.' }, { status: 500 });
     }
     
     return NextResponse.json({ message: 'Usuario eliminado permanentemente con éxito.' }, { status: 200 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error inesperado en DELETE /api/users/[id]:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+    return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
   }
 }

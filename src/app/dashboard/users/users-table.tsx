@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, UserCheck, UserX, Trash2 } from "lucide-react";
+import { MoreHorizontal, UserCheck, UserX, Trash2, KeyRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types";
 import { EditUserDialog } from "./edit-user-dialog";
 import { UpdateStatusAlert } from "./update-status-alert";
 import { DeleteUserAlert } from "./delete-user-alert";
+import { ChangePasswordDialog } from "./change-password-dialog";
 
 function getRoleVariant(role: string | null) {
   switch (role) {
@@ -50,6 +51,7 @@ type UsersTableProps = {
 
 export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged, onUserDeleted }: UsersTableProps) {
     const [userToUpdateStatus, setUserToUpdateStatus] = useState<Profile | null>(null);
+    const [userToChangePassword, setUserToChangePassword] = useState<Profile | null>(null);
     const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
 
     return (
@@ -107,6 +109,13 @@ export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged, onUse
                             </EditUserDialog>
                             <DropdownMenuItem
                                 disabled={profile.rol === 'master'}
+                                onClick={() => setUserToChangePassword(profile)}
+                            >
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                Cambiar Contraseña
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                disabled={profile.rol === 'master'}
                                 onClick={() => setUserToUpdateStatus(profile)}
                             >
                                 {profile.activo ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
@@ -135,6 +144,14 @@ export function UsersTable({ profiles, onUserUpdated, onUserStatusChanged, onUse
                     isOpen={!!userToUpdateStatus}
                     onClose={() => setUserToUpdateStatus(null)}
                     onUserStatusChanged={onUserStatusChanged}
+                />
+            )}
+
+            {userToChangePassword && (
+                <ChangePasswordDialog
+                    user={userToChangePassword}
+                    isOpen={!!userToChangePassword}
+                    onClose={() => setUserToChangePassword(null)}
                 />
             )}
 
