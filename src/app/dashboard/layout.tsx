@@ -57,7 +57,7 @@ function SidebarNav() {
          <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith(item.href)}
+              isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
               tooltip={open ? undefined : item.label}
             >
               <Link href={item.href}>
@@ -126,54 +126,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
+  const pathname = usePathname();
   
   useEffect(() => {
-    // This is a temporary solution to simulate a logged-in user.
-    // In a real app, you'd fetch this from a session cookie or auth provider.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
         setUser(JSON.parse(sessionUserString));
         setIsLoading(false);
     } else {
-        // If no user in session, it might be the master user logging in for the first time.
-        // Or a redirect from login. We wait for login page to set the session.
-        // For now, let's keep a fallback for initial master login.
-        async function fetchMasterUser() {
-            const supabase = createClient();
-            const { data, error } = await supabase
-                .from('users')
-                .select('id')
-                .eq('email', 'master@rutasegura.com')
-                .single();
-
-            if (error || !data) {
-                console.error("Master user not found, redirecting to login:", error);
-                router.replace('/'); // Redirect if no session and master can't be found
-                return;
-            }
-            
-            const masterUser: AppUser = {
-                id: data.id,
-                nombre: 'Usuario',
-                apellido: 'Maestro',
-                email: 'master@rutasegura.com',
-                rol: 'master',
-                activo: true,
-            };
-            sessionStorage.setItem('rutasegura_user', JSON.stringify(masterUser));
-            setUser(masterUser);
-            setIsLoading(false);
-        }
-        
-        // This is a simple check. If we are on any page other than login, try to fetch master.
-        // The login page itself will handle setting the session user.
-        if(window.location.pathname.startsWith('/dashboard')) {
-            fetchMasterUser();
+        // If there's no session and we are not on the login page, redirect.
+        if (pathname !== '/') {
+            router.replace('/');
         } else {
             setIsLoading(false);
         }
     }
-  }, [router]);
+  }, [pathname, router]);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
@@ -189,7 +157,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (!user && window.location.pathname.startsWith('/dashboard')) {
+  if (!user && pathname.startsWith('/dashboard')) {
+      // This case should be caught by the useEffect, but as a safeguard:
       // If still no user and trying to access dashboard, redirect.
       router.replace('/');
       return null;
@@ -284,3 +253,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
+
+    
