@@ -16,9 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { Estudiante, Profile } from '@/lib/types';
 import { useUser } from '@/contexts/user-context';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Combobox } from './combobox';
 import { getParentsForSchool } from '@/lib/services/student-services';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const formSchema = z.object({
@@ -27,6 +27,7 @@ const formSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   telefono: z.string().optional(),
   padre_id: z.string().uuid('Debes seleccionar un padre/tutor'),
+  avatar_url: z.string().url().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -38,7 +39,7 @@ type AddStudentDialogProps = {
 export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [parents, setParents] = useState<{ value: string; label: string }[]>([]);
+  const [parents, setParents] = useState<Profile[]>([]);
   const { toast } = useToast();
   const { user } = useUser();
 
@@ -49,6 +50,7 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
       apellido: '',
       email: '',
       telefono: '',
+      avatar_url: null,
     },
   });
 
@@ -56,10 +58,7 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
     if (!user) return;
     try {
         const parentData = await getParentsForSchool(user.id, user.rol);
-        setParents(parentData.map(p => ({
-            value: p.id,
-            label: `${p.nombre} ${p.apellido} (${p.email})`
-        })));
+        setParents(parentData);
     } catch (error) {
         console.error(error);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los padres/tutores.' });
@@ -165,14 +164,18 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
                 </div>
                 <div className='space-y-1'>
                     <Label>Padre/Tutor</Label>
-                    <Combobox
-                        items={parents}
-                        value={form.watch('padre_id')}
-                        onChange={(value) => form.setValue('padre_id', value, { shouldValidate: true })}
-                        placeholder='Selecciona un padre/tutor...'
-                        searchPlaceholder='Buscar padre/tutor...'
-                        notFoundMessage='No se encontraron padres/tutores.'
-                     />
+                    <Select onValueChange={(value) => form.setValue('padre_id', value, { shouldValidate: true })}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un padre/tutor..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {parents.map((parent) => (
+                                <SelectItem key={parent.id} value={parent.id}>
+                                    {parent.nombre} {parent.apellido} ({parent.email})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     {form.formState.errors.padre_id && <p className="text-sm text-destructive">{form.formState.errors.padre_id.message}</p>}
                 </div>
             </div>
