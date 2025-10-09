@@ -38,7 +38,7 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between font-normal"
         >
           {value
             ? items.find((item) => item.value === value)?.label
@@ -57,7 +57,7 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
                   key={item.value}
                   value={item.value}
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? '' : currentValue);
+                    onChange(currentValue === value ? "" : currentValue);
                     setOpen(false);
                   }}
                 >

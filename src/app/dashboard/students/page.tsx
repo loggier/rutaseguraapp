@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { createClient } from "@/lib/supabase/client";
 import type { Estudiante, Profile } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
-import { AddStudentDialog } from "./add-student-dialog";
 import { StudentsTable } from "./students-table";
-import { Loader2 } from "lucide-react";
+import { Loader2, PlusCircle } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Estudiante[]>([]);
@@ -46,7 +47,6 @@ export default function StudentsPage() {
 
       if (studentsError) throw studentsError;
         
-      // Extract parent IDs
       const parentIds = studentsData.map(s => s.padre_id).filter(Boolean);
       let parentEmails: { [key: string]: string } = {};
 
@@ -85,13 +85,7 @@ export default function StudentsPage() {
     fetchStudents();
   }, [fetchStudents]);
 
-  const handleStudentAdded = (newStudent: Estudiante) => {
-    // Re-fetch to get all relations correctly
-    fetchStudents(); 
-  }
-
   const handleStudentUpdated = (updatedStudent: Estudiante) => {
-     // Re-fetch to get all relations correctly
     fetchStudents();
   }
   
@@ -120,7 +114,14 @@ export default function StudentsPage() {
         title="Gestión de Estudiantes"
         description="Administra los perfiles de los estudiantes y su información."
       >
-        {canManage && <AddStudentDialog onStudentAdded={handleStudentAdded} />}
+        {canManage && (
+            <Button asChild size="sm" className="gap-1">
+                <Link href="/dashboard/students/add">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span>Agregar Estudiante</span>
+                </Link>
+            </Button>
+        )}
       </PageHeader>
       
       <Card>
