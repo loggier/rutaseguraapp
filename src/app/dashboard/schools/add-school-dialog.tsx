@@ -24,7 +24,6 @@ const formSchema = z.object({
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'El teléfono es requerido'),
   direccion: z.string().min(1, 'La dirección es requerida'),
-  codigo_postal: z.string().min(1, 'El código postal es requerido'),
   email: z.string().email('El email de la cuenta es inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 });
@@ -49,7 +48,6 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
       email_contacto: '',
       telefono: '',
       direccion: '',
-      codigo_postal: '',
       email: '',
       password: '',
     },
@@ -66,7 +64,7 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
       const response = await fetch('/api/colegios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, creado_por: user.id }),
+        body: JSON.stringify({ ...values, creado_por: user.id, codigo_postal: '' }),
       });
 
       const data = await response.json();
@@ -140,11 +138,6 @@ export function AddSchoolDialog({ onSchoolAdded }: AddSchoolDialogProps) {
                     <Label htmlFor="direccion">Dirección</Label>
                     <Input id="direccion" {...form.register('direccion')} />
                     {form.formState.errors.direccion && <p className="text-sm text-destructive">{form.formState.errors.direccion.message}</p>}
-                </div>
-                <div className='space-y-2'>
-                    <Label htmlFor="codigo_postal">Código Postal</Label>
-                    <Input id="codigo_postal" {...form.register('codigo_postal')} />
-                    {form.formState.errors.codigo_postal && <p className="text-sm text-destructive">{form.formState.errors.codigo_postal.message}</p>}
                 </div>
               </div>
 

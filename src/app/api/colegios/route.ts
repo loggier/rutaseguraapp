@@ -11,7 +11,7 @@ const schoolSchema = z.object({
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'Teléfono requerido'),
   direccion: z.string().min(1, 'Dirección requerida'),
-  codigo_postal: z.string().min(1, 'Código postal requerido'),
+  codigo_postal: z.string(), // Acepta el string, pero ya no es requerido en el front.
   email: z.string().email('Email de cuenta inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   creado_por: z.string().uuid('ID de creador inválido'),
