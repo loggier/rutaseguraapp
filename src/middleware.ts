@@ -1,22 +1,33 @@
 'use server';
 
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server';
 
-// This middleware is currently not in use but can be adapted for session management.
 export function middleware(request: NextRequest) {
+  const userCookie = request.cookies.get('rutasegura_user');
+  const { pathname } = request.nextUrl;
+
+  // Si no hay cookie y el usuario intenta acceder al dashboard, redirigir al login
+  if (!userCookie && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Si hay cookie y el usuario está en la página de login, redirigir al dashboard
+  if (userCookie && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   /*
-  * Match all request paths except for the ones starting with:
-  * - api (API routes)
-  * - _next/static (static files)
-  * - _next/image (image optimization files)
-  * - favicon.ico (favicon file)
-  * - image assets (logo, etc.)
+  * El matcher asegura que este middleware se ejecute en la página de login
+  * y en todas las rutas bajo /dashboard. Se excluyen las rutas de API, 
+  * archivos estáticos e imágenes.
   */
   matcher: [
+    '/',
+    '/dashboard/:path*',
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

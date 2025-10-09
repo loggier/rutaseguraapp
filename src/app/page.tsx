@@ -43,15 +43,17 @@ export default function LoginPage() {
       }
       
       const userDataString = JSON.stringify(data.user);
-      // Store user data in session storage for immediate use in the client
+      // Almacena los datos del usuario en sessionStorage para uso inmediato en el cliente
       sessionStorage.setItem('rutasegura_user', userDataString);
+      // Crea una cookie para que el middleware pueda verificar la sesión en el servidor
+      document.cookie = `rutasegura_user=${userDataString}; path=/; max-age=86400;`; // 86400s = 1 día
 
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo al dashboard...",
       });
       
-      // Redirect to dashboard on success
+      // Redirige al dashboard en caso de éxito
       router.push('/dashboard');
 
     } catch (error: any) {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
   Menu, Bell, LogOut, Loader2, Shield, School, Contact,
@@ -124,20 +124,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
-  const pathname = usePathname();
   
   useEffect(() => {
+    // La protección de ruta ahora la maneja el middleware.
+    // Este efecto solo se encarga de cargar los datos del usuario para la UI.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
-    } else {
-      router.replace('/');
     }
+    // No redirigir desde aquí para evitar conflictos con el middleware.
     setIsLoading(false);
-  }, [pathname, router]);
+  }, []);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
+    // Eliminar la cookie para que el middleware detecte la sesión cerrada
     document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
@@ -150,9 +151,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
+  // Si después de cargar, no hay usuario, el middleware ya debería haber redirigido.
+  // Pero podemos mostrar un loader como fallback.
   if (!user) {
-    // This can briefly show while the effect above redirects.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -250,5 +252,3 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
-
-    
