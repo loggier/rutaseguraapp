@@ -21,6 +21,9 @@ export type Profile = {
   rol: "master" | "manager" | "colegio" | "padre";
   activo: boolean;
   colegio_id?: string | null; // ID del colegio al que pertenece el padre/tutor
+  telefono?: string | null;
+  direccion?: string | null;
+  email_adicional?: string | null;
 };
 
 export type Colegio = {

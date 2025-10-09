@@ -10,6 +10,9 @@ const updateParentSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido."),
   apellido: z.string().min(1, "El apellido es requerido."),
   colegio_id: z.string().uuid("ID de colegio inválido.").optional().nullable(),
+  telefono: z.string().optional().nullable(),
+  direccion: z.string().optional().nullable(),
+  email_adicional: z.string().email("El email adicional no es válido.").optional().nullable().or(z.literal('')),
 });
 
 const updateStatusSchema = z.object({
@@ -46,13 +49,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { nombre, apellido, colegio_id } = validation.data;
+    const { nombre, apellido, colegio_id, telefono, direccion, email_adicional } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
     // 1. Actualizar el perfil
     const { data: updatedProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({ nombre, apellido, colegio_id })
+      .update({ nombre, apellido, colegio_id, telefono, direccion, email_adicional })
       .eq('id', userId)
       .eq('rol', 'padre')
       .select()

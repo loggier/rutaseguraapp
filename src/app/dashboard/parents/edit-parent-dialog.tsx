@@ -7,11 +7,11 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle, DialogTrigger, DialogClose,
+  DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profile, Colegio } from '@/lib/types';
 import { useUser } from '@/contexts/user-context';
@@ -26,12 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   apellido: z.string().min(1, 'El apellido es requerido'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  colegio_id: z.string({ required_error: 'Debes seleccionar un colegio.' }).uuid().optional().nullable(),
+  colegio_id: z.string().uuid("Debes seleccionar un colegio.").optional().nullable(),
   telefono: z.string().optional(),
   direccion: z.string().optional(),
   email_adicional: z.string().email('Email adicional inválido').optional().or(z.literal('')),
@@ -39,34 +38,34 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type AddParentDialogProps = {
-  onParentAdded: (newParent: Profile) => void;
+type EditParentDialogProps = {
+  user: Profile;
+  onUserUpdated: (updatedUser: Profile) => void;
+  children: React.ReactNode;
 };
 
-export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
+export function EditParentDialog({ user, onUserUpdated, children }: EditParentDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user: currentUser } = useUser();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nombre: '',
-      apellido: '',
-      email: '',
-      password: '',
-      colegio_id: undefined,
-      telefono: '',
-      direccion: '',
-      email_adicional: '',
+      nombre: user.nombre || '',
+      apellido: user.apellido || '',
+      colegio_id: user.colegio_id,
+      telefono: user.telefono || '',
+      direccion: user.direccion || '',
+      email_adicional: user.email_adicional || '',
     },
   });
-
+  
   useEffect(() => {
     async function fetchColegios() {
-      if (user?.rol === 'master' || user?.rol === 'manager') {
+      if (currentUser?.rol === 'master' || currentUser?.rol === 'manager') {
         const supabase = createClient();
         const { data } = await supabase.from('colegios_view').select('*').order('nombre');
         setColegios(data || []);
@@ -74,57 +73,37 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
     }
     if (open) {
         fetchColegios();
-        form.reset(); // Reset form when opening
+        form.reset({
+          nombre: user.nombre || '',
+          apellido: user.apellido || '',
+          colegio_id: user.colegio_id,
+          telefono: user.telefono || '',
+          direccion: user.direccion || '',
+          email_adicional: user.email_adicional || '',
+        });
     }
-  }, [user, open, form]);
-  
-  useEffect(() => {
-      async function setColegioForUser() {
-        if(user?.rol === 'colegio') {
-            const supabase = createClient();
-            const { data } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-            if(data?.id) {
-                form.setValue('colegio_id', data.id);
-            }
-        }
-      }
-      if(open) {
-          setColegioForUser();
-      }
-  }, [user, open, form])
+  }, [currentUser, open, form, user]);
 
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
     try {
-      // For 'colegio' role, ensure colegio_id is set from their context.
-      const finalValues = { ...values };
-      if (user?.rol === 'colegio' && !finalValues.colegio_id) {
-          const supabase = createClient();
-          const { data: currentColegio } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-          if (currentColegio?.id) {
-              finalValues.colegio_id = currentColegio.id;
-          } else {
-              throw new Error("No se pudo determinar el colegio para el usuario actual.");
-          }
-      }
-        
-      const response = await fetch('/api/parents', {
-        method: 'POST',
+      const response = await fetch(`/api/parents/${user.id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalValues),
+        body: JSON.stringify(values),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error al crear el padre/tutor.');
+        throw new Error(data.message || 'Error al actualizar el padre/tutor.');
       }
       
       toast({
         title: 'Éxito',
-        description: 'El padre/tutor ha sido creado correctamente.',
+        description: 'El padre/tutor ha sido actualizado correctamente.',
       });
-      onParentAdded(data.user);
+      onUserUpdated(data.user);
       setOpen(false);
 
     } catch (error: any) {
@@ -141,17 +120,14 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-3.5 w-3.5" />
-          <span>Agregar Padre/Tutor</span>
-        </Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Agregar Nuevo Padre/Tutor</DialogTitle>
+            <DialogTitle>Editar Padre/Tutor</DialogTitle>
             <DialogDescription>
-              Completa los campos para registrar un nuevo padre o tutor en el sistema.
+              Actualiza los datos del padre o tutor. El email de la cuenta no se puede modificar.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-6">
@@ -162,13 +138,7 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
                   <Separator />
                    <div className='space-y-1'>
                       <Label htmlFor="email">Email de Cuenta</Label>
-                      <Input id="email" type="email" {...form.register('email')} />
-                      {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
-                    </div>
-                    <div className='space-y-1'>
-                      <Label htmlFor="password">Contraseña</Label>
-                      <Input id="password" type="password" {...form.register('password')} />
-                      {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>}
+                      <Input id="email" type="email" value={user.email} disabled />
                     </div>
               </div>
 
@@ -203,7 +173,7 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
                     <Input id="direccion" {...form.register('direccion')} />
                     {form.formState.errors.direccion && <p className="text-sm text-destructive">{form.formState.errors.direccion.message}</p>}
                   </div>
-                   {(user?.rol === 'master' || user?.rol === 'manager') && (
+                   {(currentUser?.rol === 'master' || currentUser?.rol === 'manager') && (
                      <div className='space-y-1'>
                         <Label htmlFor="colegio_id">Colegio</Label>
                         <Select onValueChange={(value) => form.setValue('colegio_id', value)} value={form.watch('colegio_id') || undefined}>
@@ -222,12 +192,10 @@ export function AddParentDialog({ onParentAdded }: AddParentDialogProps) {
             </div>
           </ScrollArea>
           <DialogFooter className='pt-6'>
-            <DialogClose asChild>
-                <Button type="button" variant="outline">Cancelar</Button>
-            </DialogClose>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Crear Padre/Tutor
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </form>

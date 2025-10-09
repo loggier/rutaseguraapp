@@ -11,6 +11,9 @@ const parentSchema = z.object({
   email: z.string().email("El correo electrónico no es válido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
   colegio_id: z.string().uuid("Debes seleccionar un colegio.").optional().nullable(),
+  telefono: z.string().optional().nullable(),
+  direccion: z.string().optional().nullable(),
+  email_adicional: z.string().email("El email adicional no es válido.").optional().nullable().or(z.literal('')),
 });
 
 export async function POST(request: Request) {
@@ -22,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { nombre, apellido, email, password, colegio_id } = validation.data;
+    const { nombre, apellido, email, password, colegio_id, telefono, direccion, email_adicional } = validation.data;
 
     const hashedPassword = await hashPassword(password);
     
@@ -77,6 +80,9 @@ export async function POST(request: Request) {
         apellido: apellido,
         rol: 'padre',
         colegio_id: colegio_id,
+        telefono: telefono,
+        direccion: direccion,
+        email_adicional: email_adicional,
       })
       .select()
       .single();
