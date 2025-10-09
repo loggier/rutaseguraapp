@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -55,17 +55,12 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
               {items.map((item) => (
                 <CommandItem
                   key={item.value}
+                  value={item.label}
                   onSelect={() => {
-                    onChange(item.value === value ? '' : item.value);
+                    onChange(item.value);
                     setOpen(false);
                   }}
                 >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      value === item.value ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
                   {item.label}
                 </CommandItem>
               ))}
