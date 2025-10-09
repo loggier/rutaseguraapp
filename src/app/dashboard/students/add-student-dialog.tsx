@@ -124,7 +124,12 @@ export function AddStudentDialog({ onStudentAdded }: AddStudentDialogProps) {
           <span>Agregar Estudiante</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent 
+        className="sm:max-w-xl" 
+        onInteractOutside={(e) => {
+          e.preventDefault();
+        }}
+      >
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
