@@ -8,11 +8,13 @@ import { useEffect, useState } from "react";
 import { AddUserDialog } from "./add-user-dialog";
 import { UsersTable } from "./users-table";
 import { Loader2 } from "lucide-react";
+import { useUser } from "@/contexts/user-context";
 
 export default function UsersPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
 
   useEffect(() => {
     async function fetchProfiles() {
@@ -47,8 +49,12 @@ export default function UsersPage() {
       setLoading(false);
     }
 
-    fetchProfiles();
-  }, []);
+    if (user?.rol === 'master' || user?.rol === 'manager') {
+        fetchProfiles();
+    } else {
+        setLoading(false);
+    }
+  }, [user]);
 
   const handleUserAdded = (newUser: Profile) => {
     setProfiles(prev => [newUser, ...prev]);
@@ -66,8 +72,19 @@ export default function UsersPage() {
     setProfiles(prev => prev.filter(p => p.id !== userId));
   }
 
-  if (error) {
-    return <Card><CardHeader><CardTitle>Error</CardTitle></CardHeader><CardContent><p>{error}</p></CardContent></Card>
+  const canManageUsers = user?.rol === 'master' || user?.rol === 'manager';
+
+  if (!canManageUsers && !loading) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Acceso Denegado</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>No tienes permiso para ver esta página.</p>
+            </CardContent>
+        </Card>
+    )
   }
   
   return (
@@ -76,7 +93,7 @@ export default function UsersPage() {
         title="Gestión de Usuarios y Roles"
         description="Administra los perfiles de usuario y sus respectivos roles en el sistema."
       >
-        <AddUserDialog onUserAdded={handleUserAdded} />
+        {canManageUsers && <AddUserDialog onUserAdded={handleUserAdded} />}
       </PageHeader>
       
       <Card>
@@ -103,3 +120,5 @@ export default function UsersPage() {
     </div>
   );
 }
+
+    

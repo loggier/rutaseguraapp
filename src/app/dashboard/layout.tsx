@@ -23,31 +23,36 @@ import {
   SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { usePathname } from 'next/navigation';
-import { UserProvider, type User as AppUser } from '@/contexts/user-context';
+import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
 import { createClient } from '@/lib/supabase/client';
 
 
 // --- Constantes de Navegación ---
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/users', icon: Shield, label: 'Usuarios' },
-  { href: '/dashboard/schools', icon: School, label: 'Colegios' },
-  { href: '/dashboard/students', icon: Users, label: 'Estudiantes' },
-  { href: '/dashboard/drivers', icon: User, label: 'Conductores' },
-  { href: '/dashboard/buses', icon: Bus, label: 'Autobuses' },
-  { href: '/dashboard/routes', icon: RouteIcon, label: 'Rutas' },
-  { href: '/dashboard/tracking', icon: Map, label: 'Seguimiento' },
-  { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/users', icon: Shield, label: 'Usuarios', allowedRoles: ['master', 'manager'] },
+  { href: '/dashboard/schools', icon: School, label: 'Colegios', allowedRoles: ['master', 'manager'] },
+  { href: '/dashboard/students', icon: Users, label: 'Estudiantes', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/drivers', icon: User, label: 'Conductores', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/buses', icon: Bus, label: 'Autobuses', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/routes', icon: RouteIcon, label: 'Rutas', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/tracking', icon: Map, label: 'Seguimiento', allowedRoles: ['master', 'manager', 'colegio'] },
+  { href: '/dashboard/optimize-route', icon: Rocket, label: 'Optimizar Ruta', allowedRoles: ['master', 'manager'] },
 ];
 
 // --- Componentes de Navegación (sin cambios) ---
 function SidebarNav() {
   const pathname = usePathname();
   const { open } = useSidebar();
+  const { user } = useAppUser();
+
+  const userRole = user?.rol ?? 'colegio';
 
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
+      {navItems
+        .filter(item => item.allowedRoles.includes(userRole))
+        .map((item) => (
          <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
@@ -66,6 +71,9 @@ function SidebarNav() {
 }
 
 function MobileNav() {
+  const { user } = useAppUser();
+  const userRole = user?.rol ?? 'colegio';
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -79,7 +87,9 @@ function MobileNav() {
           <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
              <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} />
           </Link>
-          {navItems.map((item) => (
+          {navItems
+            .filter(item => item.allowedRoles.includes(userRole))
+            .map((item) => (
             <Link
               key={item.label}
               href={item.href}
@@ -117,38 +127,55 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
-    async function fetchMasterUser() {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', 'master@rutasegura.com')
-            .single();
-
-        if (error || !data) {
-            console.error("Error fetching master user:", error);
-            // Handle error, maybe redirect to login or show a message
-            setIsLoading(false);
-            return;
-        }
-
-        // We set a mock user object but with the REAL ID from the database
-        setUser({
-            id: data.id, // REAL ID
-            nombre: 'Usuario',
-            apellido: 'Maestro',
-            email: 'master@rutasegura.com',
-            rol: 'master',
-            activo: true, // Assuming the master user is always active
-        });
+    // This is a temporary solution to simulate a logged-in user.
+    // In a real app, you'd fetch this from a session cookie or auth provider.
+    const sessionUserString = sessionStorage.getItem('rutasegura_user');
+    if (sessionUserString) {
+        setUser(JSON.parse(sessionUserString));
         setIsLoading(false);
-    }
+    } else {
+        // If no user in session, it might be the master user logging in for the first time.
+        // Or a redirect from login. We wait for login page to set the session.
+        // For now, let's keep a fallback for initial master login.
+        async function fetchMasterUser() {
+            const supabase = createClient();
+            const { data, error } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', 'master@rutasegura.com')
+                .single();
 
-    fetchMasterUser();
-  }, []);
+            if (error || !data) {
+                console.error("Master user not found, redirecting to login:", error);
+                router.replace('/'); // Redirect if no session and master can't be found
+                return;
+            }
+            
+            const masterUser = {
+                id: data.id,
+                nombre: 'Usuario',
+                apellido: 'Maestro',
+                email: 'master@rutasegura.com',
+                rol: 'master' as const,
+                activo: true,
+            };
+            sessionStorage.setItem('rutasegura_user', JSON.stringify(masterUser));
+            setUser(masterUser);
+            setIsLoading(false);
+        }
+        
+        // This is a simple check. If we are on any page other than login, try to fetch master.
+        // The login page itself will handle setting the session user.
+        if(window.location.pathname.startsWith('/dashboard')) {
+            fetchMasterUser();
+        } else {
+            setIsLoading(false);
+        }
+    }
+  }, [router]);
   
   const handleLogout = async () => {
-    // TODO: Implement custom logout logic (e.g., clear session cookie)
+    sessionStorage.removeItem('rutasegura_user');
     router.replace('/');
   };
 
@@ -161,9 +188,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (!user) {
-      // This could happen if the master user is not found.
-      // Redirecting to login for safety.
+  if (!user && window.location.pathname.startsWith('/dashboard')) {
+      // If still no user and trying to access dashboard, redirect.
       router.replace('/');
       return null;
   }
@@ -257,3 +283,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }
+
+    

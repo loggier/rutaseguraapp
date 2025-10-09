@@ -38,16 +38,18 @@ export default function LoginPage() {
 
      
       const data = await response.json();
-      console.log( data);
       if (!response.ok) {
         throw new Error(data.message || 'Ocurrió un error al iniciar sesión.');
       }
       
+      // Store user data in session storage to simulate a session
+      sessionStorage.setItem('rutasegura_user', JSON.stringify(data.user));
+
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo al dashboard...",
       });
-
+      
       // Redirect to dashboard on success
       router.push('/dashboard');
 
@@ -57,7 +59,8 @@ export default function LoginPage() {
         title: "Error de Autenticación",
         description: error.message,
       });
-      setIsPending(false);
+    } finally {
+        setIsPending(false);
     }
   };
   
@@ -130,3 +133,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

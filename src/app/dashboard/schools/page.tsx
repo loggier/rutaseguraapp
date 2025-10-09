@@ -9,12 +9,14 @@ import { AddSchoolDialog } from './add-school-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { SchoolsTable } from './schools-table';
+import { useUser } from '@/contexts/user-context';
 
 export default function SchoolsPage() {
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
   
   async function fetchColegios() {
     setLoading(true);
@@ -40,8 +42,12 @@ export default function SchoolsPage() {
   }
 
   useEffect(() => {
-    fetchColegios();
-  }, []);
+    if (user?.rol === 'master' || user?.rol === 'manager') {
+      fetchColegios();
+    } else {
+        setLoading(false);
+    }
+  }, [user]);
 
   const handleSchoolAdded = (newSchool: Colegio) => {
     setColegios(prev => [newSchool, ...prev].sort((a,b) => a.nombre.localeCompare(b.nombre)));
@@ -59,6 +65,20 @@ export default function SchoolsPage() {
     setColegios(prev => prev.filter(c => c.id !== schoolId));
   }
 
+  const canManageSchools = user?.rol === 'master' || user?.rol === 'manager';
+
+  if (!canManageSchools && !loading) {
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>Acceso Denegado</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>No tienes permiso para ver esta página.</p>
+            </CardContent>
+        </Card>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,7 +86,7 @@ export default function SchoolsPage() {
         title="Gestión de Colegios"
         description="Administra las cuentas de los colegios, sus datos y usuarios asociados."
       >
-        <AddSchoolDialog onSchoolAdded={handleSchoolAdded} />
+        {canManageSchools && <AddSchoolDialog onSchoolAdded={handleSchoolAdded} />}
       </PageHeader>
 
       <Card>
@@ -95,3 +115,5 @@ export default function SchoolsPage() {
     </div>
   );
 }
+
+    
