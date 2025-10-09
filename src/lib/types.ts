@@ -39,12 +39,21 @@ export type Colegio = {
     creado_por: string; // Foreign key to users.id
 }
 
-export type Estudiante = User & {
-  rol: "estudiante";
-  id_estudiante: string;
-  nota?: string;
-  tutor: string;
-  saldo_monedas: number;
+export type Estudiante = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  student_id: string;
+  email: string | null;
+  telefono: string | null;
+  colegio_id: string;
+  padre_id: string;
+  creado_por: string;
+  fecha_creacion: string;
+  // Campos join
+  padre_nombre?: string;
+  padre_email?: string;
+  colegio_nombre?: string;
 };
 
 export type Conductor = User & {
