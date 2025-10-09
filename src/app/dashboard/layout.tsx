@@ -46,12 +46,12 @@ function SidebarNav() {
   const { open } = useSidebar();
   const { user } = useAppUser();
 
-  const userRole = user?.rol ?? 'colegio';
+  const userRole = user?.rol;
 
   return (
     <SidebarMenu>
       {navItems
-        .filter(item => item.allowedRoles.includes(userRole))
+        .filter(item => userRole && item.allowedRoles.includes(userRole))
         .map((item) => (
          <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
@@ -72,7 +72,7 @@ function SidebarNav() {
 
 function MobileNav() {
   const { user } = useAppUser();
-  const userRole = user?.rol ?? 'colegio';
+  const userRole = user?.rol;
 
   return (
     <Sheet>
@@ -88,7 +88,7 @@ function MobileNav() {
              <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} />
           </Link>
           {navItems
-            .filter(item => item.allowedRoles.includes(userRole))
+            .filter(item => userRole && item.allowedRoles.includes(userRole))
             .map((item) => (
             <Link
               key={item.label}
