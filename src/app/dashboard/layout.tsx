@@ -126,15 +126,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
-    // Esta es la validación local en el navegador.
-    const sessionUserString = sessionStorage.getItem('rutasegura_user');
+    // Validación local en el navegador usando localStorage y la clave correcta.
+    const sessionUserString = localStorage.getItem('supabase_session');
     if (sessionUserString) {
       try {
         const sessionUser = JSON.parse(sessionUserString);
         setUser(sessionUser);
       } catch (e) {
         console.error("Fallo al parsear la sesión de usuario, cerrando sesión.", e);
-        sessionStorage.removeItem('rutasegura_user');
+        localStorage.removeItem('supabase_session');
         router.replace('/'); 
       }
     } else {
@@ -145,7 +145,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, [router]);
   
   const handleLogout = () => {
-    sessionStorage.removeItem('rutasegura_user');
+    localStorage.removeItem('supabase_session');
     router.replace('/');
   };
 

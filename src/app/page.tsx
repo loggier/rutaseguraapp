@@ -42,7 +42,8 @@ export default function LoginPage() {
       }
       
       const userDataString = JSON.stringify(data.user);
-      sessionStorage.setItem('rutasegura_user', userDataString);
+      // Usando localStorage y la clave correcta 'supabase_session'
+      localStorage.setItem('supabase_session', userDataString);
 
       toast({
         title: "Inicio de Sesión Exitoso",
