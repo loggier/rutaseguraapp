@@ -28,32 +28,31 @@ const createSupabaseAdminClient = () => {
     );
 };
 
-// Function to generate a unique 6-digit student ID
-async function generateUniqueStudentId(client: ReturnType<typeof createSupabaseAdminClient>): Promise<string> {
-    let studentId: string;
-    let isUnique = false;
+// Function to generate the next auto-incrementing student ID
+async function generateNextStudentId(client: ReturnType<typeof createSupabaseAdminClient>): Promise<string> {
+    const { data, error } = await client
+        .from('estudiantes')
+        .select('student_id')
+        .order('student_id', { ascending: false })
+        .limit(1)
+        .single();
+
+    if (error && error.code !== 'PGRST116') { // Ignore error for "single row not found"
+        console.error("Error fetching last student ID:", error);
+        throw error;
+    }
     
-    while (!isUnique) {
-        studentId = Math.floor(100000 + Math.random() * 900000).toString();
-        // Check if an existing student has this ID
-        const { data, error } = await client
-            .from('estudiantes')
-            .select('id')
-            .eq('student_id', studentId);
-
-        if (error) {
-            // Rethrow unexpected errors
-            console.error("Error checking for unique student ID:", error);
-            throw error;
-        }
-
-        // If data is an empty array, the ID is unique
-        if (data.length === 0) {
-            isUnique = true;
+    let nextId = 1;
+    if (data?.student_id) {
+        const lastId = parseInt(data.student_id, 10);
+        if (!isNaN(lastId)) {
+            nextId = lastId + 1;
         }
     }
-    return studentId!;
+    
+    return nextId.toString().padStart(6, '0');
 }
+
 
 export async function POST(request: Request) {
   try {
@@ -72,21 +71,19 @@ export async function POST(request: Request) {
     if (user_rol === 'colegio') {
       const { data, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', creador_id).single();
       if (error || !data) {
-        console.error("Error finding school for 'colegio' user:", error);
         return NextResponse.json({ message: 'No se pudo encontrar el colegio para este usuario.' }, { status: 404 });
       }
       colegio_id = data.id;
-    } else { // master or manager role
+    } else { // master or manager
       const { data, error } = await supabaseAdmin.from('profiles').select('colegio_id').eq('id', padre_id).single();
        if (error || !data?.colegio_id) {
-        console.error("Error finding school from parent profile:", error);
         return NextResponse.json({ message: 'El padre seleccionado no está asignado a ningún colegio.' }, { status: 400 });
       }
       colegio_id = data.colegio_id;
     }
 
-    // 2. Generate a unique student ID
-    const student_id = await generateUniqueStudentId(supabaseAdmin);
+    // 2. Generate the next student ID
+    const student_id = await generateNextStudentId(supabaseAdmin);
     
     // 3. Create the student record
     const { data: newStudent, error: studentError } = await supabaseAdmin
