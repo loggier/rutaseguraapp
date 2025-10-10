@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,7 +49,7 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
   const { toast } = useToast();
   
   const initialState: State = { message: null, errors: {} };
-  const [state, dispatch] = useFormState(createStudent, initialState);
+  const [state, dispatch] = useActionState(createStudent, initialState);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
