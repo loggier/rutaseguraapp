@@ -75,67 +75,72 @@ export async function POST(request: Request) {
   const { nombre, apellido, email, telefono, avatar_url, padre_id, creador_id, user_rol } = validation.data;
   const supabaseAdmin = createSupabaseAdminClient();
 
-  // 1. Determine the colegio_id
-  console.log(`API /api/students POST: Determinando colegio_id para rol de usuario: ${user_rol}`);
-  let colegio_id: string;
-  if (user_rol === 'colegio') {
-    const { data, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', creador_id).single();
-    if (error || !data) {
-      console.error(`API /api/students POST: No se encontró colegio para el creador ${creador_id}`, error);
-      return NextResponse.json({ message: 'No se pudo encontrar el colegio para este usuario.' }, { status: 404 });
+  try {
+    // 1. Determine the colegio_id
+    console.log(`API /api/students POST: Determinando colegio_id para rol de usuario: ${user_rol}`);
+    let colegio_id: string;
+    if (user_rol === 'colegio') {
+      const { data, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', creador_id).single();
+      if (error || !data) {
+        console.error(`API /api/students POST: No se encontró colegio para el creador ${creador_id}`, error);
+        return NextResponse.json({ message: 'No se pudo encontrar el colegio para este usuario.' }, { status: 404 });
+      }
+      colegio_id = data.id;
+      console.log(`API /api/students POST: Creador es un colegio. ID de colegio: ${colegio_id}`);
+    } else { // master or manager
+      const { data, error } = await supabaseAdmin.from('profiles').select('colegio_id').eq('id', padre_id).single();
+        if (error || !data?.colegio_id) {
+        console.error(`API /api/students POST: El padre ${padre_id} no tiene un colegio_id asignado.`, error);
+        return NextResponse.json({ message: 'El padre seleccionado no está asignado a ningún colegio.' }, { status: 400 });
+      }
+      colegio_id = data.colegio_id;
+      console.log(`API /api/students POST: Creador es admin. ID de colegio del padre: ${colegio_id}`);
     }
-    colegio_id = data.id;
-    console.log(`API /api/students POST: Creador es un colegio. ID de colegio: ${colegio_id}`);
-  } else { // master or manager
-    const { data, error } = await supabaseAdmin.from('profiles').select('colegio_id').eq('id', padre_id).single();
-      if (error || !data?.colegio_id) {
-      console.error(`API /api/students POST: El padre ${padre_id} no tiene un colegio_id asignado.`, error);
-      return NextResponse.json({ message: 'El padre seleccionado no está asignado a ningún colegio.' }, { status: 400 });
+
+    // 2. Generate the next student ID
+    console.log("API /api/students POST: Iniciando generación de student_id...");
+    const student_id = await generateNextStudentId(supabaseAdmin);
+    console.log(`API /api/students POST: student_id generado: ${student_id}`);
+    
+    // 3. Create the student record
+    console.log("API /api/students POST: Intentando insertar estudiante en la base de datos...");
+    const { data: newStudent, error: studentError } = await supabaseAdmin
+      .from('estudiantes')
+      .insert({
+        nombre,
+        apellido,
+        email,
+        telefono,
+        avatar_url,
+        padre_id,
+        colegio_id,
+        student_id,
+        creado_por: creador_id,
+      })
+      .select(`
+        *,
+        padre:profiles(nombre, apellido, email),
+        colegio:colegios(nombre)
+      `)
+      .single();
+
+    if (studentError || !newStudent) {
+      console.error('API /api/students POST: Error al crear estudiante:', studentError);
+      return NextResponse.json({ message: 'Error interno al crear el estudiante: ' + studentError?.message }, { status: 500 });
     }
-    colegio_id = data.colegio_id;
-    console.log(`API /api/students POST: Creador es admin. ID de colegio del padre: ${colegio_id}`);
+    
+    console.log("API /api/students POST: Estudiante creado con éxito:", newStudent.id);
+    const responseData = {
+        ...newStudent,
+        padre_nombre: newStudent.padre ? `${newStudent.padre.nombre} ${newStudent.padre.apellido}` : 'No asignado',
+        padre_email: newStudent.padre ? newStudent.padre.email : '-',
+        colegio_nombre: newStudent.colegio ? newStudent.colegio.nombre : 'No asignado'
+    };
+
+    console.log("API /api/students POST: Enviando respuesta exitosa.");
+    return NextResponse.json({ message: 'Estudiante creado con éxito', student: responseData }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error inesperado en la API de creación de estudiantes:', error);
+    return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
   }
-
-  // 2. Generate the next student ID
-  console.log("API /api/students POST: Iniciando generación de student_id...");
-  const student_id = await generateNextStudentId(supabaseAdmin);
-  console.log(`API /api/students POST: student_id generado: ${student_id}`);
-  
-  // 3. Create the student record
-  console.log("API /api/students POST: Intentando insertar estudiante en la base de datos...");
-  const { data: newStudent, error: studentError } = await supabaseAdmin
-    .from('estudiantes')
-    .insert({
-      nombre,
-      apellido,
-      email,
-      telefono,
-      avatar_url,
-      padre_id,
-      colegio_id,
-      student_id,
-      creado_por: creador_id,
-    })
-    .select(`
-      *,
-      padre:profiles(nombre, apellido, email),
-      colegio:colegios(nombre)
-    `)
-    .single();
-
-  if (studentError || !newStudent) {
-    console.error('API /api/students POST: Error al crear estudiante:', studentError);
-    return NextResponse.json({ message: 'Error interno al crear el estudiante: ' + studentError?.message }, { status: 500 });
-  }
-  
-  console.log("API /api/students POST: Estudiante creado con éxito:", newStudent.id);
-  const responseData = {
-      ...newStudent,
-      padre_nombre: newStudent.padre ? `${newStudent.padre.nombre} ${newStudent.padre.apellido}` : 'No asignado',
-      padre_email: newStudent.padre ? newStudent.padre.email : '-',
-      colegio_nombre: newStudent.colegio ? newStudent.colegio.nombre : 'No asignado'
-  };
-
-  console.log("API /api/students POST: Enviando respuesta exitosa.");
-  return NextResponse.json({ message: 'Estudiante creado con éxito', student: responseData }, { status: 201 });
 }
