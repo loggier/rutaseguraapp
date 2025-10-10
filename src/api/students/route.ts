@@ -69,15 +69,18 @@ export async function POST(request: Request) {
     const { nombre, apellido, email, telefono, avatar_url, padre_id, creador_id, user_rol } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // 1. Determine the colegio_id
+    // 1. Determine the colegio_id based on the creator's role
     let colegio_id: string;
+
     if (user_rol === 'colegio') {
+      // If the creator is a school, get their own school ID
       const { data, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', creador_id).single();
       if (error || !data) {
         return NextResponse.json({ message: 'No se pudo encontrar el colegio para este usuario.' }, { status: 404 });
       }
       colegio_id = data.id;
-    } else { // master or manager
+    } else { 
+      // If the creator is a master/manager, get the school ID from the selected parent
       const { data, error } = await supabaseAdmin.from('profiles').select('colegio_id').eq('id', padre_id).single();
        if (error || !data?.colegio_id) {
         return NextResponse.json({ message: 'El padre seleccionado no está asignado a ningún colegio.' }, { status: 400 });
