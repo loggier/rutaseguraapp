@@ -133,16 +133,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
       } catch (e) {
         console.error("Failed to parse user session string, logging out.", e);
-        router.replace('/'); 
+        // Clear broken session data and let the middleware handle redirection
+        sessionStorage.removeItem('rutasegura_user');
+        document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        router.refresh(); // Refresh to trigger middleware redirection
       }
     }
-    // No redirigimos aquí. El middleware es la única fuente de verdad para la redirección.
     setIsLoading(false);
-  }, [router]); 
+  }, [router]);
   
   const handleLogout = () => {
     sessionStorage.removeItem('rutasegura_user');
-    // Eliminar la cookie para que el middleware detecte la sesión cerrada
     document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
@@ -156,8 +157,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Si después de cargar, no hay usuario, el middleware ya debería haber redirigido.
-  // Mostramos un loader persistente para evitar un parpadeo del contenido.
   if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
