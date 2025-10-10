@@ -2,21 +2,21 @@
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddStudentForm } from "./add-student-form";
-import { createClient } from "@/lib/supabase/server";
 import { getParentsForSchool } from "@/lib/services/student-services";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { User } from "@/contexts/user-context";
 
-async function getSessionUser() {
-    // This is a temporary way to get the user from session storage.
-    // In a real app, this would be handled by your auth provider.
+async function getSessionUser(): Promise<User | null> {
     const cookieStore = cookies();
     const userCookie = cookieStore.get('rutasegura_user');
     if(userCookie) {
         try {
-            return JSON.parse(userCookie.value) as User;
+            // The value is URL-encoded, so we need to decode it first.
+            const decodedValue = decodeURIComponent(userCookie.value);
+            return JSON.parse(decodedValue) as User;
         } catch (e) {
+            console.error("Failed to parse user cookie:", e);
             return null;
         }
     }

@@ -68,8 +68,8 @@ export function ParentsTable({ profiles, onParentUpdated, onParentStatusChanged,
                         </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                        <div>{profile.telefono}</div>
-                        <div>{profile.direccion}</div>
+                        <div>{profile.telefono || 'Sin teléfono'}</div>
+                        <div>{profile.direccion || 'Sin dirección'}</div>
                     </TableCell>
                      <TableCell>
                         <Badge variant={profile.activo ? 'default' : 'secondary'}>

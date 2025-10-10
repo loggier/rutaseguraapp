@@ -82,8 +82,10 @@ export default function StudentsPage() {
   }, [user]);
 
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    if (user) {
+      fetchStudents();
+    }
+  }, [user, fetchStudents]);
 
   const handleStudentUpdated = (updatedStudent: Estudiante) => {
     fetchStudents();
@@ -95,7 +97,16 @@ export default function StudentsPage() {
 
   const canManage = user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio';
 
-  if (!canManage && !loading) {
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando...</p>
+        </div>
+    );
+  }
+
+  if (!canManage) {
     return (
         <Card>
             <CardHeader>
@@ -130,12 +141,7 @@ export default function StudentsPage() {
           <CardDescription>Un total de {students.length} estudiantes registrados.</CardDescription>
         </CardHeader>
         <CardContent>
-           {loading ? (
-             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-muted-foreground">Cargando...</p>
-             </div>
-           ) : error ? (
+           {error ? (
             <div className="text-center text-destructive py-8">{error}</div>
            ) : (
              <StudentsTable 

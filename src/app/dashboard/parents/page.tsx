@@ -18,6 +18,7 @@ export default function ParentsPage() {
 
   useEffect(() => {
     async function fetchProfiles() {
+      if (!user) return; // Wait for user context to be available
       const supabase = createClient();
       let query = supabase
         .from("profiles")
@@ -27,6 +28,9 @@ export default function ParentsPage() {
           apellido,
           rol,
           colegio_id,
+          telefono,
+          direccion,
+          email_adicional,
           user:users (
             email,
             activo
@@ -60,17 +64,16 @@ export default function ParentsPage() {
           email: p.user.email,
           activo: p.user.activo,
           colegio_id: p.colegio_id,
+          telefono: p.telefono,
+          direccion: p.direccion,
+          email_adicional: p.email_adicional,
         })) || [];
         setProfiles(formattedProfiles);
       }
       setLoading(false);
     }
 
-    if (user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio') {
-        fetchProfiles();
-    } else {
-        setLoading(false);
-    }
+    fetchProfiles();
   }, [user]);
 
   const handleParentAdded = (newUser: Profile) => {
@@ -91,7 +94,16 @@ export default function ParentsPage() {
 
   const canManage = user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio';
 
-  if (!canManage && !loading) {
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando...</p>
+        </div>
+    );
+  }
+
+  if (!canManage) {
     return (
         <Card>
             <CardHeader>

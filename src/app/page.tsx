@@ -49,7 +49,6 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      // Redirección directa y en el cliente, que ahora funcionará sin la interferencia del middleware.
       router.push('/dashboard');
 
     } catch (error: any) {

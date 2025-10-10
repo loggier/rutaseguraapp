@@ -18,6 +18,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     async function fetchProfiles() {
+      if (!user) return;
       const supabase = createClient();
       const { data, error } = await supabase
         .from("profiles")
@@ -74,7 +75,16 @@ export default function UsersPage() {
 
   const canManageUsers = user?.rol === 'master' || user?.rol === 'manager';
 
-  if (!canManageUsers && !loading) {
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando...</p>
+        </div>
+    );
+  }
+
+  if (!canManageUsers) {
     return (
         <Card>
             <CardHeader>

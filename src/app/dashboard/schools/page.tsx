@@ -18,36 +18,37 @@ export default function SchoolsPage() {
   const { toast } = useToast();
   const { user } = useUser();
   
-  async function fetchColegios() {
-    setLoading(true);
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('colegios_view')
-      .select('*')
-      .order('nombre', { ascending: true });
-
-    if (error) {
-      console.error("Error cargando colegios desde la vista:", error);
-      const errorMessage = `No se pudieron cargar los colegios: ${error.message}`;
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error de Carga",
-        description: errorMessage,
-      });
-    } else {
-      setColegios(data as Colegio[]);
-    }
-    setLoading(false);
-  }
-
   useEffect(() => {
+    async function fetchColegios() {
+      if (!user) return;
+      setLoading(true);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('colegios_view')
+        .select('*')
+        .order('nombre', { ascending: true });
+
+      if (error) {
+        console.error("Error cargando colegios desde la vista:", error);
+        const errorMessage = `No se pudieron cargar los colegios: ${error.message}`;
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Error de Carga",
+          description: errorMessage,
+        });
+      } else {
+        setColegios(data as Colegio[]);
+      }
+      setLoading(false);
+    }
+
     if (user?.rol === 'master' || user?.rol === 'manager') {
       fetchColegios();
     } else {
         setLoading(false);
     }
-  }, [user]);
+  }, [user, toast]);
 
   const handleSchoolAdded = (newSchool: Colegio) => {
     setColegios(prev => [newSchool, ...prev].sort((a,b) => a.nombre.localeCompare(b.nombre)));
@@ -67,7 +68,16 @@ export default function SchoolsPage() {
 
   const canManageSchools = user?.rol === 'master' || user?.rol === 'manager';
 
-  if (!canManageSchools && !loading) {
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Cargando...</p>
+        </div>
+    );
+  }
+
+  if (!canManageSchools) {
     return (
          <Card>
             <CardHeader>
