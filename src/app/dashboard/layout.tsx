@@ -127,14 +127,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // La protección de rutas ahora la maneja el middleware.
-    // Este useEffect solo carga los datos del usuario para la UI.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
     }
     setIsLoading(false);
-  }, [pathname]); // Se ejecuta en cada cambio de ruta para asegurar que el usuario esté disponible.
+  }, [pathname]);
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
@@ -152,8 +150,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si no hay usuario después de cargar, significa que el middleware debería estar
-  // redirigiendo. Mostramos un loader para una mejor experiencia.
+  // Si no hay usuario después de cargar, el middleware se encargará de la redirección.
+  // Mostramos un loader para una mejor experiencia de usuario mientras ocurre.
   if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">

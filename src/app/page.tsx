@@ -53,7 +53,6 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      // Se restaura el push para la redirección desde el cliente
       router.push('/dashboard');
 
     } catch (error: any) {
