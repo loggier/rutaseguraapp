@@ -41,7 +41,12 @@ async function generateUniqueStudentId(client: ReturnType<typeof createSupabaseA
             .eq('student_id', studentId)
             .single();
 
-        if (!data && !error) {
+        // If no data is found and there's no other error, the ID is unique.
+        // A `postgrest` error with code `PGRST116` means no rows found, which is what we want.
+        if (!data) {
+            if (error && error.code !== 'PGRST116') {
+               throw error; // Rethrow unexpected errors
+            }
             isUnique = true;
         }
     }
@@ -65,12 +70,14 @@ export async function POST(request: Request) {
     if (user_rol === 'colegio') {
       const { data, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', creador_id).single();
       if (error || !data) {
+        console.error("Error finding school for 'colegio' user:", error);
         return NextResponse.json({ message: 'No se pudo encontrar el colegio para este usuario.' }, { status: 404 });
       }
       colegio_id = data.id;
-    } else { // master or manager
+    } else { // master or manager role
       const { data, error } = await supabaseAdmin.from('profiles').select('colegio_id').eq('id', padre_id).single();
        if (error || !data?.colegio_id) {
+        console.error("Error finding school from parent profile:", error);
         return NextResponse.json({ message: 'El padre seleccionado no está asignado a ningún colegio.' }, { status: 400 });
       }
       colegio_id = data.colegio_id;
