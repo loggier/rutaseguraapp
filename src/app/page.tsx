@@ -14,14 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,7 +34,6 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-     
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || 'Ocurrió un error al iniciar sesión.');
@@ -44,14 +41,15 @@ export default function LoginPage() {
       
       const userDataString = JSON.stringify(data.user);
       sessionStorage.setItem('rutasegura_user', userDataString);
-      document.cookie = `rutasegura_user=${userDataString}; path=/; max-age=86400;`; 
+      // Set cookie to be read by middleware
+      document.cookie = `rutasegura_user=${userDataString}; path=/; max-age=86400; SameSite=Lax`; 
 
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo al dashboard...",
       });
       
-      // Force a full page reload to ensure middleware catches the cookie
+      // Use window.location.href to force a full page reload and ensure middleware runs with the new cookie.
       window.location.href = '/dashboard';
 
     } catch (error: any) {
@@ -60,9 +58,7 @@ export default function LoginPage() {
         title: "Error de Autenticación",
         description: error.message,
       });
-    } finally {
-        // This might not be reached if redirection is fast, which is fine.
-        setIsPending(false);
+       setIsPending(false);
     }
   };
   
