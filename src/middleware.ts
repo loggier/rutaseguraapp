@@ -6,16 +6,17 @@ export function middleware(request: NextRequest) {
   const userCookie = request.cookies.get('rutasegura_user');
   const { pathname } = request.nextUrl;
 
-  // Si no hay cookie y el usuario intenta acceder al dashboard, redirigir al login
-  if (!userCookie && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  // Si hay cookie y el usuario está en la página de login, redirigir al dashboard
+  // Si el usuario está logueado (tiene cookie) y está en la página de login, redirigir al dashboard.
   if (userCookie && pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // Si el usuario no está logueado (no tiene cookie) e intenta acceder a cualquier ruta del dashboard, redirigir al login.
+  if (!userCookie && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // En cualquier otro caso, permitir que la solicitud continúe.
   return NextResponse.next();
 }
 

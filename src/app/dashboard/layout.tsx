@@ -126,14 +126,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
+    // Se ejecuta solo una vez al montar el layout para leer la sesión.
+    // El middleware se encargará de las redirecciones si la sesión no es válida.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
-      setUser(JSON.parse(sessionUserString));
+      try {
+        setUser(JSON.parse(sessionUserString));
+      } catch (e) {
+        console.error("Failed to parse user session string", e);
+        setUser(null);
+      }
     }
     setIsLoading(false);
-  }, []); // Se ejecuta solo una vez al montar el layout
+  }, []);
   
-  const handleLogout = async () => {
+  const handleLogout = () => {
     sessionStorage.removeItem('rutasegura_user');
     // Eliminar la cookie para que el middleware detecte la sesión cerrada
     document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -149,8 +156,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si no hay usuario después de cargar, el middleware se encargará de la redirección.
-  // Mostramos un loader para una mejor experiencia de usuario mientras ocurre.
+  // Si no hay usuario después de cargar, el middleware ya se habrá encargado de la redirección.
+  // Mostramos un loader para una mejor experiencia mientras la redirección ocurre.
   if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
