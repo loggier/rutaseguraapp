@@ -67,3 +67,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .react-select__control {
+    @apply rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[40px];
+  }
+
+  .react-select__value-container {
+    @apply p-0;
+  }
+  
+  .react-select__menu {
+    @apply mt-2 rounded-md border bg-popover text-popover-foreground shadow-md z-50;
+  }
+  
+  .react-select__option {
+    @apply cursor-default select-none rounded-sm py-1.5 px-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground;
+  }
+
+  .react-select__option--is-focused {
+    @apply bg-accent text-accent-foreground;
+  }
+  
+  .react-select__option--is-selected {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .react-select__input-container {
+      @apply text-sm;
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Profile } from '@/lib/types';
 import type { User } from '@/contexts/user-context';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Combobox } from '@/components/ui/combobox';
+import Select from 'react-select';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
 
@@ -88,6 +88,8 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
 
   const nombre = form.watch('nombre');
   const apellido = form.watch('apellido');
+  
+  const parentOptions = parents.map(p => ({ value: p.id, label: `${p.nombre} ${p.apellido} (${p.email})` }));
 
   return (
     <Form {...form}>
@@ -163,14 +165,14 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
             <FormItem className='space-y-1'>
               <Label>Padre/Tutor *</Label>
               <FormControl>
-                  <Combobox
-                      items={parents.map(p => ({ value: p.id, label: `${p.nombre} ${p.apellido} (${p.email})` }))}
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Selecciona un padre/tutor..."
-                      searchPlaceholder="Buscar padre/tutor por nombre o email..."
-                      notFoundMessage="No se encontraron padres/tutores."
-                  />
+                <Select
+                  options={parentOptions}
+                  value={parentOptions.find(c => c.value === field.value)}
+                  onChange={val => field.onChange(val?.value)}
+                  placeholder="Selecciona un padre/tutor..."
+                  noOptionsMessage={() => "No se encontraron padres/tutores."}
+                  classNamePrefix="react-select"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
