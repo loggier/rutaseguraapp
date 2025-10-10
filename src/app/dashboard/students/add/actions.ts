@@ -82,7 +82,8 @@ export async function createStudent(prevState: State, formData: FormData): Promi
     };
   }
 
-  const { nombre, apellido, email, telefono, avatar_url, padre_id, creador_id, user_rol } = validatedFields.data;
+  const { nombre, apellido, telefono, avatar_url, padre_id, creador_id, user_rol } = validatedFields.data;
+  const email = validatedFields.data.email || null; // Convertir '' a null
   const supabaseAdmin = createSupabaseAdminClient();
 
   try {
