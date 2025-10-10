@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,8 +51,7 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      // Use window.location.href to force a full page reload and ensure middleware runs with the new cookie.
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
 
     } catch (error: any) {
       toast({

@@ -133,11 +133,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
       } catch (e) {
         console.error("Failed to parse user session string, logging out.", e);
-        // Clear broken session data and let the middleware handle redirection
         sessionStorage.removeItem('rutasegura_user');
         document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        router.refresh(); // Refresh to trigger middleware redirection
+        router.replace('/'); 
       }
+    } else {
+        // If no session is found, redirect to login.
+        router.replace('/');
     }
     setIsLoading(false);
   }, [router]);
@@ -148,20 +150,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     router.replace('/');
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-4 text-muted-foreground">Cargando...</p>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Verificando sesión...</p>
       </div>
     );
   }
