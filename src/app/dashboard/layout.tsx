@@ -124,18 +124,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
-  
+  const pathname = usePathname();
+
   useEffect(() => {
-    // This logic relies on the middleware to protect the route.
-    // It just loads the user from sessionStorage for the UI.
+    // La protección de rutas ahora la maneja el middleware.
+    // Este useEffect solo carga los datos del usuario para la UI.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
     }
-    // We set loading to false regardless, because the middleware is the gatekeeper.
-    // If we're on this page, the middleware already allowed access.
     setIsLoading(false);
-  }, []);
+  }, [pathname]); // Se ejecuta en cada cambio de ruta para asegurar que el usuario esté disponible.
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
@@ -153,8 +152,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If after loading, there is no user, it means we are in the process of being
-  // redirected by the middleware. Showing a loader is a good user experience.
+  // Si no hay usuario después de cargar, significa que el middleware debería estar
+  // redirigiendo. Mostramos un loader para una mejor experiencia.
   if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">

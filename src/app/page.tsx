@@ -53,11 +53,8 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      // En lugar de empujar una nueva ruta, refrescamos la página actual.
-      // El middleware interceptará esto, verá la cookie recién creada, y
-      // redirigirá al usuario al dashboard desde el servidor.
-      // Esto evita condiciones de carrera entre la redirección del cliente y el middleware.
-      router.refresh();
+      // Se restaura el push para la redirección desde el cliente
+      router.push('/dashboard');
 
     } catch (error: any) {
       toast({
