@@ -51,7 +51,8 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      router.push('/dashboard');
+      // Use window.location.href to force a full page reload and ensure middleware runs
+      window.location.href = '/dashboard';
 
     } catch (error: any) {
       toast({
