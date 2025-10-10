@@ -22,12 +22,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   /*
   * El matcher asegura que este middleware se ejecute en la página de login
-  * y en todas las rutas bajo /dashboard. Se excluyen las rutas de API, 
-  * archivos estáticos e imágenes.
+  * y en todas las rutas bajo /dashboard.
   */
-  matcher: [
-    '/',
-    '/dashboard/:path*',
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/', '/dashboard/:path*'],
 }
