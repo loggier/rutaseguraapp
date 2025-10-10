@@ -37,7 +37,8 @@ async function generateNextStudentId(client: ReturnType<typeof createSupabaseAdm
         .limit(1)
         .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = single row not found
+    // Error code PGRST116 means no rows were found, which is fine for the first student.
+    if (error && error.code !== 'PGRST116') {
         console.error("Error fetching last student ID:", error);
         throw error;
     }
@@ -50,6 +51,7 @@ async function generateNextStudentId(client: ReturnType<typeof createSupabaseAdm
         }
     }
     
+    // Pad with leading zeros to ensure a 6-digit format like "000001"
     const newStudentId = nextId.toString().padStart(6, '0');
     return newStudentId;
 }
