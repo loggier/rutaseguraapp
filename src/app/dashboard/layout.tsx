@@ -132,7 +132,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       setUser(JSON.parse(sessionUserString));
     }
     setIsLoading(false);
-  }, [pathname]);
+  }, [pathname]); // Depend on pathname to re-check on navigation
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
