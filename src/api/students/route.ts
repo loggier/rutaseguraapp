@@ -35,18 +35,20 @@ async function generateUniqueStudentId(client: ReturnType<typeof createSupabaseA
     
     while (!isUnique) {
         studentId = Math.floor(100000 + Math.random() * 900000).toString();
+        // Check if an existing student has this ID
         const { data, error } = await client
             .from('estudiantes')
             .select('id')
-            .eq('student_id', studentId)
-            .single();
+            .eq('student_id', studentId);
 
-        // If no data is found and there's no other error, the ID is unique.
-        // A `postgrest` error with code `PGRST116` means no rows found, which is what we want.
-        if (!data) {
-            if (error && error.code !== 'PGRST116') {
-               throw error; // Rethrow unexpected errors
-            }
+        if (error) {
+            // Rethrow unexpected errors
+            console.error("Error checking for unique student ID:", error);
+            throw error;
+        }
+
+        // If data is an empty array, the ID is unique
+        if (data.length === 0) {
             isUnique = true;
         }
     }
