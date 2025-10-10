@@ -135,10 +135,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Failed to parse user session string", e);
         setUser(null);
+        router.replace('/'); // Fallback de seguridad
       }
+    } else {
+        // Si no hay sesión, el middleware ya debería haber redirigido.
+        // Pero como fallback, podemos forzarlo aquí.
+        router.replace('/');
     }
     setIsLoading(false);
-  }, []);
+  }, [router]); // Se agrega router a las dependencias
   
   const handleLogout = () => {
     sessionStorage.removeItem('rutasegura_user');
@@ -147,22 +152,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     router.replace('/');
   };
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-4 text-muted-foreground">Cargando...</p>
-      </div>
-    );
-  }
-
-  // Si no hay usuario después de cargar, el middleware ya se habrá encargado de la redirección.
-  // Mostramos un loader para una mejor experiencia mientras la redirección ocurre.
-  if (!user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Verificando sesión...</p>
       </div>
     );
   }
