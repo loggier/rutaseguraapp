@@ -6,25 +6,26 @@ export function middleware(request: NextRequest) {
   const userCookie = request.cookies.get('rutasegura_user');
   const { pathname } = request.nextUrl;
 
-  // If the user has a cookie and is on the login page, redirect to the dashboard.
+  // Si el usuario tiene una cookie de sesión y está en la página de login ('/'),
+  // lo redirigimos al dashboard.
   if (userCookie && pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // If the user does not have a cookie and is trying to access a dashboard page,
-  // redirect them to the login page.
+  // Si el usuario NO tiene una cookie de sesión e intenta acceder a cualquier
+  // página dentro del dashboard, lo redirigimos a la página de login.
   if (!userCookie && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Otherwise, allow the request to proceed.
+  // Si ninguna de las condiciones anteriores se cumple, permitimos que la solicitud continúe.
   return NextResponse.next();
 }
 
 export const config = {
   /*
-  * The matcher ensures this middleware runs on the login page
-  * and all routes under /dashboard.
+  * El 'matcher' asegura que este middleware se ejecute solo en la página de login ('/')
+  * y en todas las rutas que comiencen con '/dashboard'.
   */
   matcher: ['/', '/dashboard/:path*'],
-}
+};
