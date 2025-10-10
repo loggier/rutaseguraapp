@@ -51,7 +51,8 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      router.push('/dashboard');
+      // Force a full page reload to ensure middleware catches the cookie
+      window.location.href = '/dashboard';
 
     } catch (error: any) {
       toast({
@@ -60,6 +61,7 @@ export default function LoginPage() {
         description: error.message,
       });
     } finally {
+        // This might not be reached if redirection is fast, which is fine.
         setIsPending(false);
     }
   };
