@@ -126,16 +126,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
-    // Se ejecuta solo una vez al montar el layout para leer la sesión.
-    // El middleware se encargará de las redirecciones si la sesión no es válida.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       try {
-        setUser(JSON.parse(sessionUserString));
+        const sessionUser = JSON.parse(sessionUserString);
+        setUser(sessionUser);
       } catch (e) {
-        console.error("Failed to parse user session string", e);
-        // Si la sesión es inválida, el middleware debe actuar.
-        // Forzamos un reload para que el middleware se ejecute en el servidor.
+        console.error("Failed to parse user session string, logging out.", e);
         router.replace('/'); 
       }
     }
