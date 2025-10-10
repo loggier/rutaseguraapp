@@ -124,15 +124,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter(); 
-  const pathname = usePathname();
-
+  
   useEffect(() => {
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
     }
     setIsLoading(false);
-  }, [pathname]); // Depend on pathname to re-check on navigation
+  }, []); // Se ejecuta solo una vez al montar el layout
   
   const handleLogout = async () => {
     sessionStorage.removeItem('rutasegura_user');
