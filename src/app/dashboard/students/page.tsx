@@ -26,7 +26,7 @@ export default function StudentsPage() {
       const supabase = createClient();
       let query = supabase.from('estudiantes').select(`
         *,
-        padre:profiles(id, nombre, apellido),
+        padre:profiles(id, nombre, apellido, user:users(email)),
         colegio:colegios(nombre)
       `);
 
@@ -46,28 +46,11 @@ export default function StudentsPage() {
       const { data: studentsData, error: studentsError } = await query.order('apellido').order('nombre');
 
       if (studentsError) throw studentsError;
-        
-      const parentIds = studentsData.map(s => s.padre_id).filter(Boolean);
-      let parentEmails: { [key: string]: string } = {};
-
-      if (parentIds.length > 0) {
-          const { data: usersData, error: usersError } = await supabase
-              .from('users')
-              .select('id, email')
-              .in('id', parentIds);
-          
-          if (usersError) throw usersError;
-
-          parentEmails = usersData.reduce((acc, u) => {
-              acc[u.id] = u.email;
-              return acc;
-          }, {} as { [key: string]: string });
-      }
 
       const formattedStudents = studentsData.map((s: any) => ({
         ...s,
         padre_nombre: s.padre ? `${s.padre.nombre} ${s.padre.apellido}` : 'No asignado',
-        padre_email: s.padre_id ? parentEmails[s.padre_id] || '-' : '-',
+        padre_email: s.padre?.user ? s.padre.user.email : '-',
         colegio_nombre: s.colegio ? s.colegio.nombre : 'No asignado'
       }));
 

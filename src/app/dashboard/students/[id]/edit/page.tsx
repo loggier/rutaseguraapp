@@ -11,7 +11,7 @@ async function getStudentData(studentId: string) {
         .from('estudiantes')
         .select(`
             *,
-            padre:profiles(nombre, apellido, email),
+            padre:profiles(nombre, apellido, user:users(email)),
             colegio:colegios(nombre)
         `)
         .eq('id', studentId)
@@ -25,7 +25,7 @@ async function getStudentData(studentId: string) {
      const responseData = {
         ...student,
         padre_nombre: student.padre ? `${student.padre.nombre} ${student.padre.apellido}` : 'No asignado',
-        padre_email: student.padre ? student.padre.email : '-',
+        padre_email: student.padre?.user ? student.padre.user.email : '-',
         colegio_nombre: student.colegio ? student.colegio.nombre : 'No asignado'
     };
 
