@@ -22,15 +22,14 @@ import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Estudiante } from "@/lib/types";
 import { DeleteStudentAlert } from "./delete-student-alert";
-import { EditStudentDialog } from "./edit-student-dialog";
+import Link from "next/link";
 
 type StudentsTableProps = {
     students: Estudiante[];
-    onStudentUpdated: (updatedStudent: Estudiante) => void;
     onStudentDeleted: (studentId: string) => void;
 }
 
-export function StudentsTable({ students, onStudentUpdated, onStudentDeleted }: StudentsTableProps) {
+export function StudentsTable({ students, onStudentDeleted }: StudentsTableProps) {
     const [studentToDelete, setStudentToDelete] = useState<Estudiante | null>(null);
 
     return (
@@ -80,12 +79,12 @@ export function StudentsTable({ students, onStudentUpdated, onStudentDeleted }: 
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <EditStudentDialog student={student} onStudentUpdated={onStudentUpdated}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/dashboard/students/${student.id}/edit`}>
                                         <Edit className="mr-2 h-4 w-4" />
                                         Editar
-                                    </DropdownMenuItem>
-                                </EditStudentDialog>
+                                    </Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     className='text-destructive'

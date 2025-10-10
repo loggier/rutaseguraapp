@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import type { Estudiante, Profile } from "@/lib/types";
+import type { Estudiante } from "@/lib/types";
 import { useEffect, useState, useCallback } from "react";
 import { StudentsTable } from "./students-table";
 import { Loader2, PlusCircle } from "lucide-react";
@@ -87,10 +87,6 @@ export default function StudentsPage() {
     }
   }, [user, fetchStudents]);
 
-  const handleStudentUpdated = (updatedStudent: Estudiante) => {
-    fetchStudents();
-  }
-  
   const handleStudentDeleted = (studentId: string) => {
     setStudents(prev => prev.filter(s => s.id !== studentId));
   }
@@ -146,7 +142,6 @@ export default function StudentsPage() {
            ) : (
              <StudentsTable 
                 students={students}
-                onStudentUpdated={handleStudentUpdated}
                 onStudentDeleted={handleStudentDeleted}
               />
            )}
