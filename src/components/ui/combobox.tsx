@@ -57,7 +57,8 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
                   key={item.value}
                   value={item.value}
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue);
+                    // This logic was incorrect. It should just set the selected value.
+                    onChange(currentValue);
                     setOpen(false);
                   }}
                 >
