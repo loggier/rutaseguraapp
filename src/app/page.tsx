@@ -53,8 +53,9 @@ export default function LoginPage() {
         description: "Redirigiendo al dashboard...",
       });
       
-      // Redirige directamente al dashboard.
-      router.push('/dashboard');
+      // En lugar de redirigir aquí, refrescamos la página.
+      // El middleware se encargará de la redirección.
+      router.refresh();
 
     } catch (error: any) {
       toast({
