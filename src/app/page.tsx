@@ -43,16 +43,14 @@ export default function LoginPage() {
       
       const userDataString = JSON.stringify(data.user);
       sessionStorage.setItem('rutasegura_user', userDataString);
-      // Set cookie to be read by middleware
-      document.cookie = `rutasegura_user=${userDataString}; path=/; max-age=86400; SameSite=Lax`; 
 
       toast({
         title: "Inicio de Sesión Exitoso",
         description: "Redirigiendo al dashboard...",
       });
       
-      // Use window.location.href to force a full page reload and ensure middleware runs
-      window.location.href = '/dashboard';
+      // Redirección directa y en el cliente, que ahora funcionará sin la interferencia del middleware.
+      router.push('/dashboard');
 
     } catch (error: any) {
       toast({

@@ -126,19 +126,19 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
+    // Esta es la validación local en el navegador.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       try {
         const sessionUser = JSON.parse(sessionUserString);
         setUser(sessionUser);
       } catch (e) {
-        console.error("Failed to parse user session string, logging out.", e);
+        console.error("Fallo al parsear la sesión de usuario, cerrando sesión.", e);
         sessionStorage.removeItem('rutasegura_user');
-        document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         router.replace('/'); 
       }
     } else {
-        // If no session is found, redirect to login.
+        // Si no se encuentra la sesión, se redirige al login.
         router.replace('/');
     }
     setIsLoading(false);
@@ -146,7 +146,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   
   const handleLogout = () => {
     sessionStorage.removeItem('rutasegura_user');
-    document.cookie = 'rutasegura_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.replace('/');
   };
 
