@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, User, Bus, Map, Rocket, LayoutDashboard, Route as RouteIcon,
   Menu, Bell, LogOut, Loader2, Shield, School, Contact,
@@ -126,13 +126,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   
   useEffect(() => {
-    // La protección de ruta ahora la maneja el middleware.
-    // Este efecto solo se encarga de cargar los datos del usuario para la UI.
+    // This logic relies on the middleware to protect the route.
+    // It just loads the user from sessionStorage for the UI.
     const sessionUserString = sessionStorage.getItem('rutasegura_user');
     if (sessionUserString) {
       setUser(JSON.parse(sessionUserString));
     }
-    // No redirigir desde aquí para evitar conflictos con el middleware.
+    // We set loading to false regardless, because the middleware is the gatekeeper.
+    // If we're on this page, the middleware already allowed access.
     setIsLoading(false);
   }, []);
   
@@ -152,8 +153,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si después de cargar, no hay usuario, el middleware ya debería haber redirigido.
-  // Pero podemos mostrar un loader como fallback.
+  // If after loading, there is no user, it means we are in the process of being
+  // redirected by the middleware. Showing a loader is a good user experience.
   if (!user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
