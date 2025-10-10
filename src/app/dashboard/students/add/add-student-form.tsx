@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Select from 'react-select';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
+import { createStudent, type State } from './actions';
 
 const formSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -32,10 +34,22 @@ type AddStudentFormProps = {
   user: User;
 };
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      Crear Estudiante
+    </Button>
+  );
+}
+
 export function AddStudentForm({ parents, user }: AddStudentFormProps) {
-  const [isPending, setIsPending] = useState(false);
-  const { toast } = useToast();
   const router = useRouter();
+  const { toast } = useToast();
+  
+  const initialState: State = { message: null, errors: {} };
+  const [state, dispatch] = useFormState(createStudent, initialState);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,42 +63,17 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un estudiante.' });
-        return;
-    }
-    
-    setIsPending(true);
-    try {
-      const response = await fetch('/api/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, creador_id: user.id, user_rol: user.rol }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear el estudiante.');
+  useEffect(() => {
+    if (state.message) {
+      if (state.errors) {
+        toast({
+          variant: "destructive",
+          title: "Error de Validación",
+          description: state.message,
+        });
       }
-      
-      toast({
-        title: 'Éxito',
-        description: 'El estudiante ha sido creado correctamente.',
-      });
-      router.push('/dashboard/students');
-
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message,
-      });
-    } finally {
-      setIsPending(false);
     }
-  };
+  }, [state, toast]);
 
   const nombre = form.watch('nombre');
   const apellido = form.watch('apellido');
@@ -93,69 +82,69 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form action={dispatch} className="space-y-8">
         <div className="flex items-center space-x-4">
           <Avatar className="h-24 w-24">
             <AvatarFallback className="text-4xl">
-              {(nombre?.[0] || '')}{(apellido?.[0] || '')}
+              {(nombre?.[0] || '').toUpperCase()}{(apellido?.[0] || '').toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <Button type="button" variant="outline" disabled>Subir Foto</Button>
         </div>
         
         <div className='grid md:grid-cols-2 gap-6'>
-            <FormField
-                control={form.control}
-                name="nombre"
-                render={({ field }) => (
-                <FormItem className='space-y-1'>
-                    <Label>Nombre *</Label>
-                    <FormControl>
-                        <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="apellido"
-                render={({ field }) => (
-                <FormItem className='space-y-1'>
-                    <Label>Apellido *</Label>
-                    <FormControl>
-                        <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                <FormItem className='space-y-1'>
-                    <Label>Email (Opcional)</Label>
-                    <FormControl>
-                        <Input type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="telefono"
-                render={({ field }) => (
-                <FormItem className='space-y-1'>
-                    <Label>Teléfono (Opcional)</Label>
-                    <FormControl>
-                        <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
+          <FormField
+            control={form.control}
+            name="nombre"
+            render={({ field }) => (
+              <FormItem className='space-y-1'>
+                <Label>Nombre *</Label>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="apellido"
+            render={({ field }) => (
+              <FormItem className='space-y-1'>
+                <Label>Apellido *</Label>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className='space-y-1'>
+                <Label>Email (Opcional)</Label>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="telefono"
+            render={({ field }) => (
+              <FormItem className='space-y-1'>
+                <Label>Teléfono (Opcional)</Label>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
         <FormField
@@ -166,6 +155,7 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
               <Label>Padre/Tutor *</Label>
               <FormControl>
                 <Select
+                  name={field.name}
                   options={parentOptions}
                   value={parentOptions.find(c => c.value === field.value)}
                   onChange={val => field.onChange(val?.value)}
@@ -178,13 +168,13 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
             </FormItem>
           )}
         />
+
+        <input type="hidden" name="creador_id" value={user.id} />
+        <input type="hidden" name="user_rol" value={user.rol} />
         
         <div className="flex justify-end gap-4 pt-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Crear Estudiante
-          </Button>
+          <SubmitButton />
         </div>
       </form>
     </Form>
