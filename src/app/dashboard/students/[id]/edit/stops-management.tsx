@@ -30,15 +30,23 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
     setStops(prevStops => {
         const otherStops = prevStops.filter(s => s.id !== savedStop.id);
         
-        // If the new/edited stop is active, deactivate all others
+        // If the new/edited stop is active, deactivate others of the same type.
         if (savedStop.activo) {
-            const deactivatedStops = otherStops.map(s => ({ ...s, activo: false }));
+            const deactivatedStops = otherStops.map(s => 
+                s.tipo === savedStop.tipo ? { ...s, activo: false } : s
+            );
+            // Check if the stop already exists to either update or add it.
+            const stopExists = prevStops.some(s => s.id === savedStop.id);
+            if (stopExists) {
+                return deactivatedStops.map(s => s.id === savedStop.id ? savedStop : s);
+            }
             return [...deactivatedStops, savedStop];
         }
 
         // If editing an existing stop (and not making it active)
-        if (prevStops.some(s => s.id === savedStop.id)) {
-            return [...otherStops, savedStop];
+        const stopExists = prevStops.some(s => s.id === savedStop.id);
+        if (stopExists) {
+            return prevStops.map(s => s.id === savedStop.id ? savedStop : s);
         }
         
         // If adding a new stop (and it's not active)

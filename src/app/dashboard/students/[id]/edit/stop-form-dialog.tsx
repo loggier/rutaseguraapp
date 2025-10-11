@@ -66,6 +66,10 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
       if (!combinations.has(`${tipo}-Principal`)) return 'Principal';
       return 'Familiar/Academia';
   }
+  
+  const hasActiveStopForType = (type: 'Recogida' | 'Entrega') => {
+    return existingStops.some(s => s.activo && s.tipo === type && s.id !== stop?.id);
+  }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,7 +81,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
       numero: stop?.numero || '',
       lat: stop?.lat || -0.1807, // Default to Quito
       lng: stop?.lng || -78.4678,
-      activo: stop?.activo === undefined ? !student.paradas?.some(p => p.activo) : stop.activo,
+      activo: stop?.activo === undefined ? !hasActiveStopForType(stop?.tipo || getAvailableTipo()) : stop.activo,
     },
   });
   
@@ -92,7 +96,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
             numero: stop?.numero || '',
             lat: stop?.lat || -0.1807,
             lng: stop?.lng || -78.4678,
-            activo: stop?.activo === undefined ? !existingStops.some(p => p.activo) : stop.activo,
+            activo: stop?.activo === undefined ? !hasActiveStopForType(defaultTipo) : stop.activo,
         })
     }
   }, [isOpen, stop, form, existingStops]);
@@ -353,7 +357,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
                 />
                 <Label htmlFor="activo">Marcar como parada activa</Label>
               </div>
-               <p className="text-xs text-muted-foreground">Solo una parada puede estar activa a la vez para un estudiante.</p>
+               <p className="text-xs text-muted-foreground">Solo una parada de Recogida y una de Entrega pueden estar activas a la vez.</p>
 
             </div>
             <div className="h-96 w-full bg-muted rounded-md relative">

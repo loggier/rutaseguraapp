@@ -62,17 +62,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
     }
 
-    // Si esta parada se va a activar, desactivar las demás para el mismo estudiante
+    // Si esta parada se va a activar, desactivar las demás del MISMO TIPO para el mismo estudiante
     if (activo) {
         const { error: updateError } = await supabaseAdmin
             .from('paradas')
             .update({ activo: false })
             .eq('estudiante_id', currentStopData.estudiante_id)
+            .eq('tipo', tipo) // Solo desactivar las del mismo tipo
             .neq('id', stopId) // No desactivar la parada actual
             .eq('activo', true);
 
         if (updateError) {
-            console.error('Error desactivando otras paradas:', updateError);
+            console.error('Error desactivando otras paradas del mismo tipo:', updateError);
             return NextResponse.json({ message: 'Error al actualizar las paradas existentes.' }, { status: 500 });
         }
     }
