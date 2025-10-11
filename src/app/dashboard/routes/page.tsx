@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Route, Users, School, Sunrise, Sunset, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Route, Users, School, Clock, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from '@/contexts/user-context';
@@ -43,7 +44,7 @@ function RoutesPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre), estudiantes_count:ruta_estudiantes(count)`);
+      let query = supabase.from('rutas').select(`*, colegio:colegios(id, nombre), estudiantes_count:ruta_estudiantes(count)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -114,8 +115,7 @@ function RoutesPageComponent() {
           <TableRow>
             <TableHead>Nombre de la Ruta</TableHead>
             {isAdmin && <TableHead>Colegio</TableHead>}
-            <TableHead>Turno</TableHead>
-            <TableHead>Hora Salida</TableHead>
+            <TableHead>Horarios</TableHead>
             <TableHead className="hidden md:table-cell">Estudiantes</TableHead>
             <TableHead>
               <span className="sr-only">Acciones</span>
@@ -140,12 +140,11 @@ function RoutesPageComponent() {
                   </TableCell>
                 )}
               <TableCell>
-                <Badge variant={ruta.turno === 'Recogida' ? 'outline' : 'secondary'} className="gap-1">
-                  {ruta.turno === 'Recogida' ? <Sunrise className="h-3 w-3"/> : <Sunset className="h-3 w-3" />}
-                  {ruta.turno}
-                </Badge>
+                 <div className='flex flex-col gap-1'>
+                    {ruta.hora_salida_manana && <Badge variant="outline">Mañana: {ruta.hora_salida_manana}</Badge>}
+                    {ruta.hora_salida_tarde && <Badge variant="secondary">Tarde: {ruta.hora_salida_tarde}</Badge>}
+                 </div>
               </TableCell>
-              <TableCell>{ruta.hora_salida}</TableCell>
               <TableCell className="hidden md:table-cell">
                 <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
@@ -170,7 +169,7 @@ function RoutesPageComponent() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-destructive"
-                      onSelect={() => setRouteToDelete(ruta)}
+                      onSelect={(e) => { e.preventDefault(); setRouteToDelete(ruta); }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Eliminar

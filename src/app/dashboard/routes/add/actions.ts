@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -9,18 +10,22 @@ import type { User } from '@/contexts/user-context';
 
 const formSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  turno: z.enum(['Recogida', 'Entrega'], { required_error: 'Debes seleccionar un turno.' }),
-  hora_salida: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:mm)"),
+  hora_salida_manana: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido (HH:mm)").optional().or(z.literal('')),
+  hora_salida_tarde: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido (HH:mm)").optional().or(z.literal('')),
   colegio_id: z.string({ required_error: 'Debes seleccionar un colegio' }).uuid('ID de colegio inválido.'),
   creado_por: z.string().uuid(),
+}).refine(data => data.hora_salida_manana || data.hora_salida_tarde, {
+    message: "Se debe proporcionar al menos una hora de salida.",
+    path: ["hora_salida_manana"], // Puedes asignar el error a uno de los campos
 });
+
 
 export type State = {
   message?: string | null;
   errors?: {
     nombre?: string[];
-    turno?: string[];
-    hora_salida?: string[];
+    hora_salida_manana?: string[];
+    hora_salida_tarde?: string[];
     colegio_id?: string[];
     _form?: string[];
   };
@@ -52,8 +57,8 @@ export async function createRoute(user: User, prevState: State, formData: FormDa
 
   const validatedFields = formSchema.safeParse({
     nombre: formData.get('nombre'),
-    turno: formData.get('turno'),
-    hora_salida: formData.get('hora_salida'),
+    hora_salida_manana: formData.get('hora_salida_manana'),
+    hora_salida_tarde: formData.get('hora_salida_tarde'),
     colegio_id: colegio_id_from_form,
     creado_por: user.id,
   });
@@ -65,15 +70,15 @@ export async function createRoute(user: User, prevState: State, formData: FormDa
     };
   }
 
-  const { nombre, turno, hora_salida, colegio_id } = validatedFields.data;
+  const { nombre, hora_salida_manana, hora_salida_tarde, colegio_id } = validatedFields.data;
 
   try {
     const { error } = await supabaseAdmin
       .from('rutas')
       .insert({
         nombre,
-        turno,
-        hora_salida,
+        hora_salida_manana: hora_salida_manana || null,
+        hora_salida_tarde: hora_salida_tarde || null,
         colegio_id,
         creado_por: user.id
       });

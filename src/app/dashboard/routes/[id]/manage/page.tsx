@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { Ruta, Estudiante, Parada } from '@/lib/types';
@@ -27,23 +28,36 @@ async function getManageStudentsData(routeId: string): Promise<ManageStudentsDat
     }
 
     // 2. Fetch the students already assigned to this route
-    const { data: assignedStudentsData, error: assignedError } = await supabase
+    // We use a Set to get unique student IDs because a student might be assigned twice (once per stop type)
+    const { data: assignedStopsData, error: assignedError } = await supabase
         .from('ruta_estudiantes')
-        .select('estudiante:estudiantes(*, paradas(*))')
+        .select('estudiante_id')
         .eq('ruta_id', routeId);
         
     if (assignedError) {
         console.error("Error fetching assigned students:", assignedError);
         return null;
     }
+    
+    const assignedStudentIds = [...new Set(assignedStopsData.map(item => item.estudiante_id))];
 
-    const assignedStudents = assignedStudentsData
-        .map(item => item.estudiante)
-        .filter(Boolean) as (Estudiante & { paradas: Parada[] })[];
+    let assignedStudents: (Estudiante & { paradas: Parada[] })[] = [];
+    if (assignedStudentIds.length > 0) {
+        const { data: studentsData, error: studentsError } = await supabase
+            .from('estudiantes')
+            .select('*, paradas(*)')
+            .in('id', assignedStudentIds);
+        
+        if (studentsError) {
+            console.error("Error fetching full student data:", studentsError);
+            return null;
+        }
+        assignedStudents = studentsData as (Estudiante & { paradas: Parada[] })[];
+    }
     
     const formattedRoute = {
         ...routeData,
-        estudiantes_count: assignedStudents.length,
+        estudiantes_count: assignedStudentIds.length,
         colegio: Array.isArray(routeData.colegio) ? routeData.colegio[0] : routeData.colegio,
     };
 
@@ -63,6 +77,11 @@ export default async function ManageRouteStudentsPage({ params }: { params: { id
     
     const { route, assignedStudents } = data;
 
+    const turnos = [];
+    if (route.hora_salida_manana) turnos.push('Recogida');
+    if (route.hora_salida_tarde) turnos.push('Entrega');
+    const turnosText = turnos.join(' y ');
+
     return (
         <div className="flex flex-col gap-6">
             <PageHeader
@@ -73,7 +92,7 @@ export default async function ManageRouteStudentsPage({ params }: { params: { id
                 <CardHeader>
                     <CardTitle>Asignación de Estudiantes</CardTitle>
                     <CardDescription>
-                        Utiliza el buscador para añadir estudiantes. El sistema asignará su parada activa ({route.turno}).
+                        Usa el buscador para añadir estudiantes. El sistema asignará su parada activa para los turnos de {turnosText}.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -86,4 +105,3 @@ export default async function ManageRouteStudentsPage({ params }: { params: { id
         </div>
     );
 }
-

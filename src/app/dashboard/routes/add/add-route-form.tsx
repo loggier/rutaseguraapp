@@ -15,14 +15,20 @@ import { createRoute, type State } from './actions';
 import type { User } from '@/contexts/user-context';
 import type { Colegio } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 
 const formSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  turno: z.enum(['Recogida', 'Entrega'], { required_error: 'Debes seleccionar un turno.' }),
-  hora_salida: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:mm)"),
+  hora_salida_manana: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido (HH:mm)").optional().or(z.literal('')),
+  hora_salida_tarde: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato inválido (HH:mm)").optional().or(z.literal('')),
   colegio_id: z.string().uuid().optional(),
+}).refine(data => data.hora_salida_manana || data.hora_salida_tarde, {
+    message: "Debes especificar al menos una hora de salida.",
+    path: ["hora_salida_manana"],
 });
+
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -53,8 +59,8 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: '',
-      turno: undefined,
-      hora_salida: '07:00',
+      hora_salida_manana: '',
+      hora_salida_tarde: '',
       colegio_id: undefined,
     },
   });
@@ -69,8 +75,8 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
     }
     if (state.errors) {
         state.errors.nombre && form.setError('nombre', { message: state.errors.nombre[0] });
-        state.errors.turno && form.setError('turno', { message: state.errors.turno[0] });
-        state.errors.hora_salida && form.setError('hora_salida', { message: state.errors.hora_salida[0] });
+        state.errors.hora_salida_manana && form.setError('hora_salida_manana', { message: state.errors.hora_salida_manana[0] });
+        state.errors.hora_salida_tarde && form.setError('hora_salida_tarde', { message: state.errors.hora_salida_tarde[0] });
         state.errors.colegio_id && form.setError('colegio_id', { message: state.errors.colegio_id[0] });
     }
   }, [state, toast, form]);
@@ -111,10 +117,10 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
             control={form.control}
             name="nombre"
             render={({ field }) => (
-              <FormItem className='space-y-1'>
+              <FormItem className='space-y-1 md:col-span-2'>
                 <FormLabel>Nombre de la Ruta *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ej: Ruta Norte Mañana" {...field} />
+                  <Input placeholder="Ej: Ruta Norte" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -122,31 +128,10 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
           />
            <FormField
             control={form.control}
-            name="turno"
+            name="hora_salida_manana"
             render={({ field }) => (
               <FormItem className='space-y-1'>
-                <FormLabel>Turno *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} name={field.name}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un turno" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Recogida">Recogida (Mañana)</SelectItem>
-                    <SelectItem value="Entrega">Entrega (Tarde)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="hora_salida"
-            render={({ field }) => (
-              <FormItem className='space-y-1'>
-                <FormLabel>Hora de Salida *</FormLabel>
+                <FormLabel>Hora de Salida (Mañana)</FormLabel>
                 <FormControl>
                   <Input type="time" {...field} />
                 </FormControl>
@@ -154,6 +139,28 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
               </FormItem>
             )}
           />
+           <FormField
+            control={form.control}
+            name="hora_salida_tarde"
+            render={({ field }) => (
+              <FormItem className='space-y-1'>
+                <FormLabel>Hora de Salida (Tarde)</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="md:col-span-2">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Información</AlertTitle>
+              <AlertDescription>
+                Debes proporcionar al menos una hora de salida. La hora de mañana se usará para el turno de 'Recogida' y la de tarde para el de 'Entrega'.
+              </AlertDescription>
+            </Alert>
+          </div>
         </div>
         
         <div className="flex justify-end gap-4 pt-4">

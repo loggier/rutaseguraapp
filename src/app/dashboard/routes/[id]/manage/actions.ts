@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -34,7 +35,6 @@ export async function updateRouteAssignments(
   formData: FormData
 ): Promise<State> {
   const supabaseAdmin = createSupabaseAdminClient();
-  // We get ALL `student_ids` entries. `getAll` is important here.
   const selectedStudentIds = formData.getAll('student_ids') as string[];
 
   const validatedFields = formSchema.safeParse({
@@ -50,6 +50,9 @@ export async function updateRouteAssignments(
   }
 
   const { routeId } = validatedFields.data;
+  const turnos: ('Recogida' | 'Entrega')[] = [];
+  if (route.hora_salida_manana) turnos.push('Recogida');
+  if (route.hora_salida_tarde) turnos.push('Entrega');
 
   try {
     // 1. Get current assignments for this route
@@ -81,28 +84,36 @@ export async function updateRouteAssignments(
     if (studentsToAdd.length > 0) {
       const { data: studentsWithStops, error: studentsDataError } = await supabaseAdmin
         .from('estudiantes')
-        .select('id, nombre, paradas!inner(*)')
+        .select('id, nombre, apellido, paradas!inner(*)')
         .in('id', studentsToAdd)
         .eq('paradas.activo', true)
-        .eq('paradas.tipo', route.turno);
+        .in('paradas.tipo', turnos);
 
       if (studentsDataError) throw new Error(`Error al verificar paradas de estudiantes: ${studentsDataError.message}`);
       
-      const studentsWithActiveStop = new Map(studentsWithStops.map(s => [s.id, s]));
       const newAssignments = [];
       const studentsWithoutStopNames = [];
-
+      
       for (const studentId of studentsToAdd) {
-        const studentData = studentsWithActiveStop.get(studentId);
-        if (studentData && studentData.paradas.length > 0) {
-          newAssignments.push({
-            ruta_id: routeId,
-            estudiante_id: studentId,
-            parada_id: studentData.paradas[0].id,
-          });
-        } else {
-            const {data: student} = await supabaseAdmin.from('estudiantes').select('nombre, apellido').eq('id', studentId).single();
-            studentsWithoutStopNames.push(`${student?.nombre} ${student?.apellido}`);
+        const studentData = studentsWithStops.find(s => s.id === studentId);
+        
+        // Find the active stop for the required turns
+        const paradaRecogida = studentData?.paradas.find(p => p.tipo === 'Recogida');
+        const paradaEntrega = studentData?.paradas.find(p => p.tipo === 'Entrega');
+
+        let assignmentsForStudent = 0;
+
+        if (route.hora_salida_manana && paradaRecogida) {
+          newAssignments.push({ ruta_id: routeId, estudiante_id: studentId, parada_id: paradaRecogida.id });
+          assignmentsForStudent++;
+        }
+        if (route.hora_salida_tarde && paradaEntrega) {
+          newAssignments.push({ ruta_id: routeId, estudiante_id: studentId, parada_id: paradaEntrega.id });
+          assignmentsForStudent++;
+        }
+        
+        if (assignmentsForStudent === 0) {
+            studentsWithoutStopNames.push(`${studentData?.nombre || 'Estudiante'} ${studentData?.apellido || ''}`);
         }
       }
       
@@ -116,8 +127,9 @@ export async function updateRouteAssignments(
 
       if (studentsWithoutStopNames.length > 0) {
           const studentNames = studentsWithoutStopNames.join(', ');
+          const requiredStops = turnos.join(' y ');
           return {
-              message: `Asignación parcial. Los siguientes estudiantes no tienen una parada activa de tipo '${route.turno}' y no fueron añadidos: ${studentNames}.`
+              message: `Asignación parcial. Los siguientes estudiantes no tienen una parada activa de tipo '${requiredStops}' y no fueron añadidos: ${studentNames}.`
           };
       }
     }

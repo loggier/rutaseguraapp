@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useActionState, useState, useCallback } from 'react';
+import { useEffect, useActionState, useState, useCallback, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2, AlertCircle } from 'lucide-react';
@@ -81,7 +81,6 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
   const handleSelectStudent = useCallback(async (studentId: string | null) => {
     if (!studentId) return;
 
-    // Fetch the full student object to check for active stops
     try {
         const response = await fetch(`/api/students/search?id=${studentId}`);
         if (!response.ok) throw new Error('Failed to fetch student details');
@@ -91,7 +90,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
     
         if (student) {
             setAssignedStudents(prev => [...prev, student]);
-            setSearchResults([]); // Clear search results
+            setSearchResults([]);
         }
     } catch (error) {
         console.error('Failed to select student:', error);
@@ -129,13 +128,16 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
             <TableHeader>
               <TableRow>
                 <TableHead>Estudiante</TableHead>
-                <TableHead>Parada Activa ({route.turno})</TableHead>
+                <TableHead>Parada Mañana (Recogida)</TableHead>
+                <TableHead>Parada Tarde (Entrega)</TableHead>
                 <TableHead className="w-[50px] text-right">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {assignedStudents.length > 0 ? assignedStudents.map(student => {
-                const activeStop = student.paradas?.find(p => p.activo && p.tipo === route.turno);
+                const paradaRecogida = student.paradas?.find(p => p.activo && p.tipo === 'Recogida');
+                const paradaEntrega = student.paradas?.find(p => p.activo && p.tipo === 'Entrega');
+                
                 return (
                   <TableRow key={student.id}>
                     <TableCell>
@@ -151,13 +153,31 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
                       </div>
                     </TableCell>
                     <TableCell>
-                      {activeStop ? (
-                         <Badge variant="outline">{activeStop.direccion}</Badge>
+                      {route.hora_salida_manana ? (
+                        paradaRecogida ? (
+                          <Badge variant="outline">{paradaRecogida.direccion}</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="gap-1.5 items-center">
+                            <AlertCircle className="h-3 w-3" />
+                            Sin parada
+                          </Badge>
+                        )
                       ) : (
-                        <Badge variant="destructive" className="gap-1.5 items-center">
-                          <AlertCircle className="h-3 w-3" />
-                          Sin parada activa
-                        </Badge>
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
+                     <TableCell>
+                      {route.hora_salida_tarde ? (
+                        paradaEntrega ? (
+                          <Badge variant="secondary">{paradaEntrega.direccion}</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="gap-1.5 items-center">
+                            <AlertCircle className="h-3 w-3" />
+                            Sin parada
+                          </Badge>
+                        )
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -169,7 +189,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
                 )
               }) : (
                   <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
+                      <TableCell colSpan={4} className="h-24 text-center">
                           Aún no hay estudiantes asignados a esta ruta.
                       </TableCell>
                   </TableRow>

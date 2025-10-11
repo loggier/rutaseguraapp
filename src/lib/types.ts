@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -98,14 +99,15 @@ export type Autobus = {
 export type Ruta = {
   id: string;
   nombre: string;
-  turno: "Recogida" | "Entrega";
-  hora_salida: string; // Formato HH:mm
+  hora_salida_manana: string | null; // Formato HH:mm
+  hora_salida_tarde: string | null; // Formato HH:mm
   colegio_id: string;
   creado_por: string;
   fecha_creacion: string;
   estudiantes_count: number;
   colegio?: {
     nombre: string;
+    id: string;
   };
 };
 
