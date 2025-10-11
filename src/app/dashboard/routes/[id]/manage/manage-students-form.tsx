@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Combobox, ComboboxItem } from '@/components/ui/combobox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 type ManageStudentsFormProps = {
   route: Ruta;
@@ -35,6 +37,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
   const [assignedStudents, setAssignedStudents] = useState(initialAssignedStudents);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ComboboxItem[]>([]);
+  const [studentToRemove, setStudentToRemove] = useState<Estudiante | null>(null);
 
   const initialState: State = { message: null, errors: {} };
   const updateRouteAssignmentsWithRoute = updateRouteAssignments.bind(null, route);
@@ -43,7 +46,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
   useEffect(() => {
     if (state?.message) {
       toast({
-        variant: state.message.startsWith('Error') ? "destructive" : "default",
+        variant: state.message.startsWith('Error') || state.message.startsWith('Asignación parcial') ? "destructive" : "default",
         title: state.message.startsWith('Error') ? "Error" : "Notificación",
         description: state.message,
       });
@@ -75,7 +78,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
     }
   }, [route.colegio_id, assignedStudents, toast]);
 
-  const handleSelectStudent = async (studentId: string | null) => {
+  const handleSelectStudent = useCallback(async (studentId: string | null) => {
     if (!studentId) return;
 
     // Fetch the full student object to check for active stops
@@ -94,13 +97,17 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
         console.error('Failed to select student:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar al estudiante.' });
     }
-  };
+  }, [toast]);
   
-  const handleRemoveStudent = (studentId: string) => {
-    setAssignedStudents(prev => prev.filter(s => s.id !== studentId));
+  const confirmRemoveStudent = () => {
+    if (studentToRemove) {
+      setAssignedStudents(prev => prev.filter(s => s.id !== studentToRemove.id));
+    }
+    setStudentToRemove(null);
   };
   
   return (
+    <>
     <form action={formAction} className="space-y-6">
       <div className="grid md:grid-cols-2 gap-4">
         <h3 className="font-medium md:col-span-2">Buscar y Agregar Estudiantes</h3>
@@ -154,7 +161,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                       <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveStudent(student.id)}>
+                       <Button type="button" variant="ghost" size="icon" onClick={() => setStudentToRemove(student)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                        </Button>
                     </TableCell>
@@ -181,5 +188,23 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
         <SubmitButton />
       </div>
     </form>
+    
+    {studentToRemove && (
+        <AlertDialog open={!!studentToRemove} onOpenChange={() => setStudentToRemove(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Quitar estudiante de la ruta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        ¿Estás seguro de que quieres quitar a <span className="font-semibold">{studentToRemove.nombre} {studentToRemove.apellido}</span> de esta ruta?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmRemoveStudent}>Quitar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )}
+    </>
   );
 }
