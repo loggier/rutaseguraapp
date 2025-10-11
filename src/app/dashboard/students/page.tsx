@@ -74,6 +74,10 @@ export default function StudentsPage() {
     setStudents(prev => prev.filter(s => s.id !== studentId));
   }
 
+  const handleStudentStatusChanged = (studentId: string, newStatus: boolean) => {
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, activo: newStatus } : s));
+  }
+
   const canManage = user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio';
 
   if (loading) {
@@ -126,6 +130,7 @@ export default function StudentsPage() {
              <StudentsTable 
                 students={students}
                 onStudentDeleted={handleStudentDeleted}
+                onStudentStatusChanged={handleStudentStatusChanged}
               />
            )}
         </CardContent>

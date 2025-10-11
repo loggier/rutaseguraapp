@@ -44,6 +44,7 @@ export type Estudiante = {
   student_id: string;
   email: string | null;
   telefono: string | null;
+  activo: boolean;
   avatar_url?: string | null;
   colegio_id: string;
   padre_id: string;

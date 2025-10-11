@@ -13,6 +13,11 @@ const updateStudentSchema = z.object({
   avatar_url: z.string().url().optional().nullable(),
 });
 
+const updateStatusSchema = z.object({
+    activo: z.boolean(),
+});
+
+
 // Helper to create a Supabase admin client
 const createSupabaseAdminClient = () => {
     return createServerClient(
@@ -68,6 +73,39 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   } catch (error: any) {
     console.error('Error inesperado en PUT /api/students/[id]:', error);
+    return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
+  }
+}
+
+// --- PATCH para cambiar estado (activo/inactivo) ---
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const studentId = params.id;
+  try {
+    const body = await request.json();
+    const validation = updateStatusSchema.safeParse(body);
+
+    if(!validation.success) {
+      return NextResponse.json({ message: "Datos inválidos (se esperaba 'activo').", errors: validation.error.flatten().fieldErrors }, { status: 400 });
+    }
+
+    const { activo } = validation.data;
+    const supabaseAdmin = createSupabaseAdminClient();
+
+    const { error: updateError } = await supabaseAdmin
+      .from('estudiantes')
+      .update({ activo })
+      .eq('id', studentId);
+      
+    if (updateError) {
+      console.error("Error al actualizar el estado del estudiante:", updateError);
+      return NextResponse.json({ message: 'Error interno al cambiar el estado del estudiante.' }, { status: 500 });
+    }
+
+    const message = `Estudiante ${activo ? 'activado' : 'desactivado'} con éxito.`;
+    return NextResponse.json({ message, newStatus: activo }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('Error inesperado en PATCH /api/students/[id]:', error);
     return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
   }
 }
