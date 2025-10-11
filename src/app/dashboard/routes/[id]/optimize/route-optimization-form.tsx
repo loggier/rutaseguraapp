@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getOptimizedRoute, type State } from './actions';
 import type { Estudiante, Parada, Ruta, Colegio } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 type RouteOptimizationFormProps = {
   route: Ruta & { colegio: Colegio };
