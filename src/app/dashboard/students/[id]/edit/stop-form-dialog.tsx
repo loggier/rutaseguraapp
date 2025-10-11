@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLoadScript, GoogleMap, MarkerF, Autocomplete } from '@react-google-maps/api';
 
-const libraries: ("places")[] = [];
+const libraries: ("places")[] = ["places"];
 
 const formSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega'], { required_error: 'El tipo es requerido.' }),
@@ -216,7 +216,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                 if (status === 'OK' && results?.[0]) {
                     form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
                     if (addressInputRef.current) {
-                        addressInputRef.current.value = results[0].formatted_address;
+                        addressInput.current.value = results[0].formatted_address;
                     }
                     if(results[0].address_components) {
                         parseAddressComponents(results[0].address_components);
