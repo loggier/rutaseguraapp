@@ -51,9 +51,7 @@ export async function updateStudent(studentId: string, prevState: State, formDat
     };
   }
 
-  const { nombre, apellido, telefono, avatar_url } = validatedFields.data;
-  // EXPLICIT CHECK: Ensure empty string becomes null.
-  const email = validatedFields.data.email === '' ? null : validatedFields.data.email;
+  const { nombre, apellido, email, telefono, avatar_url } = validatedFields.data;
   const supabaseAdmin = createSupabaseAdminClient();
 
   try {
