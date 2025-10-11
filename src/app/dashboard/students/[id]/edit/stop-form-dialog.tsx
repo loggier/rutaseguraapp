@@ -83,7 +83,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
 
   const center = { lat: form.watch('lat'), lng: form.watch('lng') };
 
-  const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
+  const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
     const osmMapType = new google.maps.ImageMapType({
       getTileUrl: function(coord, zoom) {
         if (!coord || zoom === undefined) return null;
@@ -181,7 +181,6 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
       form.setValue('lat', newPos.lat);
       form.setValue('lng', newPos.lng);
       
-      // Only reverse geocode if the address field is empty
       if (!form.getValues('direccion')) {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: newPos }, (results, status) => {
@@ -266,7 +265,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
         mapContainerClassName="h-full w-full rounded-md"
         center={center}
         zoom={15}
-        onLoad={onMapLoad}
+        onLoad={onLoad}
         options={{ mapTypeControl: false, streetViewControl: false }}
       >
         <MarkerF position={center} draggable={true} onDragEnd={onMarkerDragEnd} />
