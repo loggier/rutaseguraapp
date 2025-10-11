@@ -23,8 +23,8 @@ const libraries: "places"[] = ["places"];
 const formSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega'], { required_error: 'El tipo es requerido.' }),
   direccion: z.string().min(1, 'La dirección es requerida'),
-  calle: z.string().optional(),
-  numero: z.string().optional(),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
   lat: z.number(),
   lng: z.number(),
   activo: z.boolean(),
@@ -50,7 +50,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCGs-R3i-srnJbVTXf6zlIAqxXC1BTTjrA",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     libraries,
   });
 
@@ -136,18 +136,21 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
       form.setValue('lat', newPos.lat);
       form.setValue('lng', newPos.lng);
       
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: newPos }, (results, status) => {
-        if (status === 'OK' && results?.[0]) {
-          form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
-            if (addressInputRef.current) {
-                addressInputRef.current.value = results[0].formatted_address;
-            }
-            if(results[0].address_components) {
-                parseAddressComponents(results[0].address_components);
-            }
-        }
-      });
+      // Only reverse geocode if the address field is empty
+      if (!form.getValues('direccion')) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: newPos }, (results, status) => {
+          if (status === 'OK' && results?.[0]) {
+            form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
+              if (addressInputRef.current) {
+                  addressInputRef.current.value = results[0].formatted_address;
+              }
+              if(results[0].address_components) {
+                  parseAddressComponents(results[0].address_components);
+              }
+          }
+        });
+      }
     }
   };
   
