@@ -52,8 +52,8 @@ export async function updateStudent(studentId: string, prevState: State, formDat
   }
 
   const { nombre, apellido, telefono, avatar_url } = validatedFields.data;
-  // Convertir una cadena vacía a null para el campo de email opcional.
-  const email = validatedFields.data.email || null; 
+  // EXPLICIT CHECK: Ensure empty string becomes null.
+  const email = validatedFields.data.email === '' ? null : validatedFields.data.email;
   const supabaseAdmin = createSupabaseAdminClient();
 
   try {
