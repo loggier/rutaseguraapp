@@ -5,18 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useUser } from '@/contexts/user-context';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Colegio, Ruta } from "@/lib/types";
 import { EditRouteForm } from "./edit-route-form";
 import { notFound } from 'next/navigation';
 
-export default function EditRoutePage({ params }: { params: { id: string } }) {
+export default function EditRoutePage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useUser();
   const router = useRouter();
   const [route, setRoute] = useState<Ruta | null>(null);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [loading, setLoading] = useState(true);
+  const { id } = use(params);
 
   useEffect(() => {
     if (!user) return;
@@ -32,7 +33,7 @@ export default function EditRoutePage({ params }: { params: { id: string } }) {
         const { data: routeData, error: routeError } = await supabase
             .from('rutas')
             .select(`*, colegio:colegios(id, nombre)`)
-            .eq('id', params.id)
+            .eq('id', id)
             .single();
 
         if (routeError || !routeData) {
@@ -61,7 +62,7 @@ export default function EditRoutePage({ params }: { params: { id: string } }) {
     
     fetchData();
 
-  }, [user, router, params.id]);
+  }, [user, router, id]);
 
   if (loading || !user) {
      return (
