@@ -69,10 +69,22 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
     }
   }, [state, toast]);
 
+  const onSubmit = (data: FormValues) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+        const value = data[key as keyof FormValues];
+        if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+        }
+    });
+    formAction(formData);
+  };
+
+
   return (
     <Form {...form}>
       <form
-        action={formAction}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8"
       >
         <div className='grid md:grid-cols-2 gap-6'>
@@ -152,7 +164,9 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
         
         <div className="flex justify-end gap-4 pt-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
-          <SubmitButton />
+          <Button type="submit">
+            <SubmitButton />
+          </Button>
         </div>
       </form>
     </Form>
