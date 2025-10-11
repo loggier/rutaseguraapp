@@ -11,6 +11,10 @@ const formSchema = z.object({
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'El teléfono es requerido'),
   direccion: z.string().min(1, 'La dirección es requerida'),
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
 });
 
 export type State = {
@@ -43,6 +47,10 @@ export async function updateSchool(schoolId: string, prevState: State, formData:
     email_contacto: formData.get('email_contacto'),
     telefono: formData.get('telefono'),
     direccion: formData.get('direccion'),
+    lat: formData.get('lat'),
+    lng: formData.get('lng'),
+    calle: formData.get('calle'),
+    numero: formData.get('numero'),
   });
 
   if (!validatedFields.success) {
@@ -52,7 +60,7 @@ export async function updateSchool(schoolId: string, prevState: State, formData:
     };
   }
 
-  const { nombre, ruc, email_contacto, telefono, direccion } = validatedFields.data;
+  const { nombre, ruc, email_contacto, telefono, direccion, lat, lng, calle, numero } = validatedFields.data;
   const supabaseAdmin = createSupabaseAdminClient();
 
   try {
@@ -64,6 +72,10 @@ export async function updateSchool(schoolId: string, prevState: State, formData:
         email_contacto,
         telefono,
         direccion,
+        lat,
+        lng,
+        calle,
+        numero,
       })
       .eq('id', schoolId);
 

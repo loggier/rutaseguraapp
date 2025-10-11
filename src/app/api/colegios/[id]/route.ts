@@ -10,6 +10,10 @@ const updateSchoolSchema = z.object({
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'Teléfono requerido'),
   direccion: z.string().min(1, 'Dirección requerida'),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
 });
 
 const updateStatusSchema = z.object({
@@ -46,13 +50,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { nombre, ruc, email_contacto, telefono, direccion } = validation.data;
+    const { nombre, ruc, email_contacto, telefono, direccion, lat, lng, calle, numero } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
     // 1. Actualizar la tabla `colegios`
     const { error: updateError } = await supabaseAdmin
       .from('colegios')
-      .update({ nombre, ruc, email_contacto, telefono, direccion })
+      .update({ nombre, ruc, email_contacto, telefono, direccion, lat, lng, calle, numero })
       .eq('id', schoolId);
       
     if (updateError) {

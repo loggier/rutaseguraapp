@@ -11,7 +11,10 @@ const schoolSchema = z.object({
   email_contacto: z.string().email('Email de contacto inválido'),
   telefono: z.string().min(1, 'Teléfono requerido'),
   direccion: z.string().min(1, 'Dirección requerida'),
-  codigo_postal: z.string(), // Acepta el string, pero ya no es requerido en el front.
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
   email: z.string().email('Email de cuenta inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   creado_por: z.string().uuid('ID de creador inválido'),
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const { 
-        nombre, ruc, email_contacto, telefono, direccion, codigo_postal, 
+        nombre, ruc, email_contacto, telefono, direccion, lat, lng, calle, numero,
         email, password, creado_por 
     } = validation.data;
     
@@ -86,13 +89,16 @@ export async function POST(request: Request) {
         ruc, 
         email_contacto, 
         telefono, 
-        direccion, 
-        codigo_postal, 
+        direccion,
+        lat,
+        lng,
+        calle,
+        numero,
         creado_por, 
         activo: true
       })
       .select(`
-          id, nombre, ruc, email_contacto, telefono, direccion, codigo_postal, activo, usuario_id, creado_por
+          id, nombre, ruc, email_contacto, telefono, direccion, activo, usuario_id, creado_por, lat, lng, calle, numero
       `)
       .single();
 

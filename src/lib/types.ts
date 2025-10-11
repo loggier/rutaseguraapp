@@ -33,6 +33,10 @@ export type Colegio = {
     email_contacto: string;
     telefono: string;
     direccion: string;
+    lat: number | null;
+    lng: number | null;
+    calle: string | null;
+    numero: string | null;
     activo: boolean;
     creado_por: string; // Foreign key to users.id
 }
