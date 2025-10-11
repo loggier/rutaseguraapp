@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Route, Users, School, Clock, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Route, Users, School, Clock, Loader2, AlertCircle, Trash2, Edit } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from '@/contexts/user-context';
@@ -66,7 +64,7 @@ function RoutesPageComponent() {
       const formattedRoutes = routesData.map((r: any) => ({
           ...r,
           estudiantes_count: r.estudiantes_count[0]?.count || 0,
-          colegio: r.colegio,
+          colegio: Array.isArray(r.colegio) ? r.colegio[0] : r.colegio,
       }));
 
       setRutas(formattedRoutes);
@@ -161,7 +159,12 @@ function RoutesPageComponent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuItem>Editar Ruta</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href={`/dashboard/routes/${ruta.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Ruta
+                        </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href={`/dashboard/routes/${ruta.id}/manage`}>Gestionar Estudiantes</Link>
                     </DropdownMenuItem>
