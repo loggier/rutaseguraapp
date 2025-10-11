@@ -43,7 +43,7 @@ function RoutesPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre)`);
+      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre), estudiantes_count:ruta_estudiantes(count)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -64,7 +64,7 @@ function RoutesPageComponent() {
       
       const formattedRoutes = routesData.map((r: any) => ({
           ...r,
-          estudiantes_count: 0, // Placeholder, la tabla no existe aun
+          estudiantes_count: r.estudiantes_count[0]?.count || 0,
           colegio: r.colegio,
       }));
 
@@ -163,7 +163,9 @@ function RoutesPageComponent() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                     <DropdownMenuItem>Editar Ruta</DropdownMenuItem>
-                    <DropdownMenuItem>Gestionar Estudiantes</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard/routes/${ruta.id}/manage`}>Gestionar Estudiantes</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem>Asignar Viaje</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
@@ -224,5 +226,15 @@ function RoutesPageComponent() {
 }
 
 export default function RoutesPage() {
+    // We wrap the main component in another one to allow useUser to be called unconditionally
+    const { user } = useUser();
+    if (!user) {
+        return (
+             <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Cargando usuario...</p>
+            </div>
+        );
+    }
     return <RoutesPageComponent />;
 }

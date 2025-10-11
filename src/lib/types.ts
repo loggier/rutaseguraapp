@@ -109,6 +109,11 @@ export type Ruta = {
   };
 };
 
+export type RutaEstudiante = {
+    ruta_id: string;
+    estudiante_id: string;
+    parada_id: string;
+};
 
 export type Plan = {
   id: string;
