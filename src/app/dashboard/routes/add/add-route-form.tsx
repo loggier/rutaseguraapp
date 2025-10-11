@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useRouter } from 'next/navigation';
 import { createRoute, type State } from './actions';
 import type { User } from '@/contexts/user-context';
+import type { Colegio } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
@@ -21,12 +22,14 @@ const formSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   turno: z.enum(['Recogida', 'Entrega'], { required_error: 'Debes seleccionar un turno.' }),
   hora_salida: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido (HH:mm)"),
+  colegio_id: z.string().uuid().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 type AddRouteFormProps = {
   user: User;
+  colegios: Colegio[];
 };
 
 function SubmitButton() {
@@ -39,7 +42,7 @@ function SubmitButton() {
   );
 }
 
-export function AddRouteForm({ user }: AddRouteFormProps) {
+export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   
@@ -53,6 +56,7 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
       nombre: '',
       turno: undefined,
       hora_salida: '07:00',
+      colegio_id: undefined,
     },
   });
 
@@ -64,9 +68,6 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
         description: state.message,
       });
     }
-    if (!state.errors && !state.message?.startsWith('Error')) {
-       // form.reset(); // Optional: reset form on success
-    }
   }, [state, toast]);
 
   return (
@@ -76,6 +77,31 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
         className="space-y-8"
       >
         <div className='grid md:grid-cols-2 gap-6'>
+          {(user.rol === 'master' || user.rol === 'manager') && (
+            <FormField
+              control={form.control}
+              name="colegio_id"
+              render={({ field }) => (
+                <FormItem className='space-y-1 md:col-span-2'>
+                  <FormLabel>Colegio *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un colegio" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {colegios.map((colegio) => (
+                        <SelectItem key={colegio.id} value={colegio.id}>{colegio.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="nombre"
