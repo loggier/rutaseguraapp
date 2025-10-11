@@ -26,10 +26,6 @@ export default function RootLayout({
       <body className="font-body antialiased">
         {children}
         <Toaster />
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyCGs-R3i-srnJbVTXf6zlIAqxXC1BTTjrA&libraries=places`}
-          strategy="beforeInteractive"
-        />
       </body>
     </html>
   );
