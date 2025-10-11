@@ -30,10 +30,10 @@ import Link from 'next/link';
 import { DeleteRouteAlert } from './delete-route-alert';
 
 function RoutesPageComponent() {
+  const { user } = useUser();
   const [rutas, setRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUser();
   const [routeToDelete, setRouteToDelete] = useState<Ruta | null>(null);
 
   const fetchRoutes = useCallback(async () => {
@@ -43,7 +43,7 @@ function RoutesPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre), estudiantes_count:ruta_estudiantes(count)`);
+      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -64,7 +64,7 @@ function RoutesPageComponent() {
       
       const formattedRoutes = routesData.map((r: any) => ({
           ...r,
-          estudiantes_count: r.estudiantes_count?.[0]?.count || 0,
+          estudiantes_count: 0, // Placeholder, la tabla no existe aun
           colegio: r.colegio,
       }));
 
@@ -79,8 +79,10 @@ function RoutesPageComponent() {
   }, [user]);
 
   useEffect(() => {
-    fetchRoutes();
-  }, [fetchRoutes]);
+    if (user) {
+      fetchRoutes();
+    }
+  }, [user, fetchRoutes]);
   
   const handleRouteDeleted = (routeId: string) => {
     setRutas(prev => prev.filter(r => r.id !== routeId));
