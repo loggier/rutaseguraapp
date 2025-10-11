@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Rocket, Map, Clock, ListOrdered, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Rocket, Map as MapIcon, Clock, ListOrdered, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOptimizedRoute, type State } from './actions';
 import type { Estudiante, Parada, Ruta, Colegio } from '@/lib/types';
