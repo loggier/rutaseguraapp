@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "RutaSegura",
@@ -25,6 +26,10 @@ export default function RootLayout({
       <body className="font-body antialiased">
         {children}
         <Toaster />
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyA8CGaBbP4noO5LGQ10Xc58XNEmO35tTQ0&libraries=places&callback=Function.prototype`}
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

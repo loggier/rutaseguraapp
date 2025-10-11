@@ -54,7 +54,20 @@ export type Estudiante = {
   padre_nombre?: string;
   padre_email?: string;
   colegio_nombre?: string;
+  paradas?: Parada[];
 };
+
+export type Parada = {
+  id: string;
+  estudiante_id: string;
+  colegio_id: string;
+  tipo: 'Recogida' | 'Entrega';
+  direccion: string;
+  lat: number;
+  lng: number;
+  activo: boolean;
+};
+
 
 export type Conductor = User & {
   rol: "conductor";
