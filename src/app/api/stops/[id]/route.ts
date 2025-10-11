@@ -6,7 +6,10 @@ import { z } from 'zod';
 
 const updateStopSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega']),
+  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
   lat: z.number(),
   lng: z.number(),
   activo: z.boolean(),
@@ -36,7 +39,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { tipo, direccion, lat, lng, activo } = validation.data;
+    const { tipo, sub_tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
     
     // Obtener el estudiante_id de la parada que se está actualizando
@@ -63,7 +66,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Actualizar la parada
     const { data: updatedStop, error: updateError } = await supabaseAdmin
       .from('paradas')
-      .update({ tipo, direccion, lat, lng, activo })
+      .update({ tipo, sub_tipo, direccion, calle, numero, lat, lng, activo })
       .eq('id', stopId)
       .select()
       .single();

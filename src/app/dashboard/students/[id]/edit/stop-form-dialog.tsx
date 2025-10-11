@@ -22,6 +22,7 @@ const libraries: "places"[] = ["places"];
 
 const formSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega'], { required_error: 'El tipo es requerido.' }),
+  sub_tipo: z.enum(['Principal', 'Familiar/Academia'], { required_error: 'El subtipo es requerido.' }),
   direccion: z.string().min(1, 'La dirección es requerida'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
@@ -58,6 +59,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
     resolver: zodResolver(formSchema),
     defaultValues: {
       tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
+      sub_tipo: stop?.sub_tipo || 'Principal',
       direccion: stop?.direccion || '',
       calle: stop?.calle || '',
       numero: stop?.numero || '',
@@ -71,6 +73,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
     if(isOpen) {
         form.reset({
             tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
+            sub_tipo: stop?.sub_tipo || 'Principal',
             direccion: stop?.direccion || '',
             calle: stop?.calle || '',
             numero: stop?.numero || '',
@@ -291,25 +294,46 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
           
           <div className="grid md:grid-cols-2 gap-6 py-4">
             <div className="space-y-4">
-               <Controller
-                  control={form.control}
-                  name="tipo"
-                  render={({ field }) => (
-                    <div>
-                      <Label>Tipo de Parada</Label>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!stop}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableStopTypes.canAddRecogida || stop?.tipo === 'Recogida' ? <SelectItem value="Recogida">Recogida</SelectItem> : null}
-                          {availableStopTypes.canAddEntrega || stop?.tipo === 'Entrega' ? <SelectItem value="Entrega">Entrega</SelectItem> : null}
-                        </SelectContent>
-                      </Select>
-                       {form.formState.errors.tipo && <p className="text-sm text-destructive mt-1">{form.formState.errors.tipo.message}</p>}
-                    </div>
-                  )}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                    control={form.control}
+                    name="tipo"
+                    render={({ field }) => (
+                      <div>
+                        <Label>Tipo de Parada</Label>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!stop}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableStopTypes.canAddRecogida || stop?.tipo === 'Recogida' ? <SelectItem value="Recogida">Recogida</SelectItem> : null}
+                            {availableStopTypes.canAddEntrega || stop?.tipo === 'Entrega' ? <SelectItem value="Entrega">Entrega</SelectItem> : null}
+                          </SelectContent>
+                        </Select>
+                        {form.formState.errors.tipo && <p className="text-sm text-destructive mt-1">{form.formState.errors.tipo.message}</p>}
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="sub_tipo"
+                    render={({ field }) => (
+                      <div>
+                        <Label>Subtipo</Label>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Principal">Principal</SelectItem>
+                            <SelectItem value="Familiar/Academia">Familiar/Academia</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {form.formState.errors.sub_tipo && <p className="text-sm text-destructive mt-1">{form.formState.errors.sub_tipo.message}</p>}
+                      </div>
+                    )}
+                  />
+              </div>
 
               {isLoaded && (
                 <Autocomplete

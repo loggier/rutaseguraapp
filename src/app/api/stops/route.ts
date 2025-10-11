@@ -8,7 +8,10 @@ const stopSchema = z.object({
   estudiante_id: z.string().uuid(),
   colegio_id: z.string().uuid(),
   tipo: z.enum(['Recogida', 'Entrega']),
+  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
+  calle: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
   lat: z.number(),
   lng: z.number(),
   activo: z.boolean(),
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { estudiante_id, colegio_id, tipo, direccion, lat, lng, activo } = validation.data;
+    const { estudiante_id, colegio_id, tipo, sub_tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
     // Si esta parada se va a activar, desactivar las demás para el mismo estudiante
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
     // Crear la nueva parada
     const { data: newStop, error: insertError } = await supabaseAdmin
       .from('paradas')
-      .insert({ estudiante_id, colegio_id, tipo, direccion, lat, lng, activo })
+      .insert({ estudiante_id, colegio_id, tipo, sub_tipo, direccion, calle, numero, lat, lng, activo })
       .select()
       .single();
 

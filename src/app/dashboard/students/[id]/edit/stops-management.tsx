@@ -69,6 +69,7 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
           <TableHeader>
             <TableRow>
               <TableHead>Tipo</TableHead>
+              <TableHead>Subtipo</TableHead>
               <TableHead>Dirección</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -80,6 +81,9 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
                 <TableRow key={stop.id}>
                   <TableCell className="font-medium">
                     <Badge variant={stop.tipo === 'Recogida' ? 'default' : 'secondary'}>{stop.tipo}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {stop.sub_tipo}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -120,7 +124,7 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                   No hay paradas asignadas a este estudiante.
                 </TableCell>
               </TableRow>

@@ -62,6 +62,7 @@ export type Parada = {
   estudiante_id: string;
   colegio_id: string;
   tipo: 'Recogida' | 'Entrega';
+  sub_tipo: 'Principal' | 'Familiar/Academia';
   direccion: string;
   calle: string | null;
   numero: string | null;

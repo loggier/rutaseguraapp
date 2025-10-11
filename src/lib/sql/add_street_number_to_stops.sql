@@ -1,8 +1,19 @@
--- Agrega las columnas 'calle' y 'numero' a la tabla de paradas
-ALTER TABLE rutasegura.paradas
-ADD COLUMN calle VARCHAR(255),
-ADD COLUMN numero VARCHAR(50);
+-- Add new enum type for sub_tipo
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sub_tipo_parada') THEN
+        CREATE TYPE rutasegura.sub_tipo_parada AS ENUM ('Principal', 'Familiar/Academia');
+    END IF;
+END$$;
 
--- Comentario para explicar el propósito de las nuevas columnas
-COMMENT ON COLUMN rutasegura.paradas.calle IS 'Almacena el nombre de la calle, extraído de la dirección autocompletada o ingresado manualmente.';
-COMMENT ON COLUMN rutasegura.paradas.numero IS 'Almacena el número de la dirección, extraído o ingresado manualmente para mayor precisión.';
+-- Add sub_tipo column to paradas table
+ALTER TABLE rutasegura.paradas
+ADD COLUMN IF NOT EXISTS sub_tipo rutasegura.sub_tipo_parada NOT NULL DEFAULT 'Principal';
+
+-- Add calle column to paradas table
+ALTER TABLE rutasegura.paradas
+ADD COLUMN IF NOT EXISTS calle TEXT;
+
+-- Add numero column to paradas table
+ALTER TABLE rutasegura.paradas
+ADD COLUMN IF NOT EXISTS numero TEXT;
