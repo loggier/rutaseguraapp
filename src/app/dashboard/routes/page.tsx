@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Route, Users, School, Clock, Loader2, AlertCircle, Trash2, Edit } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Route, Users, School, Clock, Loader2, AlertCircle, Trash2, Edit, Rocket } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from '@/contexts/user-context';
@@ -168,7 +168,12 @@ function RoutesPageComponent() {
                     <DropdownMenuItem asChild>
                       <Link href={`/dashboard/routes/${ruta.id}/manage`}>Gestionar Estudiantes</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Asignar Viaje</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard/routes/${ruta.id}/optimize`}>
+                          <Rocket className="mr-2 h-4 w-4" />
+                          Optimizar Ruta
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-destructive"
