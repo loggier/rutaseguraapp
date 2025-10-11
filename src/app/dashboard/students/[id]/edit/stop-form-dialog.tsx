@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLoadScript, GoogleMap, MarkerF, Autocomplete } from '@react-google-maps/api';
 
-const libraries: "places"[] = ["places"];
+const libraries: ("places")[] = [];
 
 const formSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega'], { required_error: 'El tipo es requerido.' }),
