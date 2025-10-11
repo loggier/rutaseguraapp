@@ -45,6 +45,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
   
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCGs-R3i-srnJbVTXf6zlIAqxXC1BTTjrA",
@@ -83,6 +84,9 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
         form.setValue('lat', newPos.lat);
         form.setValue('lng', newPos.lng);
         form.setValue('direccion', place.formatted_address || '', { shouldValidate: true });
+        if (addressInputRef.current) {
+          addressInputRef.current.value = place.formatted_address || '';
+        }
         map?.panTo(newPos);
       }
     }
@@ -98,6 +102,9 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
       geocoder.geocode({ location: newPos }, (results, status) => {
         if (status === 'OK' && results?.[0]) {
           form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
+            if (addressInputRef.current) {
+                addressInputRef.current.value = results[0].formatted_address;
+            }
         }
       });
     }
@@ -117,6 +124,9 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
             geocoder.geocode({ location: pos }, (results, status) => {
                 if (status === 'OK' && results?.[0]) {
                     form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
+                    if (addressInputRef.current) {
+                        addressInputRef.current.value = results[0].formatted_address;
+                    }
                 }
             });
         }, () => {
@@ -214,7 +224,12 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                     <Label htmlFor="direccion">Dirección</Label>
                     <div className="flex items-center">
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground mt-2" />
-                        <Input id="direccion" {...form.register('direccion')} className="pl-9" />
+                        <Input 
+                            id="direccion"
+                            ref={addressInputRef}
+                            defaultValue={form.getValues('direccion')}
+                            className="pl-9"
+                         />
                         <Button type="button" size="icon" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 mt-2" onClick={locateUser}>
                             <LocateFixed className="h-4 w-4" />
                         </Button>
