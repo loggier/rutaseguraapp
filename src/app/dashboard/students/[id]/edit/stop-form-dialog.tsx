@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +23,8 @@ const libraries: "places"[] = ["places"];
 const formSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega'], { required_error: 'El tipo es requerido.' }),
   direccion: z.string().min(1, 'La dirección es requerida'),
+  calle: z.string().optional(),
+  numero: z.string().optional(),
   lat: z.number(),
   lng: z.number(),
   activo: z.boolean(),
@@ -57,11 +59,27 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
     defaultValues: {
       tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
       direccion: stop?.direccion || '',
+      calle: stop?.calle || '',
+      numero: stop?.numero || '',
       lat: stop?.lat || -0.1807, // Default to Quito
       lng: stop?.lng || -78.4678,
       activo: stop?.activo === undefined ? !student.paradas?.some(p => p.activo) : stop.activo,
     },
   });
+  
+  useEffect(() => {
+    if(isOpen) {
+        form.reset({
+            tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
+            direccion: stop?.direccion || '',
+            calle: stop?.calle || '',
+            numero: stop?.numero || '',
+            lat: stop?.lat || -0.1807,
+            lng: stop?.lng || -78.4678,
+            activo: stop?.activo === undefined ? !student.paradas?.some(p => p.activo) : stop.activo,
+        })
+    }
+  }, [isOpen, stop, form, availableStopTypes, student.paradas])
 
   const center = { lat: form.watch('lat'), lng: form.watch('lng') };
 
@@ -72,6 +90,21 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
   const onAutocompleteLoad = useCallback((autocompleteInstance: google.maps.places.Autocomplete) => {
     setAutocomplete(autocompleteInstance);
   }, []);
+  
+  const parseAddressComponents = (components: google.maps.GeocoderAddressComponent[]) => {
+      let streetNumber = '';
+      let route = '';
+      for (const component of components) {
+        if (component.types.includes('street_number')) {
+          streetNumber = component.long_name;
+        }
+        if (component.types.includes('route')) {
+          route = component.long_name;
+        }
+      }
+      form.setValue('calle', route, { shouldValidate: true, shouldDirty: true });
+      form.setValue('numero', streetNumber, { shouldValidate: true, shouldDirty: true });
+  }
 
   const onPlaceChanged = () => {
     if (autocomplete !== null) {
@@ -84,6 +117,11 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
         form.setValue('lat', newPos.lat);
         form.setValue('lng', newPos.lng);
         form.setValue('direccion', place.formatted_address || '', { shouldValidate: true });
+        
+        if (place.address_components) {
+            parseAddressComponents(place.address_components);
+        }
+        
         if (addressInputRef.current) {
           addressInputRef.current.value = place.formatted_address || '';
         }
@@ -104,6 +142,9 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
           form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
             if (addressInputRef.current) {
                 addressInputRef.current.value = results[0].formatted_address;
+            }
+            if(results[0].address_components) {
+                parseAddressComponents(results[0].address_components);
             }
         }
       });
@@ -126,6 +167,9 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                     form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
                     if (addressInputRef.current) {
                         addressInputRef.current.value = results[0].formatted_address;
+                    }
+                    if(results[0].address_components) {
+                        parseAddressComponents(results[0].address_components);
                     }
                 }
             });
@@ -185,14 +229,16 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl" onInteractOutside={(e) => {
-          // Previene que la modal se cierre al hacer click en las sugerencias de google.
-          e.preventDefault();
+          const target = e.target as HTMLElement;
+          if (target.closest('.pac-container')) {
+            e.preventDefault();
+          }
       }}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>{stop ? 'Editar Parada' : 'Agregar Nueva Parada'}</DialogTitle>
             <DialogDescription>
-              Usa el mapa y el buscador para encontrar la dirección exacta. Puedes arrastrar el marcador.
+              Usa el mapa y el buscador para encontrar la dirección exacta. Puedes arrastrar el marcador y ajustar los detalles manualmente.
             </DialogDescription>
           </DialogHeader>
           
@@ -224,7 +270,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                     onPlaceChanged={onPlaceChanged}
                 >
                   <div className="relative">
-                    <Label htmlFor="direccion">Dirección</Label>
+                    <Label htmlFor="direccion">Dirección (Autocompletar)</Label>
                     <div className="flex items-center">
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground mt-2" />
                         <Input 
@@ -241,9 +287,22 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                   </div>
                 </Autocomplete>
               )}
+                
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="calle">Calle</Label>
+                  <Input id="calle" {...form.register('calle')} />
+                  {form.formState.errors.calle && <p className="text-sm text-destructive mt-1">{form.formState.errors.calle.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="numero">Número</Label>
+                  <Input id="numero" {...form.register('numero')} />
+                  {form.formState.errors.numero && <p className="text-sm text-destructive mt-1">{form.formState.errors.numero.message}</p>}
+                </div>
+              </div>
 
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 pt-2">
                 <Controller
                     control={form.control}
                     name="activo"
@@ -251,10 +310,10 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                 />
                 <Label htmlFor="activo">Marcar como parada activa</Label>
               </div>
-               <p className="text-xs text-muted-foreground">Solo una parada (Recogida o Entrega) puede estar activa a la vez para un estudiante.</p>
+               <p className="text-xs text-muted-foreground">Solo una parada puede estar activa a la vez para un estudiante.</p>
 
             </div>
-            <div className="h-80 w-full bg-muted rounded-md relative">
+            <div className="h-96 w-full bg-muted rounded-md relative">
                 {renderMap()}
             </div>
           </div>

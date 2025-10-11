@@ -63,6 +63,8 @@ export type Parada = {
   colegio_id: string;
   tipo: 'Recogida' | 'Entrega';
   direccion: string;
+  calle: string | null;
+  numero: string | null;
   lat: number;
   lng: number;
   activo: boolean;
