@@ -184,7 +184,10 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-4xl" onInteractOutside={(e) => {
+          // Previene que la modal se cierre al hacer click en las sugerencias de google.
+          e.preventDefault();
+      }}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>{stop ? 'Editar Parada' : 'Agregar Nueva Parada'}</DialogTitle>
