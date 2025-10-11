@@ -97,11 +97,14 @@ export type Autobus = {
 export type Ruta = {
   id: string;
   nombre: string;
-  turno: "mañana" | "tarde";
-  paradas_count: number;
-  estudiantes_count: number;
+  turno: "Recogida" | "Entrega";
+  hora_salida: string; // Formato HH:mm
+  colegio_id: string;
+  creado_por: string;
   fecha_creacion: string;
+  estudiantes_count: number;
 };
+
 
 export type Plan = {
   id: string;
