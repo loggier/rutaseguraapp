@@ -60,7 +60,7 @@ export async function updateStudent(studentId: string, prevState: State, formDat
       .update({
         nombre,
         apellido,
-        email,
+        email: email || null,
         telefono,
         avatar_url,
       })

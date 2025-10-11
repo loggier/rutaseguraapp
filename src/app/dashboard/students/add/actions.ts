@@ -109,7 +109,7 @@ export async function createStudent(prevState: State, formData: FormData): Promi
       .insert({
         nombre,
         apellido,
-        email,
+        email: email || null,
         telefono,
         avatar_url,
         padre_id,
