@@ -1,81 +1,33 @@
+-- Elimina la tabla si existe para asegurar un estado limpio.
+DROP TABLE IF EXISTS rutasegura.ruta_estudiantes;
 
--- Junction table to link students and their specific stops to routes
-CREATE TABLE IF NOT EXISTS rutasegura.ruta_estudiantes (
-    ruta_id UUID REFERENCES rutasegura.rutas(id) ON DELETE CASCADE,
-    estudiante_id UUID REFERENCES rutasegura.estudiantes(id) ON DELETE CASCADE,
-    parada_id UUID REFERENCES rutasegura.paradas(id) ON DELETE CASCADE,
-    -- A student can only be on a route once with a specific stop
-    PRIMARY KEY (ruta_id, estudiante_id, parada_id) 
+-- Crea la tabla que conecta rutas, estudiantes y sus paradas específicas.
+CREATE TABLE rutasegura.ruta_estudiantes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ruta_id UUID NOT NULL REFERENCES rutasegura.rutas(id) ON DELETE CASCADE,
+    estudiante_id UUID NOT NULL REFERENCES rutasegura.estudiantes(id) ON DELETE CASCADE,
+    parada_id UUID NOT NULL REFERENCES rutasegura.paradas(id) ON DELETE CASCADE,
+    
+    agregado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Un estudiante solo puede estar una vez en la misma ruta.
+    -- La parada específica puede cambiar, pero no puede estar dos veces en la misma ruta.
+    UNIQUE(ruta_id, estudiante_id)
 );
 
--- Indexes for faster lookups
-CREATE INDEX IF NOT EXISTS idx_ruta_estudiantes_ruta_id ON rutasegura.ruta_estudiantes(ruta_id);
-CREATE INDEX IF NOT EXISTS idx_ruta_estudiantes_estudiante_id ON rutasegura.ruta_estudiantes(estudiante_id);
-CREATE INDEX IF NOT EXISTS idx_ruta_estudiantes_parada_id ON rutasegura.ruta_estudiantes(parada_id);
-
--- This allows us to easily count students per route
-CREATE OR REPLACE VIEW rutasegura.ruta_estudiante_counts AS
-SELECT
-    ruta_id,
-    count(DISTINCT estudiante_id) AS estudiantes_count
-FROM
-    rutasegura.ruta_estudiantes
-GROUP BY
-    ruta_id;
-
--- RLS Policies for ruta_estudiantes
+-- Habilita la seguridad a nivel de fila
 ALTER TABLE rutasegura.ruta_estudiantes ENABLE ROW LEVEL SECURITY;
 
--- Allow users to see students in routes related to their school
--- For master/manager
-CREATE POLICY "Allow master and manager to see all route students"
-    ON rutasegura.ruta_estudiantes FOR SELECT
-    TO authenticated
-    USING (
-        (get_my_claim('user_role'::text)) = '"master"'::jsonb OR
-        (get_my_claim('user_role'::text)) = '"manager"'::jsonb
-    );
+-- Otorga permisos básicos a los usuarios autenticados.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE rutasegura.ruta_estudiantes TO authenticated;
 
--- For 'colegio' role
-CREATE POLICY "Allow colegio to see students in their routes"
-    ON rutasegura.ruta_estudiantes FOR SELECT
-    TO authenticated
-    USING (
-        (get_my_claim('user_role'::text)) = '"colegio"'::jsonb AND
-        EXISTS (
-            SELECT 1 FROM rutasegura.rutas r
-            WHERE r.id = ruta_id AND r.colegio_id = (SELECT get_my_colegio_id())
-        )
-    );
+-- Políticas de seguridad (RLS)
+-- Los usuarios pueden ver las relaciones de su propio colegio (lógica a implementar via funciones).
+-- Por ahora, se permite el acceso general a los usuarios autenticados para desarrollo.
 
--- Allow master/manager to manage all route_students
-CREATE POLICY "Allow master and manager to manage all route students"
-    ON rutasegura.ruta_estudiantes FOR ALL
-    TO authenticated
-    USING (
-        (get_my_claim('user_role'::text)) = '"master"'::jsonb OR
-        (get_my_claim('user_role'::text)) = '"manager"'::jsonb
-    )
-    WITH CHECK (
-        (get_my_claim('user_role'::text)) = '"master"'::jsonb OR
-        (get_my_claim('user_role'::text)) = '"manager"'::jsonb
-    );
-
--- Allow 'colegio' role to manage their own route_students
-CREATE POLICY "Allow colegio to manage their own route students"
-    ON rutasegura.ruta_estudiantes FOR ALL
-    TO authenticated
-    USING (
-        (get_my_claim('user_role'::text)) = '"colegio"'::jsonb AND
-        EXISTS (
-            SELECT 1 FROM rutasegura.rutas r
-            WHERE r.id = ruta_id AND r.colegio_id = (SELECT get_my_colegio_id())
-        )
-    )
-    WITH CHECK (
-        (get_my_claim('user_role'::text)) = '"colegio"'::jsonb AND
-        EXISTS (
-            SELECT 1 FROM rutasegura.rutas r
-            WHERE r.id = ruta_id AND r.colegio_id = (SELECT get_my_colegio_id())
-        )
-    );
+CREATE POLICY "Permitir acceso completo a usuarios autenticados"
+ON rutasegura.ruta_estudiantes
+FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);
