@@ -88,22 +88,96 @@ function RoutesPageComponent() {
 
   const canManage = user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio';
   const isAdmin = user?.rol === 'master' || user?.rol === 'manager';
+  
+  let content;
 
   if (loading) {
-    return (
+    content = (
         <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Cargando rutas...</p>
         </div>
     );
-  }
-  
-  if (error) {
-    return (
+  } else if (error) {
+    content = (
       <div className="text-center text-destructive py-8 flex flex-col items-center gap-2">
         <AlertCircle className="h-8 w-8" />
         <p>{error}</p>
       </div>
+    );
+  } else {
+    content = (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nombre de la Ruta</TableHead>
+            {isAdmin && <TableHead>Colegio</TableHead>}
+            <TableHead>Turno</TableHead>
+            <TableHead>Hora Salida</TableHead>
+            <TableHead className="hidden md:table-cell">Estudiantes</TableHead>
+            <TableHead>
+              <span className="sr-only">Acciones</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rutas.map((ruta) => (
+            <TableRow key={ruta.id}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <Route className="h-5 w-5 text-muted-foreground" />
+                  <span>{ruta.nombre}</span>
+                </div>
+              </TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                        <School className="h-4 w-4 text-muted-foreground" />
+                        {ruta.colegio?.nombre || 'No asignado'}
+                    </div>
+                  </TableCell>
+                )}
+              <TableCell>
+                <Badge variant={ruta.turno === 'Recogida' ? 'outline' : 'secondary'} className="gap-1">
+                  {ruta.turno === 'Recogida' ? <Sunrise className="h-3 w-3"/> : <Sunset className="h-3 w-3" />}
+                  {ruta.turno}
+                </Badge>
+              </TableCell>
+              <TableCell>{ruta.hora_salida}</TableCell>
+              <TableCell className="hidden md:table-cell">
+                <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    {ruta.estudiantes_count}
+                </div>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button aria-haspopup="true" size="icon" variant="ghost">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>                      
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                    <DropdownMenuItem>Editar Ruta</DropdownMenuItem>
+                    <DropdownMenuItem>Gestionar Estudiantes</DropdownMenuItem>
+                    <DropdownMenuItem>Asignar Viaje</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive"
+                      onSelect={() => setRouteToDelete(ruta)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     );
   }
 
@@ -130,77 +204,7 @@ function RoutesPageComponent() {
             <CardDescription>Un total de {rutas.length} rutas configuradas.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre de la Ruta</TableHead>
-                  {isAdmin && <TableHead>Colegio</TableHead>}
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Hora Salida</TableHead>
-                  <TableHead className="hidden md:table-cell">Estudiantes</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Acciones</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rutas.map((ruta) => (
-                  <TableRow key={ruta.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Route className="h-5 w-5 text-muted-foreground" />
-                        <span>{ruta.nombre}</span>
-                      </div>
-                    </TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                              <School className="h-4 w-4 text-muted-foreground" />
-                              {ruta.colegio?.nombre || 'No asignado'}
-                          </div>
-                        </TableCell>
-                      )}
-                    <TableCell>
-                      <Badge variant={ruta.turno === 'Recogida' ? 'outline' : 'secondary'} className="gap-1">
-                        {ruta.turno === 'Recogida' ? <Sunrise className="h-3 w-3"/> : <Sunset className="h-3 w-3" />}
-                        {ruta.turno}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{ruta.hora_salida}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          {ruta.estudiantes_count}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>                      
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem>Editar Ruta</DropdownMenuItem>
-                          <DropdownMenuItem>Gestionar Estudiantes</DropdownMenuItem>
-                          <DropdownMenuItem>Asignar Viaje</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive"
-                            onSelect={() => setRouteToDelete(ruta)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {content}
           </CardContent>
         </Card>
       </div>
