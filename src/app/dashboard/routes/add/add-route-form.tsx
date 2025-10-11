@@ -1,13 +1,13 @@
+
 'use client';
 
-import { useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -45,7 +45,7 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
   
   const initialState: State = { message: null, errors: {} };
   const createRouteWithUser = createRoute.bind(null, user);
-  const [state, dispatch] = useActionState(createRouteWithUser, initialState);
+  const [state, formAction] = useFormState(createRouteWithUser, initialState);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -59,16 +59,23 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
   useEffect(() => {
     if (state.message) {
       toast({
-        variant: state.errors ? "destructive" : "default",
-        title: state.errors ? "Error al Crear Ruta" : "Éxito",
+        variant: state.errors || state.message?.startsWith('Error') ? "destructive" : "default",
+        title: state.errors || state.message?.startsWith('Error') ? "Error al Crear Ruta" : "Éxito",
         description: state.message,
       });
+    }
+    if (!state.errors && !state.message?.startsWith('Error')) {
+       // form.reset(); // Optional: reset form on success
     }
   }, [state, toast]);
 
   return (
     <Form {...form}>
-      <form action={dispatch} className="space-y-8">
+      <form
+        action={formAction}
+        onSubmit={form.handleSubmit(() => formAction(new FormData(form.control._formValues)))}
+        className="space-y-8"
+      >
         <div className='grid md:grid-cols-2 gap-6'>
           <FormField
             control={form.control}

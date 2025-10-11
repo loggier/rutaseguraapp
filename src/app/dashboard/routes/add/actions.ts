@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -47,12 +48,10 @@ export async function createRoute(user: User, prevState: State, formData: FormDa
         }
         colegio_id = colegioData.id;
     } else {
-        // Asumimos que un master/manager debe seleccionar un colegio, lo cual se manejará en el formulario.
-        // Por ahora, para simplificar, no se puede crear rutas si no eres un colegio.
-        // Esto se expandirá en el futuro.
-        return { message: 'Funcionalidad no disponible para este rol todavía.' };
+        // En un futuro, un admin podría seleccionar un colegio. Por ahora, no pueden crear rutas.
+        // Podríamos obtener el colegio del primer estudiante/parada, pero es mejor ser explícitos.
+        return { message: 'Error: Solo los usuarios de tipo "colegio" pueden crear rutas por ahora.' };
     }
-
 
   const validatedFields = formSchema.safeParse({
     nombre: formData.get('nombre'),
@@ -85,13 +84,13 @@ export async function createRoute(user: User, prevState: State, formData: FormDa
     if (error) {
       console.error('Error al crear ruta:', error);
       if (error.code === '23505') { // unique constraint violation
-        return { message: 'Ya existe una ruta con este nombre para tu colegio.' };
+        return { message: 'Error: Ya existe una ruta con este nombre para tu colegio.' };
       }
       return { message: `Error en la base de datos: ${error.message}` };
     }
   } catch (e: any) {
     return {
-      message: 'Ocurrió un error inesperado al crear la ruta.',
+      message: 'Error: Ocurrió un error inesperado al crear la ruta.',
     };
   }
 
