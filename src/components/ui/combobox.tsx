@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export type ComboboxItem = {
   value: string;
@@ -29,6 +30,7 @@ type ComboboxProps = {
   items: ComboboxItem[];
   value: string | null;
   onChange: (value: string | null) => void;
+  onSearch?: (searchTerm: string) => void;
   placeholder?: string;
   searchPlaceholder?: string;
   notFoundMessage?: string;
@@ -38,11 +40,20 @@ export function Combobox({
   items,
   value,
   onChange,
+  onSearch,
   placeholder = 'Select item...',
   searchPlaceholder = 'Search item...',
   notFoundMessage = 'No item found.',
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  React.useEffect(() => {
+    if (onSearch) {
+      onSearch(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, onSearch]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -61,7 +72,11 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput 
+            placeholder={searchPlaceholder}
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          />
           <CommandList>
             <CommandEmpty>{notFoundMessage}</CommandEmpty>
             <CommandGroup>
@@ -71,6 +86,7 @@ export function Combobox({
                   value={item.label}
                   onSelect={() => {
                     onChange(item.value === value ? null : item.value);
+                    setSearchTerm('');
                     setOpen(false);
                   }}
                 >

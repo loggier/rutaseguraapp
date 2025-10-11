@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { Ruta, Estudiante, Parada } from '@/lib/types';
+import type { Ruta } from '@/lib/types';
 
 const formSchema = z.object({
   routeId: z.string().uuid(),
@@ -30,11 +30,11 @@ const createSupabaseAdminClient = () => {
 
 export async function updateRouteAssignments(
   route: Ruta,
-  allStudents: (Estudiante & { paradas: Parada[] })[],
   prevState: State,
   formData: FormData
 ): Promise<State> {
   const supabaseAdmin = createSupabaseAdminClient();
+  // We get ALL `student_ids` entries. `getAll` is important here.
   const selectedStudentIds = formData.getAll('student_ids') as string[];
 
   const validatedFields = formSchema.safeParse({
@@ -63,8 +63,8 @@ export async function updateRouteAssignments(
     const newStudentIds = new Set(selectedStudentIds);
 
     // 2. Determine who to add and who to remove
-    const studentsToAdd = selectedStudentIds.filter(id => !currentStudentIds.has(id));
     const studentsToRemove = Array.from(currentStudentIds).filter(id => !newStudentIds.has(id));
+    const studentsToAdd = selectedStudentIds.filter(id => !currentStudentIds.has(id));
 
     // 3. Remove students
     if (studentsToRemove.length > 0) {
@@ -79,21 +79,30 @@ export async function updateRouteAssignments(
 
     // 4. Add new students
     if (studentsToAdd.length > 0) {
+      const { data: studentsWithStops, error: studentsDataError } = await supabaseAdmin
+        .from('estudiantes')
+        .select('id, nombre, paradas!inner(*)')
+        .in('id', studentsToAdd)
+        .eq('paradas.activo', true)
+        .eq('paradas.tipo', route.turno);
+
+      if (studentsDataError) throw new Error(`Error al verificar paradas de estudiantes: ${studentsDataError.message}`);
+      
+      const studentsWithActiveStop = new Map(studentsWithStops.map(s => [s.id, s]));
       const newAssignments = [];
-      const studentsWithoutStop = [];
+      const studentsWithoutStopNames = [];
 
       for (const studentId of studentsToAdd) {
-        const student = allStudents.find(s => s.id === studentId);
-        const activeStop = student?.paradas.find(p => p.activo && p.tipo === route.turno);
-
-        if (activeStop) {
+        const studentData = studentsWithActiveStop.get(studentId);
+        if (studentData && studentData.paradas.length > 0) {
           newAssignments.push({
             ruta_id: routeId,
             estudiante_id: studentId,
-            parada_id: activeStop.id,
+            parada_id: studentData.paradas[0].id,
           });
         } else {
-            studentsWithoutStop.push(student?.nombre);
+            const {data: student} = await supabaseAdmin.from('estudiantes').select('nombre, apellido').eq('id', studentId).single();
+            studentsWithoutStopNames.push(`${student?.nombre} ${student?.apellido}`);
         }
       }
       
@@ -105,8 +114,8 @@ export async function updateRouteAssignments(
           if (insertError) throw new Error(`Error al asignar nuevos estudiantes: ${insertError.message}`);
       }
 
-      if (studentsWithoutStop.length > 0) {
-          const studentNames = studentsWithoutStop.join(', ');
+      if (studentsWithoutStopNames.length > 0) {
+          const studentNames = studentsWithoutStopNames.join(', ');
           return {
               message: `Asignación parcial. Los siguientes estudiantes no tienen una parada activa de tipo '${route.turno}' y no fueron añadidos: ${studentNames}.`
           };
