@@ -67,23 +67,18 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
         description: state.message,
       });
     }
-  }, [state, toast]);
-
-  const onSubmit = (data: FormValues) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, String(value));
-      }
-    });
-    formAction(formData);
-  };
-
+    if (state.errors) {
+        state.errors.nombre && form.setError('nombre', { message: state.errors.nombre[0] });
+        state.errors.turno && form.setError('turno', { message: state.errors.turno[0] });
+        state.errors.hora_salida && form.setError('hora_salida', { message: state.errors.hora_salida[0] });
+        state.errors.colegio_id && form.setError('colegio_id', { message: state.errors.colegio_id[0] });
+    }
+  }, [state, toast, form]);
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        action={formAction}
         className="space-y-8"
       >
         <div className='grid md:grid-cols-2 gap-6'>
@@ -94,7 +89,7 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
               render={({ field }) => (
                 <FormItem className='space-y-1 md:col-span-2'>
                   <FormLabel>Colegio *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} name={field.name}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un colegio" />
@@ -131,7 +126,7 @@ export function AddRouteForm({ user, colegios }: AddRouteFormProps) {
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Turno *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} name={field.name}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un turno" />
