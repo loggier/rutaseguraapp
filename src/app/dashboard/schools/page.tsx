@@ -5,11 +5,12 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from '@/lib/supabase/client';
 import type { Colegio } from '@/lib/types';
-import { AddSchoolDialog } from './add-school-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle } from 'lucide-react';
 import { SchoolsTable } from './schools-table';
 import { useUser } from '@/contexts/user-context';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function SchoolsPage() {
   const [colegios, setColegios] = useState<Colegio[]>([]);
@@ -49,10 +50,6 @@ export default function SchoolsPage() {
         setLoading(false);
     }
   }, [user, toast]);
-
-  const handleSchoolAdded = (newSchool: Colegio) => {
-    setColegios(prev => [newSchool, ...prev].sort((a,b) => a.nombre.localeCompare(b.nombre)));
-  };
   
   const handleSchoolUpdated = (updatedSchool: Colegio) => {
     setColegios(prev => prev.map(c => c.id === updatedSchool.id ? updatedSchool : c));
@@ -96,7 +93,14 @@ export default function SchoolsPage() {
         title="Gestión de Colegios"
         description="Administra las cuentas de los colegios, sus datos y usuarios asociados."
       >
-        {canManageSchools && <AddSchoolDialog onSchoolAdded={handleSchoolAdded} />}
+        {canManageSchools && (
+          <Button asChild size="sm" className="gap-1">
+            <Link href="/dashboard/schools/add">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span>Agregar Colegio</span>
+            </Link>
+          </Button>
+        )}
       </PageHeader>
 
       <Card>
@@ -115,7 +119,6 @@ export default function SchoolsPage() {
           ) : (
             <SchoolsTable
               colegios={colegios}
-              onSchoolUpdated={handleSchoolUpdated}
               onSchoolStatusChanged={handleSchoolStatusChanged}
               onSchoolDeleted={handleSchoolDeleted}
             />
@@ -125,5 +128,3 @@ export default function SchoolsPage() {
     </div>
   );
 }
-
-    

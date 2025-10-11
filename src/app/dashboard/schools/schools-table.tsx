@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -21,18 +20,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, School, Edit, UserCheck, UserX, Trash2 } from "lucide-react";
 import type { Colegio } from "@/lib/types";
-import { EditSchoolDialog } from "./edit-school-dialog";
 import { UpdateSchoolStatusAlert } from "./update-school-status-alert";
 import { DeleteSchoolAlert } from "./delete-school-alert";
+import Link from "next/link";
 
 type SchoolsTableProps = {
     colegios: Colegio[];
-    onSchoolUpdated: (updatedSchool: Colegio) => void;
     onSchoolStatusChanged: (schoolId: string, newStatus: boolean) => void;
     onSchoolDeleted: (schoolId: string) => void;
 }
 
-export function SchoolsTable({ colegios, onSchoolUpdated, onSchoolStatusChanged, onSchoolDeleted }: SchoolsTableProps) {
+export function SchoolsTable({ colegios, onSchoolStatusChanged, onSchoolDeleted }: SchoolsTableProps) {
 
     return (
         <Table>
@@ -83,12 +81,13 @@ export function SchoolsTable({ colegios, onSchoolUpdated, onSchoolStatusChanged,
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <EditSchoolDialog school={colegio} onSchoolUpdated={onSchoolUpdated}>
-                            <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                         <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/schools/${colegio.id}/edit`}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                <span>Editar</span>
-                            </div>
-                        </EditSchoolDialog>
+                                Editar
+                            </Link>
+                        </DropdownMenuItem>
+
                         <UpdateSchoolStatusAlert 
                             school={colegio} 
                             onSchoolStatusChanged={onSchoolStatusChanged}
