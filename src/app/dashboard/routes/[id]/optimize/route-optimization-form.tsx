@@ -1,8 +1,8 @@
 'use client';
 
-import { useActionState, useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Rocket, Map as MapIcon, Clock, ListOrdered, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Rocket, Map as MapIcon, Clock, ListOrdered, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOptimizedRoute, type State } from './actions';
 import type { Estudiante, Parada, Ruta, Colegio } from '@/lib/types';
@@ -25,6 +25,10 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
 
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  
+  const [studentsMap, setStudentsMap] = useState<Map<string, { nombre: string; apellido: string }>>(new Map());
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string>('');
+
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -36,6 +40,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     setCurrentTurno(turno);
     setOptimizationResult(null);
     setDirections(null);
+    setGoogleMapsUrl('');
 
     const formData = new FormData();
     formData.append('routeId', route.id);
@@ -79,6 +84,23 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
         variant: result.errors ? "destructive" : "default",
       });
     }
+    
+    if (result.result?.optimizedRoute) {
+        const tempStudentsMap = new Map(students.map(s => [s.student_id, { nombre: s.nombre, apellido: s.apellido }]));
+        setStudentsMap(tempStudentsMap);
+
+        // Build Google Maps URL
+        const waypointsMap = new Map<string, string>();
+        stopsForTurno.forEach(s => waypointsMap.set(s.studentId, `${s.location.latitude},${s.location.longitude}`));
+        
+        const orderedWaypoints = result.result.optimizedRoute.routeOrder
+            .map(studentId => waypointsMap.get(studentId))
+            .filter(Boolean);
+
+        const origin = `${route.colegio.lat},${route.colegio.lng}`;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${origin}&waypoints=${orderedWaypoints.join('|')}&travelmode=driving`;
+        setGoogleMapsUrl(url);
+    }
   };
 
   const directionsCallback = useCallback((
@@ -116,7 +138,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
       destination: new google.maps.LatLng(route.colegio.lat!, route.colegio.lng!),
       waypoints: orderedWaypoints,
       travelMode: google.maps.TravelMode.DRIVING,
-      optimizeWaypoints: false, // The AI already optimized it
+      optimizeWaypoints: false,
     };
   }, [optimizationResult, students, route.colegio, currentTurno]);
 
@@ -199,13 +221,26 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
                             </div>
                         </div>
                         <div>
-                          <h4 className="font-semibold mb-2">Orden de Paradas Sugerido:</h4>
-                          <ol className="list-decimal list-inside space-y-1 text-sm bg-muted p-3 rounded-md max-h-60 overflow-y-auto">
-                            {optimizationResult.result.optimizedRoute.routeOrder.map((studentId) => (
-                              <li key={studentId}>ID Estudiante: {studentId}</li>
-                            ))}
+                          <h4 className="font-semibold mb-2">Orden de Viaje Sugerido:</h4>
+                          <ol className="list-decimal list-inside space-y-2 text-sm bg-muted p-3 rounded-md max-h-60 overflow-y-auto">
+                            <li className='font-semibold'>Salida: {route.colegio.nombre}</li>
+                            {optimizationResult.result.optimizedRoute.routeOrder.map((studentId) => {
+                                const studentInfo = studentsMap.get(studentId);
+                                return (
+                                    <li key={studentId}>{studentId} - {studentInfo ? `${studentInfo.nombre} ${studentInfo.apellido}` : 'Estudiante desconocido'}</li>
+                                )
+                            })}
+                            <li className='font-semibold'>Destino: {route.colegio.nombre}</li>
                           </ol>
                         </div>
+                         {googleMapsUrl && (
+                            <Button asChild className="w-full">
+                                <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="mr-2 h-4 w-4"/>
+                                    Abrir en Google Maps
+                                </a>
+                            </Button>
+                         )}
                     </CardContent>
                 </Card>
             )}
