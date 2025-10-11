@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useActionState, useState } from 'react';
+import { useEffect, useActionState, useState, useCallback } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2, AlertCircle } from 'lucide-react';
@@ -50,7 +50,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
     }
   }, [state, toast]);
 
-  const handleSearch = async (searchTerm: string) => {
+  const handleSearch = useCallback(async (searchTerm: string) => {
     if (searchTerm.length < 2) {
       setSearchResults([]);
       return;
@@ -73,7 +73,7 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [route.colegio_id, assignedStudents, toast]);
 
   const handleSelectStudent = async (studentId: string | null) => {
     if (!studentId) return;

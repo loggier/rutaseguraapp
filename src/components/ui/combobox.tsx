@@ -54,6 +54,12 @@ export function Combobox({
     }
   }, [debouncedSearchTerm, onSearch]);
 
+  const handleSelect = (currentValue: string) => {
+    onChange(currentValue === value ? null : currentValue);
+    setSearchTerm('');
+    setOpen(false);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -83,11 +89,7 @@ export function Combobox({
                 <CommandItem
                   key={item.value}
                   value={onSearch ? item.label : item.value}
-                  onSelect={() => {
-                    onChange(item.value === value ? null : item.value);
-                    setSearchTerm('');
-                    setOpen(false);
-                  }}
+                  onSelect={() => handleSelect(item.value)}
                 >
                   <Check
                     className={cn(
