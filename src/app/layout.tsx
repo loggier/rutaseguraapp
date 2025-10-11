@@ -27,7 +27,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyCGs-R3i-srnJbVTXf6zlIAqxXC1BTTjrA&libraries=places&callback=Function.prototype`}
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyCGs-R3i-srnJbVTXf6zlIAqxXC1BTTjrA&libraries=places`}
           strategy="beforeInteractive"
         />
       </body>
