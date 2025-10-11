@@ -82,7 +82,12 @@ export function AddStudentForm({ parents, user }: AddStudentFormProps) {
 
   return (
     <Form {...form}>
-      <form action={dispatch} className="space-y-8">
+      <form
+        action={(payload) => {
+          form.handleSubmit(() => dispatch(payload))();
+        }}
+        className="space-y-8"
+      >
         <div className="flex items-center space-x-4">
           <Avatar className="h-24 w-24">
             <AvatarFallback className="text-4xl">

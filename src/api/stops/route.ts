@@ -8,6 +8,7 @@ const stopSchema = z.object({
   estudiante_id: z.string().uuid(),
   colegio_id: z.string().uuid(),
   tipo: z.enum(['Recogida', 'Entrega']),
+  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
@@ -38,8 +39,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { estudiante_id, colegio_id, tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
+    const { estudiante_id, colegio_id, tipo, sub_tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
+
+    // Verificar si ya existe una parada con el mismo tipo y subtipo
+    const { data: existingStop, error: existingError } = await supabaseAdmin
+        .from('paradas')
+        .select('id')
+        .eq('estudiante_id', estudiante_id)
+        .eq('tipo', tipo)
+        .eq('sub_tipo', sub_tipo)
+        .maybeSingle(); // Usar maybeSingle para no lanzar error si no existe
+    
+    if (existingStop) {
+        return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
+    }
 
     // Si esta parada se va a activar, desactivar las demás para el mismo estudiante
     if (activo) {
@@ -58,15 +72,15 @@ export async function POST(request: Request) {
     // Crear la nueva parada
     const { data: newStop, error: insertError } = await supabaseAdmin
       .from('paradas')
-      .insert({ estudiante_id, colegio_id, tipo, direccion, calle, numero, lat, lng, activo })
+      .insert({ estudiante_id, colegio_id, tipo, sub_tipo, direccion, calle, numero, lat, lng, activo })
       .select()
       .single();
 
     if (insertError) {
         console.error('Error al crear la parada:', insertError);
-        // Manejar el error de unicidad (estudiante_id, tipo)
+        // Manejar el error de unicidad (estudiante_id, tipo, sub_tipo)
         if (insertError.code === '23505') { // unique_violation
-            return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' para este estudiante.` }, { status: 409 });
+            return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
         }
         return NextResponse.json({ message: 'Error interno al crear la parada: ' + insertError.message }, { status: 500 });
     }

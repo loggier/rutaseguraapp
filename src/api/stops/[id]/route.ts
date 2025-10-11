@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const updateStopSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega']),
+  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
@@ -38,13 +39,27 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
+    const { tipo, sub_tipo, direccion, calle, numero, lat, lng, activo } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
     
     // Obtener el estudiante_id de la parada que se está actualizando
-    const { data: currentStopData } = await supabaseAdmin.from('paradas').select('estudiante_id').eq('id', stopId).single();
-    if (!currentStopData) {
+    const { data: currentStopData, error: currentStopError } = await supabaseAdmin.from('paradas').select('estudiante_id').eq('id', stopId).single();
+    if (currentStopError || !currentStopData) {
         return NextResponse.json({ message: 'La parada que intentas actualizar no existe.' }, { status: 404 });
+    }
+
+    // Verificar si ya existe otra parada con el mismo tipo y subtipo
+     const { data: existingStop } = await supabaseAdmin
+        .from('paradas')
+        .select('id')
+        .eq('estudiante_id', currentStopData.estudiante_id)
+        .eq('tipo', tipo)
+        .eq('sub_tipo', sub_tipo)
+        .neq('id', stopId) // Excluir la parada actual de la verificación
+        .maybeSingle(); // Usar maybeSingle para no lanzar error si no existe
+    
+    if (existingStop) {
+        return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
     }
 
     // Si esta parada se va a activar, desactivar las demás para el mismo estudiante
@@ -65,16 +80,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Actualizar la parada
     const { data: updatedStop, error: updateError } = await supabaseAdmin
       .from('paradas')
-      .update({ tipo, direccion, calle, numero, lat, lng, activo })
+      .update({ tipo, sub_tipo, direccion, calle, numero, lat, lng, activo })
       .eq('id', stopId)
       .select()
       .single();
       
     if (updateError) {
         console.error('Error al actualizar la parada:', updateError);
-        // Manejar el error de unicidad (estudiante_id, tipo)
+        // Manejar el error de unicidad que ahora es (estudiante_id, tipo, sub_tipo)
         if (updateError.code === '23505') { // unique_violation
-             return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' para este estudiante.` }, { status: 409 });
+             return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
         }
         return NextResponse.json({ message: 'Error interno al actualizar la parada: ' + updateError?.message }, { status: 500 });
     }

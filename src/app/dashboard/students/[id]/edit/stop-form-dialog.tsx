@@ -100,51 +100,6 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
   const center = { lat: form.watch('lat'), lng: form.watch('lng') };
 
   const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
-    const osmMapType = new google.maps.ImageMapType({
-      getTileUrl: function(coord, zoom) {
-        if (!coord || zoom === undefined) return null;
-        const tilesPerGlobe = 1 << zoom;
-        let x = coord.x % tilesPerGlobe;
-        if (x < 0) x = tilesPerGlobe + x;
-        return `https://mt0.google.com/vt/lyrs=m&x=${x}&y=${coord.y}&z=${zoom}&s=Ga`;
-      },
-      tileSize: new google.maps.Size(256, 256),
-      name: "Normal",
-      maxZoom: 22
-    });
-
-    const satelliteMapType = new google.maps.ImageMapType({
-        getTileUrl: function(coord, zoom) {
-            if (!coord || zoom === undefined) return null;
-            const tilesPerGlobe = 1 << zoom;
-            let x = coord.x % tilesPerGlobe;
-            if (x < 0) x = tilesPerGlobe + x;
-            const subdomain = ['mt0', 'mt1', 'mt2', 'mt3'][coord.x % 4];
-            return `https://${subdomain}.google.com/vt/lyrs=y&x=${x}&y=${coord.y}&z=${zoom}&s=Ga`;
-        },
-        tileSize: new google.maps.Size(256, 256),
-        name: 'Satellite',
-        maxZoom: 22
-    });
-
-    const trafficMapType = new google.maps.ImageMapType({
-        getTileUrl: function(coord, zoom) {
-            if (!coord || zoom === undefined) return null;
-            const tilesPerGlobe = 1 << zoom;
-            let x = coord.x % tilesPerGlobe;
-            if (x < 0) x = tilesPerGlobe + x;
-            const subdomain = ['mt0', 'mt1', 'mt2', 'mt3'][coord.x % 4];
-            return `https://${subdomain}.google.com/vt/lyrs=m@221097413,traffic&x=${x}&y=${coord.y}&z=${zoom}&s=Ga`;
-        },
-        tileSize: new google.maps.Size(256, 256),
-        name: 'Traffic',
-        maxZoom: 22
-    });
-    
-    mapInstance.mapTypes.set("OSM", osmMapType);
-    mapInstance.mapTypes.set("SATELLITE", satelliteMapType);
-    mapInstance.mapTypes.set("TRAFFIC", trafficMapType);
-    
     setMap(mapInstance);
   }, []);
 
@@ -197,20 +152,18 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, ex
       form.setValue('lat', newPos.lat);
       form.setValue('lng', newPos.lng);
       
-      if (!form.getValues('direccion')) {
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: newPos }, (results, status) => {
-          if (status === 'OK' && results?.[0]) {
-            form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
-              if (addressInputRef.current) {
-                  addressInputRef.current.value = results[0].formatted_address;
-              }
-              if(results[0].address_components) {
-                  parseAddressComponents(results[0].address_components);
-              }
-          }
-        });
-      }
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: newPos }, (results, status) => {
+        if (status === 'OK' && results?.[0]) {
+          form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
+            if (addressInputRef.current) {
+                addressInputRef.current.value = results[0].formatted_address;
+            }
+            if(results[0].address_components) {
+                parseAddressComponents(results[0].address_components);
+            }
+        }
+      });
     }
   };
   
