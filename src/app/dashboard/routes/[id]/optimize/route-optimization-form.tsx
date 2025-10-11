@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, useEffect, useCallback } from 'react';
+import { useActionState, useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Rocket, Map, Clock, ListOrdered, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,7 @@ import { getOptimizedRoute, type State } from './actions';
 import type { Estudiante, Parada, Ruta, Colegio } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLoadScript, GoogleMap, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
+import { useLoadScript, GoogleMap, DirectionsService, DirectionsRenderer, MarkerF } from '@react-google-maps/api';
 
 const libraries: ('places')[] = ['places'];
 
@@ -93,7 +93,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     }
   }, [toast]);
 
-  const directionsServiceOptions = React.useMemo<google.maps.DirectionsRequest | null>(() => {
+  const directionsServiceOptions = useMemo<google.maps.DirectionsRequest | null>(() => {
     if (!optimizationResult?.result?.optimizedRoute) return null;
 
     const waypointsMap = new Map<string, { lat: number; lng: number }>();
