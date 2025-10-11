@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Route, Users, MapPin, Sunrise, Sunset, Loader2, AlertCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Route, Users, School, Sunrise, Sunset, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from '@/contexts/user-context';
@@ -43,7 +43,7 @@ export default function RoutesPage() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('rutas').select(`*, estudiantes_count:ruta_estudiantes(count)`);
+      let query = supabase.from('rutas').select(`*, colegio:colegios(nombre), estudiantes_count:ruta_estudiantes(count)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -86,6 +86,7 @@ export default function RoutesPage() {
   }
 
   const canManage = user?.rol === 'master' || user?.rol === 'manager' || user?.rol === 'colegio';
+  const isAdmin = user?.rol === 'master' || user?.rol === 'manager';
 
   return (
     <>
@@ -125,6 +126,7 @@ export default function RoutesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre de la Ruta</TableHead>
+                    {isAdmin && <TableHead>Colegio</TableHead>}
                     <TableHead>Turno</TableHead>
                     <TableHead>Hora Salida</TableHead>
                     <TableHead className="hidden md:table-cell">Estudiantes</TableHead>
@@ -142,6 +144,14 @@ export default function RoutesPage() {
                           <span>{ruta.nombre}</span>
                         </div>
                       </TableCell>
+                       {isAdmin && (
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                                <School className="h-4 w-4 text-muted-foreground" />
+                                {ruta.colegio?.nombre || 'No asignado'}
+                            </div>
+                          </TableCell>
+                        )}
                       <TableCell>
                         <Badge variant={ruta.turno === 'Recogida' ? 'outline' : 'secondary'} className="gap-1">
                           {ruta.turno === 'Recogida' ? <Sunrise className="h-3 w-3"/> : <Sunset className="h-3 w-3" />}

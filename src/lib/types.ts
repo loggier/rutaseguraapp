@@ -104,6 +104,9 @@ export type Ruta = {
   creado_por: string;
   fecha_creacion: string;
   estudiantes_count: number;
+  colegio?: {
+    nombre: string;
+  };
 };
 
 
