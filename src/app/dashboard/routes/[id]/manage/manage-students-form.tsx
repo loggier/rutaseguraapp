@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useActionState, useState } from 'react';
@@ -80,12 +79,20 @@ export function ManageStudentsForm({ route, initialAssignedStudents }: ManageStu
     if (!studentId) return;
 
     // Fetch the full student object to check for active stops
-    const response = await fetch(`/api/students/search?id=${studentId}`);
-    const student: Estudiante & { paradas: Parada[] } = (await response.json())[0];
-
-    if (student) {
-        setAssignedStudents(prev => [...prev, student]);
-        setSearchResults([]); // Clear search results
+    try {
+        const response = await fetch(`/api/students/search?id=${studentId}`);
+        if (!response.ok) throw new Error('Failed to fetch student details');
+        
+        const studentData = await response.json();
+        const student: Estudiante & { paradas: Parada[] } = studentData[0];
+    
+        if (student) {
+            setAssignedStudents(prev => [...prev, student]);
+            setSearchResults([]); // Clear search results
+        }
+    } catch (error) {
+        console.error('Failed to select student:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo agregar al estudiante.' });
     }
   };
   

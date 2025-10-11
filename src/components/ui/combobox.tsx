@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -71,7 +70,7 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
+        <Command shouldFilter={!onSearch}>
           <CommandInput 
             placeholder={searchPlaceholder}
             value={searchTerm}
@@ -83,7 +82,7 @@ export function Combobox({
               {items.map((item) => (
                 <CommandItem
                   key={item.value}
-                  value={item.label}
+                  value={onSearch ? item.label : item.value}
                   onSelect={() => {
                     onChange(item.value === value ? null : item.value);
                     setSearchTerm('');
