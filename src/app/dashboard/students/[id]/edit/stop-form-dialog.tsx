@@ -39,10 +39,10 @@ type StopFormDialogProps = {
   student: Estudiante;
   stop: Parada | null;
   onStopSaved: (savedStop: Parada) => void;
-  availableStopTypes: { canAddRecogida: boolean, canAddEntrega: boolean };
+  existingStops: Parada[];
 };
 
-export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, availableStopTypes }: StopFormDialogProps) {
+export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, existingStops }: StopFormDialogProps) {
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
   
@@ -55,11 +55,23 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
     libraries,
   });
 
+  const getAvailableTipo = () => {
+    const combinations = new Set(existingStops.filter(s => s.id !== stop?.id).map(s => `${s.tipo}-${s.sub_tipo}`));
+    if (!combinations.has('Recogida-Principal') || !combinations.has('Recogida-Familiar/Academia')) return 'Recogida';
+    return 'Entrega';
+  }
+
+  const getAvailableSubTipo = (tipo: 'Recogida' | 'Entrega') => {
+      const combinations = new Set(existingStops.filter(s => s.id !== stop?.id).map(s => `${s.tipo}-${s.sub_tipo}`));
+      if (!combinations.has(`${tipo}-Principal`)) return 'Principal';
+      return 'Familiar/Academia';
+  }
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
-      sub_tipo: stop?.sub_tipo || 'Principal',
+      tipo: stop?.tipo || getAvailableTipo(),
+      sub_tipo: stop?.sub_tipo || getAvailableSubTipo(stop?.tipo || getAvailableTipo()),
       direccion: stop?.direccion || '',
       calle: stop?.calle || '',
       numero: stop?.numero || '',
@@ -71,18 +83,19 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
   
   useEffect(() => {
     if(isOpen) {
+        const defaultTipo = stop?.tipo || getAvailableTipo();
         form.reset({
-            tipo: stop?.tipo || (availableStopTypes.canAddRecogida ? 'Recogida' : 'Entrega'),
-            sub_tipo: stop?.sub_tipo || 'Principal',
+            tipo: defaultTipo,
+            sub_tipo: stop?.sub_tipo || getAvailableSubTipo(defaultTipo),
             direccion: stop?.direccion || '',
             calle: stop?.calle || '',
             numero: stop?.numero || '',
             lat: stop?.lat || -0.1807,
             lng: stop?.lng || -78.4678,
-            activo: stop?.activo === undefined ? !student.paradas?.some(p => p.activo) : stop.activo,
+            activo: stop?.activo === undefined ? !existingStops.some(p => p.activo) : stop.activo,
         })
     }
-  }, [isOpen, stop, form, availableStopTypes, student.paradas])
+  }, [isOpen, stop, form, existingStops]);
 
   const center = { lat: form.watch('lat'), lng: form.watch('lng') };
 
@@ -216,7 +229,7 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                 if (status === 'OK' && results?.[0]) {
                     form.setValue('direccion', results[0].formatted_address, { shouldValidate: true });
                     if (addressInputRef.current) {
-                        addressInput.current.value = results[0].formatted_address;
+                        addressInputRef.current.value = results[0].formatted_address;
                     }
                     if(results[0].address_components) {
                         parseAddressComponents(results[0].address_components);
@@ -275,6 +288,12 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
       </GoogleMap>
     );
   };
+  
+  const watchedTipo = form.watch('tipo');
+  
+  const existingCombinations = new Set(existingStops.filter(s => s.id !== stop?.id).map(s => `${s.tipo}-${s.sub_tipo}`));
+  const canAdd = (tipo: 'Recogida' | 'Entrega', sub_tipo: 'Principal' | 'Familiar/Academia') => !existingCombinations.has(`${tipo}-${sub_tipo}`);
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -301,13 +320,13 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                     render={({ field }) => (
                       <div>
                         <Label>Tipo de Parada</Label>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!stop}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!!stop}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un tipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableStopTypes.canAddRecogida || stop?.tipo === 'Recogida' ? <SelectItem value="Recogida">Recogida</SelectItem> : null}
-                            {availableStopTypes.canAddEntrega || stop?.tipo === 'Entrega' ? <SelectItem value="Entrega">Entrega</SelectItem> : null}
+                             { (canAdd('Recogida', 'Principal') || canAdd('Recogida', 'Familiar/Academia') || stop?.tipo === 'Recogida') && <SelectItem value="Recogida">Recogida</SelectItem> }
+                             { (canAdd('Entrega', 'Principal') || canAdd('Entrega', 'Familiar/Academia') || stop?.tipo === 'Entrega') && <SelectItem value="Entrega">Entrega</SelectItem> }
                           </SelectContent>
                         </Select>
                         {form.formState.errors.tipo && <p className="text-sm text-destructive mt-1">{form.formState.errors.tipo.message}</p>}
@@ -320,13 +339,13 @@ export function StopFormDialog({ isOpen, onClose, student, stop, onStopSaved, av
                     render={({ field }) => (
                       <div>
                         <Label>Subtipo</Label>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!!stop}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona..." />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Principal">Principal</SelectItem>
-                            <SelectItem value="Familiar/Academia">Familiar/Academia</SelectItem>
+                            { (canAdd(watchedTipo, 'Principal') || stop?.sub_tipo === 'Principal') && <SelectItem value="Principal">Principal</SelectItem> }
+                            { (canAdd(watchedTipo, 'Familiar/Academia') || stop?.sub_tipo === 'Familiar/Academia') && <SelectItem value="Familiar/Academia">Familiar/Academia</SelectItem> }
                           </SelectContent>
                         </Select>
                         {form.formState.errors.sub_tipo && <p className="text-sm text-destructive mt-1">{form.formState.errors.sub_tipo.message}</p>}

@@ -27,13 +27,23 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
   };
 
   const handleStopSaved = (savedStop: Parada) => {
-    if (stopToEdit) {
-      // Edit
-      setStops(stops.map(s => (s.id === savedStop.id ? savedStop : s.activo ? { ...s, activo: false } : s)));
-    } else {
-      // Add
-      setStops([...stops.map(s => (savedStop.activo ? { ...s, activo: false } : s)), savedStop]);
-    }
+    setStops(prevStops => {
+        const otherStops = prevStops.filter(s => s.id !== savedStop.id);
+        
+        // If the new/edited stop is active, deactivate all others
+        if (savedStop.activo) {
+            const deactivatedStops = otherStops.map(s => ({ ...s, activo: false }));
+            return [...deactivatedStops, savedStop];
+        }
+
+        // If editing an existing stop (and not making it active)
+        if (prevStops.some(s => s.id === savedStop.id)) {
+            return [...otherStops, savedStop];
+        }
+        
+        // If adding a new stop (and it's not active)
+        return [...prevStops, savedStop];
+    });
   };
   
   const handleDeleteStop = async (stopId: string) => {
@@ -50,14 +60,15 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
     }
   };
 
-  const existingTypes = stops.map(s => s.tipo);
-  const canAddRecogida = !existingTypes.includes('Recogida');
-  const canAddEntrega = !existingTypes.includes('Entrega');
+  const existingCombinations = new Set(stops.map(s => `${s.tipo}-${s.sub_tipo}`));
+  const canAdd = (tipo: 'Recogida' | 'Entrega', sub_tipo: 'Principal' | 'Familiar/Academia') => !existingCombinations.has(`${tipo}-${sub_tipo}`);
+  
+  const canAddSomething = canAdd('Recogida', 'Principal') || canAdd('Recogida', 'Familiar/Academia') || canAdd('Entrega', 'Principal') || canAdd('Entrega', 'Familiar/Academia');
 
   return (
     <>
       <div className="flex justify-end mb-4">
-        {stops.length < 2 && (
+        {stops.length < 4 && canAddSomething && (
           <Button size="sm" onClick={() => handleOpenModal()}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Agregar Parada
@@ -77,7 +88,7 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
           </TableHeader>
           <TableBody>
             {stops.length > 0 ? (
-              stops.map(stop => (
+              stops.sort((a,b) => a.tipo.localeCompare(b.tipo) || a.sub_tipo.localeCompare(b.sub_tipo)).map(stop => (
                 <TableRow key={stop.id}>
                   <TableCell className="font-medium">
                     <Badge variant={stop.tipo === 'Recogida' ? 'default' : 'secondary'}>{stop.tipo}</Badge>
@@ -110,7 +121,7 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
                         <AlertDialogHeader>
                           <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará la parada de tipo <strong>{stop.tipo}</strong> para este estudiante.
+                            Esta acción no se puede deshacer. Se eliminará la parada de tipo <strong>{stop.tipo} ({stop.sub_tipo})</strong> para este estudiante.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -140,7 +151,7 @@ export function StopsManagement({ student, initialStops }: StopsManagementProps)
           student={student}
           stop={stopToEdit}
           onStopSaved={handleStopSaved}
-          availableStopTypes={{ canAddRecogida, canAddEntrega }}
+          existingStops={stops}
         />
       )}
     </>
