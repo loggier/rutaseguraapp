@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         .eq('estudiante_id', estudiante_id)
         .eq('tipo', tipo)
         .eq('sub_tipo', sub_tipo)
-        .single();
+        .maybeSingle(); // Usar maybeSingle para no lanzar error si no existe
     
     if (existingStop) {
         return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
@@ -78,6 +78,10 @@ export async function POST(request: Request) {
 
     if (insertError) {
         console.error('Error al crear la parada:', insertError);
+        // Manejar el error de unicidad (estudiante_id, tipo, sub_tipo)
+        if (insertError.code === '23505') { // unique_violation
+            return NextResponse.json({ message: `Ya existe una parada de tipo '${tipo}' y subtipo '${sub_tipo}' para este estudiante.` }, { status: 409 });
+        }
         return NextResponse.json({ message: 'Error interno al crear la parada: ' + insertError.message }, { status: 500 });
     }
 
