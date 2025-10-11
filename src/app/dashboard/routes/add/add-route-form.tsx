@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -45,7 +45,7 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
   
   const initialState: State = { message: null, errors: {} };
   const createRouteWithUser = createRoute.bind(null, user);
-  const [state, formAction] = useFormState(createRouteWithUser, initialState);
+  const [state, formAction] = useActionState(createRouteWithUser, initialState);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
