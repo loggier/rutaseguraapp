@@ -73,7 +73,6 @@ export function AddRouteForm({ user }: AddRouteFormProps) {
     <Form {...form}>
       <form
         action={formAction}
-        onSubmit={form.handleSubmit(() => formAction(new FormData(form.control._formValues)))}
         className="space-y-8"
       >
         <div className='grid md:grid-cols-2 gap-6'>
