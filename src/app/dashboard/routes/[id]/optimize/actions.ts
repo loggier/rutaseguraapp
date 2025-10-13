@@ -2,6 +2,10 @@
 
 import { optimizeRoutes, type OptimizeRoutesInput, type OptimizeRoutesOutput } from '@/ai/flows/optimize-routes-with-ai';
 import { z } from 'zod';
+import { createServerClient } from '@supabase/ssr';
+import { revalidatePath } from 'next/cache';
+import type { OptimizedRouteResult } from '@/lib/types';
+
 
 const CoordinatesSchema = z.object({
   latitude: z.coerce.number(),
@@ -21,7 +25,7 @@ const FormSchema = z.object({
   stops: z.array(StopSchema).min(2, "Se necesitan al menos 2 paradas para optimizar."),
 });
 
-export type State = {
+export type AIState = {
   message?: string | null;
   result?: OptimizeRoutesOutput;
   errors?: {
@@ -31,7 +35,18 @@ export type State = {
   };
 };
 
-export async function getOptimizedRoute(prevState: State | null, formData: FormData): Promise<State> {
+const createSupabaseAdminClient = () => {
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+            cookies: { get: () => undefined, set: () => {}, remove: () => {} },
+            db: { schema: 'rutasegura' },
+        }
+    );
+};
+
+export async function getOptimizedRoute(prevState: AIState | null, formData: FormData): Promise<AIState> {
   const stopsData = JSON.parse(formData.get('stops') as string || '[]');
 
   const validatedFields = FormSchema.safeParse({
@@ -49,24 +64,19 @@ export async function getOptimizedRoute(prevState: State | null, formData: FormD
     };
   }
   
-  // Aunque el busCapacity no viene del formulario, lo seteamos aquí porque el Flow de IA lo requiere.
-  // Podríamos hacerlo un valor configurable en el futuro.
   const busCapacity = 50;
-
   const { stops, turno } = validatedFields.data;
 
   const aiInput: OptimizeRoutesInput = {
     busCapacity,
-    students: stops, // El esquema de IA usa 'students', pero le pasamos nuestras 'stops' que tienen el formato correcto.
+    students: stops,
     routeConstraints: `Optimizar para el turno de ${turno}. El punto de inicio y fin es la ubicación del colegio.`,
   };
 
   try {
     const result = await optimizeRoutes(aiInput);
     if (!result || !result.optimizedRoute) {
-        return {
-            message: 'La IA no pudo generar una ruta optimizada. Inténtalo de nuevo.'
-        }
+        return { message: 'La IA no pudo generar una ruta optimizada. Inténtalo de nuevo.' }
     }
     return {
       message: 'Ruta optimizada generada con éxito.',
@@ -74,8 +84,53 @@ export async function getOptimizedRoute(prevState: State | null, formData: FormD
     };
   } catch (error) {
     console.error("Error en el flujo de optimización de IA:", error);
-    return {
-      message: 'Ocurrió un error inesperado al contactar al servicio de IA.',
-    };
+    return { message: 'Ocurrió un error inesperado al contactar al servicio de IA.' };
   }
+}
+
+// --- Acción para guardar la ruta ---
+const SaveRouteSchema = z.object({
+    routeId: z.string().uuid(),
+    turno: z.enum(['Recogida', 'Entrega']),
+    optimizedRoute: z.object({
+        routeOrder: z.array(z.string()),
+        estimatedTravelTime: z.number(),
+    })
+});
+
+export type SaveState = {
+    message: string;
+    error?: boolean;
+}
+
+export async function saveOptimizedRoute(prevState: SaveState | null, formData: FormData): Promise<SaveState> {
+    const validatedFields = SaveRouteSchema.safeParse({
+        routeId: formData.get('routeId'),
+        turno: formData.get('turno'),
+        optimizedRoute: JSON.parse(formData.get('optimizedRoute') as string),
+    });
+
+    if (!validatedFields.success) {
+        return { message: 'Datos inválidos para guardar la ruta.', error: true };
+    }
+
+    const { routeId, turno, optimizedRoute } = validatedFields.data;
+    const supabaseAdmin = createSupabaseAdminClient();
+
+    const updateColumn = turno === 'Recogida' ? 'ruta_optimizada_recogida' : 'ruta_optimizada_entrega';
+
+    try {
+        const { error } = await supabaseAdmin
+            .from('rutas')
+            .update({ [updateColumn]: optimizedRoute })
+            .eq('id', routeId);
+        
+        if (error) throw error;
+
+    } catch (e: any) {
+        return { message: `Error al guardar la ruta en la base de datos: ${e.message}`, error: true };
+    }
+    
+    revalidatePath(`/dashboard/routes/${routeId}/optimize`);
+    return { message: `La ruta optimizada para el turno de ${turno} ha sido guardada.` };
 }

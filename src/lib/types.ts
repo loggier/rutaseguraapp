@@ -1,5 +1,6 @@
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -96,6 +97,11 @@ export type Autobus = {
   estado: 'en_ruta' | 'detenido' | 'mantenimiento';
 };
 
+export type OptimizedRouteResult = {
+  routeOrder: string[];
+  estimatedTravelTime: number;
+};
+
 export type Ruta = {
   id: string;
   nombre: string;
@@ -105,6 +111,8 @@ export type Ruta = {
   creado_por: string;
   fecha_creacion: string;
   estudiantes_count: number;
+  ruta_optimizada_recogida: OptimizedRouteResult | null;
+  ruta_optimizada_entrega: OptimizedRouteResult | null;
   colegio?: {
     nombre: string;
     id: string;
@@ -133,5 +141,3 @@ export type Viaje = {
   autobus: string;
   estado: 'activo' | 'suspendido' | 'papelera';
 }
-
-    

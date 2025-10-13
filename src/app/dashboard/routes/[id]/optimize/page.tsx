@@ -1,4 +1,3 @@
-
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { Ruta, Estudiante, Parada, Colegio } from '@/lib/types';
@@ -14,7 +13,7 @@ type RouteData = {
 async function getRouteDataForOptimization(routeId: string): Promise<RouteData | null> {
     const supabase = createClient();
     
-    // 1. Fetch the route details including the school location
+    // 1. Fetch the route details including the school location and optimized routes
     const { data: routeData, error: routeError } = await supabase
         .from('rutas')
         .select(`*, colegio:colegios(*)`)
@@ -84,19 +83,9 @@ export default async function OptimizeRoutePage({ params }: { params: { id: stri
         <div className="flex flex-col gap-6">
             <PageHeader
                 title={`Optimizar Ruta: ${route.nombre}`}
-                description={`Usa IA para encontrar el orden más eficiente de paradas para los turnos de mañana y/o tarde.`}
+                description={`Usa IA para encontrar el orden más eficiente de paradas y guarda el resultado.`}
             />
-            <Card>
-                <CardHeader>
-                    <CardTitle>Panel de Optimización</CardTitle>
-                    <CardDescription>
-                        Selecciona un turno para que la IA calcule la ruta más corta, comenzando y terminando en el colegio: <span className='font-semibold'>{route.colegio.nombre}</span>.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <RouteOptimizationForm route={route} students={students} />
-                </CardContent>
-            </Card>
+             <RouteOptimizationForm route={route} students={students} />
         </div>
     );
 }
