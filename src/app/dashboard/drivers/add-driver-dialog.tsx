@@ -30,7 +30,7 @@ const formSchema = z.object({
   licencia: z.string().min(1, 'La licencia es requerida'),
   telefono: z.string().optional().nullable(),
   avatar_url: z.string().url().optional().nullable(),
-  colegio_id: z.string().uuid('ID de colegio inválido').optional().nullable(),
+  colegio_id: z.string({required_error: 'Se debe seleccionar un colegio.'}).uuid('ID de colegio inválido').nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -56,13 +56,23 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
       licencia: '',
       telefono: '',
       avatar_url: '',
-      colegio_id: undefined,
+      colegio_id: null,
     },
   });
 
   useEffect(() => {
     async function fetchInitialData() {
-      if (!isOpen || !user) return;
+      if (!user) return;
+      
+      form.reset({
+        nombre: '',
+        apellido: '',
+        licencia: '',
+        telefono: '',
+        avatar_url: '',
+        colegio_id: null,
+      });
+      
       const supabase = createClient();
       
       if (user.rol === 'master' || user.rol === 'manager') {
@@ -75,13 +85,12 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         }
       }
     }
+
     if (isOpen) {
-      form.reset();
       fetchInitialData();
     }
   }, [isOpen, user, form]);
   
-
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
     try {
@@ -131,7 +140,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
               {(user.rol === 'master' || user.rol === 'manager') && (
                 <div className='space-y-1'>
                     <Label htmlFor="colegio_id">Colegio</Label>
-                    <Select onValueChange={(value) => form.setValue('colegio_id', value)} value={form.watch('colegio_id') || undefined}>
+                    <Select onValueChange={(value) => form.setValue('colegio_id', value)} value={form.watch('colegio_id') || ''}>
                         <SelectTrigger><SelectValue placeholder="Selecciona un colegio" /></SelectTrigger>
                         <SelectContent>
                             {colegios.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
