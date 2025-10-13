@@ -38,7 +38,7 @@ export default function AddBusPage() {
                      { data: conductoresData },
                      { data: rutasData }
                  ] = await Promise.all([
-                    supabase.from('conductores').select('*').eq('colegio_id', colegioData.id).eq('activo', true),
+                    supabase.from('conductores').select('*').eq('colegio_id', colegioData.id),
                     supabase.from('rutas').select('*').eq('colegio_id', colegioData.id)
                  ]);
                  setConductores(conductoresData || []);
