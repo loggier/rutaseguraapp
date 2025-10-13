@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-
 // Esquema base sin colegio_id
 const baseSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -41,7 +40,7 @@ const adminSchema = baseSchema.extend({
 
 // Esquema para rol 'colegio' donde el id se asigna en el backend
 const colegioSchema = baseSchema.extend({
-    colegio_id: z.string().uuid('ID de colegio es requerido.'),
+    colegio_id: z.string().uuid('ID de colegio es requerido.').optional().nullable(),
 });
 
 
@@ -90,7 +89,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         if (user.rol === 'colegio') {
             const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
             if (colegioData) {
-                form.setValue('colegio_id', colegioData.id);
+                form.setValue('colegio_id', colegioData.id, { shouldValidate: true });
             }
         } else if (user.rol === 'master' || user.rol === 'manager') {
             const { data } = await supabase.from('colegios_view').select('*').order('nombre');
@@ -101,7 +100,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     if (isOpen) {
         fetchInitialData();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, form]);
   
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
