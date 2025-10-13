@@ -56,7 +56,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
                 { data: conductoresData },
                 { data: rutasData }
             ] = await Promise.all([
-                supabase.from('conductores').select('*').eq('colegio_id', targetColegioId),
+                supabase.from('conductores').select('*').eq('colegio_id', targetColegioId).eq('activo', true),
                 supabase.from('rutas').select('*').eq('colegio_id', targetColegioId)
             ]);
             setConductores(conductoresData || []);

@@ -80,7 +80,7 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
         }
         const supabase = createClient();
         const [{data: conductoresData}, {data: rutasData}] = await Promise.all([
-            supabase.from('conductores').select('*').eq('colegio_id', watchedColegioId),
+            supabase.from('conductores').select('*').eq('colegio_id', watchedColegioId).eq('activo', true),
             supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId)
         ]);
         setConductores(conductoresData || []);
