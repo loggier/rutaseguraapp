@@ -68,6 +68,11 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
       if (user.rol === 'master' || user.rol === 'manager') {
         const { data } = await supabase.from('colegios_view').select('*').order('nombre');
         setColegios(data || []);
+      } else if (user.rol === 'colegio') {
+        const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
+        if (colegioData) {
+          form.setValue('colegio_id', colegioData.id);
+        }
       }
     }
     if (isOpen) {
