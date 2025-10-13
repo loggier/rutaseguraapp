@@ -71,7 +71,7 @@ export async function updateBus(busId: string, user: User, prevState: State, for
 
   const { matricula, capacidad, imei_gps, estado, colegio_id, conductor_id, ruta_id } = validatedFields.data;
   
-  if (!colegio_id) {
+  if (!colegio_id && user.rol !== 'colegio') {
     return {
       errors: { colegio_id: ['Se debe seleccionar un colegio.'] },
       message: 'Faltan campos obligatorios. No se pudo actualizar el autobús.',

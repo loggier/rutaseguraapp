@@ -17,7 +17,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
   const [bus, setBus] = useState<Autobus | null>(null);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const [allConductores, setAllConductores] = useState<Conductor[]>([]);
-  const [initialRutas, setInitialRutas] = useState<Ruta[]>([]);
+  const [allRutas, setAllRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
   const { id } = use(params);
 
@@ -41,42 +41,38 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
         if (busError || !busData) {
             console.error("Error fetching bus:", busError);
             setBus(null);
-        } else {
-            setBus(busData as Autobus);
-        }
+            setLoading(false);
+            return;
+        } 
         
-        const targetColegioId = busData?.colegio_id;
-
-        const promises: Promise<any>[] = [];
+        setBus(busData as Autobus);
         
-        if (user?.rol === 'master' || user?.rol === 'manager') {
-            promises.push(supabase.from('colegios_view').select('*').order('nombre'));
-            promises.push(supabase.from('conductores_view').select('*'));
-        } else if (user?.rol === 'colegio' && targetColegioId) {
-             promises.push(supabase.from('conductores_view').select('*').eq('colegio_id', targetColegioId));
-        }
-
-        if(targetColegioId) {
-            promises.push(supabase.from('rutas').select('*').eq('colegio_id', targetColegioId));
-        }
-
-        const results = await Promise.all(promises);
-        let resultIndex = 0;
-        
-        if (user?.rol === 'master' || user?.rol === 'manager') {
-            const colegiosResult = results[resultIndex++];
-            setColegios(colegiosResult.data || []);
-            
-            const conductoresResult = results[resultIndex++];
-            setAllConductores(conductoresResult.data || []);
-        } else if (user?.rol === 'colegio') {
-             const conductoresResult = results[resultIndex++];
-             setAllConductores(conductoresResult.data || []);
-        }
-
-        if(targetColegioId) {
-            const rutasResult = results[resultIndex];
-            if (rutasResult) setInitialRutas(rutasResult.data || []);
+        if (user.rol === 'master' || user.rol === 'manager') {
+            const [
+                { data: colegiosData },
+                { data: conductoresData },
+                { data: rutasData }
+            ] = await Promise.all([
+                supabase.from('colegios_view').select('*').order('nombre'),
+                supabase.from('conductores_view').select('*'),
+                supabase.from('rutas').select('*')
+            ]);
+            setColegios(colegiosData || []);
+            setAllConductores(conductoresData || []);
+            setAllRutas(rutasData || []);
+        } else if (user.rol === 'colegio' && busData.colegio_id) {
+            const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
+            if (colegioData) {
+              const [
+                { data: conductoresData },
+                { data: rutasData }
+              ] = await Promise.all([
+                supabase.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
+                supabase.from('rutas').select('*').eq('colegio_id', colegioData.id)
+              ]);
+              setAllConductores(conductoresData || []);
+              setAllRutas(rutasData || []);
+            }
         }
 
         setLoading(false);
@@ -111,7 +107,13 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
           <CardDescription>Realiza los cambios necesarios y guarda.</CardDescription>
         </CardHeader>
         <CardContent>
-          <EditBusForm user={user} bus={bus} colegios={colegios} allConductores={allConductores} initialRutas={initialRutas} />
+          <EditBusForm 
+            user={user} 
+            bus={bus} 
+            colegios={colegios} 
+            allConductores={allConductores} 
+            allRutas={allRutas} 
+          />
         </CardContent>
       </Card>
     </div>
