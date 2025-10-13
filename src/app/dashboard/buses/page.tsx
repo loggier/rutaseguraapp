@@ -26,8 +26,7 @@ import { useUser } from '@/contexts/user-context';
 import { createClient } from '@/lib/supabase/client';
 import type { Autobus } from '@/lib/types';
 import { DeleteBusAlert } from './delete-bus-alert';
-import { AddBusDialog } from './add-bus-dialog';
-import { EditBusDialog } from './edit-bus-dialog';
+import Link from 'next/link';
 
 
 function getStatusVariant(status: string) {
@@ -50,9 +49,6 @@ function BusesPageComponent() {
   const [error, setError] = useState<string | null>(null);
   
   const [busToDelete, setBusToDelete] = useState<Autobus | null>(null);
-  const [busToEdit, setBusToEdit] = useState<Autobus | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
 
   const fetchBuses = useCallback(async () => {
     if (!user) return;
@@ -95,14 +91,6 @@ function BusesPageComponent() {
       fetchBuses();
     }
   }, [user, fetchBuses]);
-  
-  const handleBusAdded = (newBus: Autobus) => {
-    setBuses(prev => [...prev, newBus].sort((a, b) => a.matricula.localeCompare(b.matricula)));
-  };
-  
-  const handleBusUpdated = (updatedBus: Autobus) => {
-    setBuses(prev => prev.map(bus => bus.id === updatedBus.id ? updatedBus : bus));
-  };
   
   const handleBusDeleted = (busId: string) => {
     setBuses(prev => prev.filter(r => r.id !== busId));
@@ -184,9 +172,11 @@ function BusesPageComponent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={() => setBusToEdit(autobus)}>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard/buses/${autobus.id}/edit`}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar Autobús
+                      </Link>
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator />
@@ -215,9 +205,11 @@ function BusesPageComponent() {
           description="Administra la flota de autobuses, su capacidad y estado."
         >
           {canManage && (
-              <Button size="sm" className="gap-1" onClick={() => setIsAddModalOpen(true)}>
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>Agregar Autobús</span>
+              <Button asChild size="sm" className="gap-1">
+                <Link href="/dashboard/buses/add">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span>Agregar Autobús</span>
+                </Link>
               </Button>
           )}
         </PageHeader>
@@ -232,26 +224,7 @@ function BusesPageComponent() {
           </CardContent>
         </Card>
       </div>
-
-      {canManage && user && (
-         <AddBusDialog
-            isOpen={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            onBusAdded={handleBusAdded}
-            user={user}
-        />
-      )}
       
-      {busToEdit && canManage && user && (
-          <EditBusDialog
-            isOpen={!!busToEdit}
-            onClose={() => setBusToEdit(null)}
-            onBusUpdated={handleBusUpdated}
-            user={user}
-            bus={busToEdit}
-        />
-      )}
-
       {busToDelete && (
         <DeleteBusAlert
           bus={busToDelete}
