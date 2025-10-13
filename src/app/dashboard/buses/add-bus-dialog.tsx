@@ -200,25 +200,25 @@ export function AddBusDialog({ isOpen, onClose, onBusAdded, user }: AddBusDialog
                   {form.formState.errors.estado && <p className="text-sm text-destructive">{form.formState.errors.estado.message}</p>}
               </div>
               <div className='space-y-1'>
-                    <Label htmlFor="conductor_id">Conductor</Label>
-                    <Select onValueChange={(value) => form.setValue('conductor_id', value)} value={form.watch('conductor_id') || undefined} disabled={!watchedColegioId}>
-                        <SelectTrigger><SelectValue placeholder={conductores.length > 0 ? "Selecciona un conductor" : "Sin conductores"} /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="">Sin conductor asignado</SelectItem>
-                            {conductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                 <div className='space-y-1'>
-                    <Label htmlFor="ruta_id">Ruta Asignada</Label>
-                    <Select onValueChange={(value) => form.setValue('ruta_id', value)} value={form.watch('ruta_id') || undefined} disabled={!watchedColegioId}>
-                        <SelectTrigger><SelectValue placeholder={rutas.length > 0 ? "Selecciona una ruta" : "Sin rutas"} /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="">Sin ruta asignada</SelectItem>
-                            {rutas.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <Label htmlFor="conductor_id">Conductor</Label>
+                <Select onValueChange={(value) => form.setValue('conductor_id', value === 'NONE' ? null : value)} value={form.watch('conductor_id') || ''} disabled={!watchedColegioId}>
+                    <SelectTrigger><SelectValue placeholder={conductores.length > 0 ? "Selecciona un conductor" : "Sin conductores"} /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="NONE">Sin conductor asignado</SelectItem>
+                        {conductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className='space-y-1'>
+                <Label htmlFor="ruta_id">Ruta Asignada</Label>
+                <Select onValueChange={(value) => form.setValue('ruta_id', value === 'NONE' ? null : value)} value={form.watch('ruta_id') || ''} disabled={!watchedColegioId}>
+                    <SelectTrigger><SelectValue placeholder={rutas.length > 0 ? "Selecciona una ruta" : "Sin rutas"} /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="NONE">Sin ruta asignada</SelectItem>
+                        {rutas.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
           </ScrollArea>
           <DialogFooter className='pt-6'>
