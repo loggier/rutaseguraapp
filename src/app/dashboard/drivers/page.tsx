@@ -26,10 +26,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useUser } from '@/contexts/user-context';
 import { createClient } from '@/lib/supabase/client';
 import type { Conductor } from '@/lib/types';
-import { AddDriverDialog } from './add-driver-dialog';
 import { EditDriverDialog } from './edit-driver-dialog';
 import { DeleteDriverAlert } from './delete-driver-alert';
 import { UpdateDriverStatusAlert } from './update-driver-status-alert';
+import Link from 'next/link';
 
 function getStatusVariant(activo: boolean) {
   return activo ? 'default' : 'secondary';
@@ -44,7 +44,6 @@ function DriversPageComponent() {
   const [driverToDelete, setDriverToDelete] = useState<Conductor | null>(null);
   const [driverToEdit, setDriverToEdit] = useState<Conductor | null>(null);
   const [driverToUpdateStatus, setDriverToUpdateStatus] = useState<Conductor | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const fetchDrivers = useCallback(async () => {
     if (!user) return;
@@ -87,10 +86,6 @@ function DriversPageComponent() {
       fetchDrivers();
     }
   }, [user, fetchDrivers]);
-  
-  const handleDriverAdded = (newDriver: Conductor) => {
-    setDrivers(prev => [...prev, newDriver].sort((a, b) => a.apellido.localeCompare(b.apellido)));
-  };
   
   const handleDriverUpdated = (updatedDriver: Conductor) => {
     setDrivers(prev => prev.map(driver => driver.id === updatedDriver.id ? updatedDriver : driver));
@@ -208,9 +203,11 @@ function DriversPageComponent() {
           description="Administra los perfiles de los conductores, sus licencias y asignaciones."
         >
           {canManage && (
-              <Button size="sm" className="gap-1" onClick={() => setIsAddModalOpen(true)}>
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>Agregar Conductor</span>
+              <Button asChild size="sm" className="gap-1">
+                <Link href="/dashboard/drivers/add">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span>Agregar Conductor</span>
+                </Link>
               </Button>
           )}
         </PageHeader>
@@ -225,15 +222,6 @@ function DriversPageComponent() {
           </CardContent>
         </Card>
       </div>
-
-      {canManage && user && (
-         <AddDriverDialog
-            isOpen={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            onDriverAdded={handleDriverAdded}
-            user={user}
-        />
-      )}
       
       {driverToEdit && canManage && user && (
           <EditDriverDialog
