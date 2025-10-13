@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -79,23 +80,36 @@ export type Parada = {
 };
 
 
-export type Conductor = User & {
-  rol: "conductor";
+export type Conductor = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string;
   licencia: string;
-  direccion: string;
-  email_comunicacion: string;
-  aprobado: boolean;
-  autobusId?: string;
+  activo: boolean;
+  avatar_url?: string | null;
+  colegio_id: string;
+  creado_por: string;
+  fecha_creacion: string;
 };
 
 export type Autobus = {
   id: string;
   matricula: string;
   capacidad: number;
-  conductorId?: string;
-  conductorNombre?: string;
-  estado: 'en_ruta' | 'detenido' | 'mantenimiento';
+  imei_gps: string;
+  estado: 'activo' | 'inactivo' | 'mantenimiento';
+  colegio_id: string;
+  conductor_id: string | null;
+  ruta_id: string | null;
+  creado_por: string;
+  // Campos join
+  colegio_nombre?: string;
+  conductor_nombre?: string;
+  ruta_nombre?: string;
 };
+
 
 export type OptimizedRouteResult = {
   routeOrder: string[];
