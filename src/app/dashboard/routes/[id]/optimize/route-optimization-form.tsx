@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Rocket, MapIcon, Clock, ListOrdered, CheckCircle, AlertTriangle, ExternalLink, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getOptimizedRoute, saveOptimizedRoute, type AIState } from './actions';
+import { getOptimizedRoute, saveOptimizedRoute, type AIState, type SaveState } from './actions';
 import type { Estudiante, Parada, Ruta, Colegio, OptimizedRouteResult } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,6 @@ type RouteOptimizationFormProps = {
 export function RouteOptimizationForm({ route, students }: RouteOptimizationFormProps) {
   const { toast } = useToast();
   
-  const [aiState, getOptimizedRouteAction] = useActionState(getOptimizedRoute, null);
   const [saveState, saveOptimizedRouteAction] = useActionState(saveOptimizedRoute, null);
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,22 +48,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     setDirections(null);
   }, [turno, route]);
 
-  // Handle AI optimization result
-  useEffect(() => {
-    if (aiState) {
-      setIsGenerating(false);
-      if (aiState.message) {
-        toast({
-          title: aiState.errors ? "Error de Optimización" : "Notificación de IA",
-          description: aiState.message,
-          variant: aiState.errors ? "destructive" : "default",
-        });
-      }
-      if (aiState.result?.optimizedRoute) {
-        setOptimizedRoute(aiState.result.optimizedRoute);
-      }
-    }
-  }, [aiState, toast]);
 
   // Handle Save action result
   useEffect(() => {
@@ -103,7 +86,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   }, [optimizedRoute, students, route.colegio.lat, route.colegio.lng, turno]);
 
 
-  const handleOptimize = () => {
+  const handleOptimize = async () => {
     setIsGenerating(true);
     setOptimizedRoute(null);
     setDirections(null);
@@ -131,18 +114,22 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     }
 
     formData.append('stops', JSON.stringify(stopsForTurno));
-    getOptimizedRouteAction(formData);
+    
+    const aiStateResult = await getOptimizedRoute(null, formData);
+
+    setIsGenerating(false);
+    if (aiStateResult.message) {
+      toast({
+        title: aiStateResult.errors ? "Error de Optimización" : "Notificación de IA",
+        description: aiStateResult.message,
+        variant: aiStateResult.errors ? "destructive" : "default",
+      });
+    }
+    if (aiStateResult.result?.optimizedRoute) {
+      setOptimizedRoute(aiStateResult.result.optimizedRoute);
+    }
   };
   
-  const handleSaveRoute = () => {
-    if (!optimizedRoute) return;
-    const formData = new FormData();
-    formData.append('routeId', route.id);
-    formData.append('turno', turno);
-    formData.append('optimizedRoute', JSON.stringify(optimizedRoute));
-    saveOptimizedRouteAction(formData);
-  }
-
   const directionsCallback = (response: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
     if (status === 'OK' && response) setDirections(response);
     else console.error(`Directions request failed due to ${status}`);
@@ -222,7 +209,12 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
                         </div>
                         <div className='flex gap-2'>
                              {googleMapsUrl && <Button asChild className="w-full" variant="outline"><a href={googleMapsUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4"/>Abrir en Google Maps</a></Button>}
-                             <form action={handleSaveRoute} className='w-full'><Button className="w-full"><Save className="mr-2 h-4 w-4" />Guardar Ruta</Button></form>
+                             <form action={saveOptimizedRouteAction} className='w-full'>
+                               <input type="hidden" name="routeId" value={route.id} />
+                               <input type="hidden" name="turno" value={turno} />
+                               <input type="hidden" name="optimizedRoute" value={JSON.stringify(optimizedRoute)} />
+                               <Button type="submit" className="w-full"><Save className="mr-2 h-4 w-4" />Guardar Ruta</Button>
+                              </form>
                         </div>
                     </CardContent>
                 </Card>
