@@ -31,15 +31,10 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
     async function fetchData() {
         const supabase = createClient();
         
-        // Fetch bus data with an explicit join to get conductor name regardless of status
+        // Fetch bus data from the view to get all joined names correctly
         const { data: busData, error: busError } = await supabase
-            .from('autobuses')
-            .select(`
-                *,
-                colegio:colegios(nombre),
-                conductor:conductores(nombre, apellido),
-                ruta:rutas(nombre)
-            `)
+            .from('autobuses_view')
+            .select('*')
             .eq('id', id)
             .single();
 
@@ -48,18 +43,10 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             setLoading(false);
             return;
         }
-
-        // Format the data to match the Autobus type with joined names
-        const formattedBus = {
-          ...busData,
-          colegio_nombre: busData.colegio?.nombre || 'No asignado',
-          conductor_nombre: busData.conductor ? `${busData.conductor.nombre} ${busData.conductor.apellido}` : 'No asignado',
-          ruta_nombre: busData.ruta?.nombre || 'No asignada',
-        } as Autobus;
         
-        setBus(formattedBus);
+        setBus(busData as Autobus);
         
-        const targetColegioId = formattedBus.colegio_id;
+        const targetColegioId = busData.colegio_id;
 
         if (user?.rol === 'master' || user?.rol === 'manager') {
             const { data: colegiosData } = await supabase.from('colegios_view').select('*').order('nombre');
