@@ -24,16 +24,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const formSchema = z.object({
+const createFormSchema = (userRole: User['rol']) => z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   apellido: z.string().min(1, 'El apellido es requerido'),
   licencia: z.string().min(1, 'La licencia es requerida'),
   telefono: z.string().optional().nullable(),
   avatar_url: z.string().url().optional().nullable(),
-  colegio_id: z.string({required_error: 'Se debe seleccionar un colegio.'}).uuid('ID de colegio inválido').optional().nullable(),
+  colegio_id: z.string().uuid('ID de colegio inválido').optional().nullable(),
+}).refine(data => {
+    if (userRole === 'master' || userRole === 'manager') {
+        return !!data.colegio_id;
+    }
+    return true;
+}, {
+    message: 'Se debe seleccionar un colegio.',
+    path: ['colegio_id'],
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 type AddDriverDialogProps = {
   isOpen: boolean;
@@ -48,6 +56,8 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
   
   const [colegios, setColegios] = useState<Colegio[]>([]);
   
+  const formSchema = createFormSchema(user.rol);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,32 +72,32 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
 
   useEffect(() => {
     async function fetchInitialData() {
-      if (!user) return;
-      
-      form.reset({
-        nombre: '',
-        apellido: '',
-        licencia: '',
-        telefono: '',
-        avatar_url: '',
-        colegio_id: null,
-      });
-      
-      const supabase = createClient();
-      
-      if (user.rol === 'master' || user.rol === 'manager') {
-        const { data } = await supabase.from('colegios_view').select('*').order('nombre');
-        setColegios(data || []);
-      } else if (user.rol === 'colegio') {
-        const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-        if (colegioData) {
-          form.setValue('colegio_id', colegioData.id);
+        if (!user) return;
+
+        form.reset({
+            nombre: '',
+            apellido: '',
+            licencia: '',
+            telefono: '',
+            avatar_url: '',
+            colegio_id: null,
+        });
+
+        const supabase = createClient();
+        
+        if (user.rol === 'master' || user.rol === 'manager') {
+            const { data } = await supabase.from('colegios_view').select('*').order('nombre');
+            setColegios(data || []);
+        } else if (user.rol === 'colegio') {
+            const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
+            if (colegioData) {
+                form.setValue('colegio_id', colegioData.id, { shouldValidate: true });
+            }
         }
-      }
     }
 
     if (isOpen) {
-      fetchInitialData();
+        fetchInitialData();
     }
   }, [isOpen, user, form]);
   
@@ -140,7 +150,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
               {(user.rol === 'master' || user.rol === 'manager') && (
                 <div className='space-y-1'>
                     <Label htmlFor="colegio_id">Colegio</Label>
-                    <Select onValueChange={(value) => form.setValue('colegio_id', value)} value={form.watch('colegio_id') || ''}>
+                    <Select onValueChange={(value) => form.setValue('colegio_id', value, { shouldValidate: true })} value={form.watch('colegio_id') || ''}>
                         <SelectTrigger><SelectValue placeholder="Selecciona un colegio" /></SelectTrigger>
                         <SelectContent>
                             {colegios.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
