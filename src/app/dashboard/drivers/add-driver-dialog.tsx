@@ -73,25 +73,14 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
   useEffect(() => {
     async function fetchInitialData() {
         if (!user) return;
-
-        form.reset({
-            nombre: '',
-            apellido: '',
-            licencia: '',
-            telefono: '',
-            avatar_url: '',
-            colegio_id: undefined,
-        });
-
-        const supabase = createClient();
         
-        if (user.rol === 'master' || user.rol === 'manager') {
-            const { data } = await supabase.from('colegios_view').select('*').order('nombre');
-            setColegios(data || []);
-        } else if (user.rol === 'colegio') {
+        const supabase = createClient();
+        let userColegioId: string | undefined = undefined;
+
+        if (user.rol === 'colegio') {
             const { data: colegioData, error } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
             if (colegioData?.id) {
-                form.setValue('colegio_id', colegioData.id, { shouldValidate: true });
+                userColegioId = colegioData.id;
             } else {
                 console.error("Could not find school for current user.", error);
                 toast({
@@ -100,13 +89,24 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
                     description: 'No se pudo encontrar el colegio asociado a tu cuenta.',
                 });
             }
+        } else if (user.rol === 'master' || user.rol === 'manager') {
+            const { data } = await supabase.from('colegios_view').select('*').order('nombre');
+            setColegios(data || []);
         }
+
+        form.reset({
+            nombre: '',
+            apellido: '',
+            licencia: '',
+            telefono: '',
+            avatar_url: '',
+            colegio_id: userColegioId,
+        });
     }
 
     if (isOpen) {
         fetchInitialData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user]);
   
   const onSubmit = async (values: FormValues) => {
