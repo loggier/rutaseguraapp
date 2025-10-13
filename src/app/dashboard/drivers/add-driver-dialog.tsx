@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,11 +38,10 @@ const adminSchema = baseSchema.extend({
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
 });
 
-// Esquema para rol 'colegio' donde el id es opcional en el form pero se asigna en el backend
+// Esquema para rol 'colegio' donde el id es obligatorio pero se asigna en el backend
 const colegioSchema = baseSchema.extend({
-    colegio_id: z.string().uuid().optional().nullable(),
+    colegio_id: z.string().uuid('ID de colegio es requerido.'),
 });
-
 
 type FormValues = z.infer<typeof baseSchema> & { colegio_id?: string | null };
 
@@ -69,7 +68,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         licencia: '',
         telefono: '',
         avatar_url: '',
-        colegio_id: undefined,
+        colegio_id: null,
     }
   });
 
@@ -78,26 +77,29 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         if (!user) return;
         
         const supabase = createClient();
-        let userColegioId: string | undefined = undefined;
-
+        
         if (user.rol === 'colegio') {
             const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-            if (colegioData?.id) {
-                userColegioId = colegioData.id;
-            }
+            form.reset({
+                nombre: '',
+                apellido: '',
+                licencia: '',
+                telefono: '',
+                avatar_url: '',
+                colegio_id: colegioData?.id || null,
+            });
         } else if (user.rol === 'master' || user.rol === 'manager') {
             const { data } = await supabase.from('colegios_view').select('*').order('nombre');
             setColegios(data || []);
+            form.reset({
+                nombre: '',
+                apellido: '',
+                licencia: '',
+                telefono: '',
+                avatar_url: '',
+                colegio_id: null,
+            });
         }
-
-        form.reset({
-            nombre: '',
-            apellido: '',
-            licencia: '',
-            telefono: '',
-            avatar_url: '',
-            colegio_id: userColegioId,
-        });
     }
 
     if (isOpen) {
@@ -105,7 +107,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     }
   }, [isOpen, user, form.reset]);
   
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = useCallback(async (values: FormValues) => {
     setIsPending(true);
     try {
       const response = await fetch('/api/drivers', {
@@ -136,7 +138,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     } finally {
       setIsPending(false);
     }
-  };
+  }, [user, onClose, onDriverAdded, toast]);
   
   if (!isOpen) return null;
 
