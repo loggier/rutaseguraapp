@@ -24,24 +24,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const createFormSchema = (userRole: User['rol']) => z.object({
+// Esquema base sin colegio_id
+const baseSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   apellido: z.string().min(1, 'El apellido es requerido'),
   licencia: z.string().min(1, 'La licencia es requerida'),
   telefono: z.string().optional().nullable(),
   avatar_url: z.string().url().optional().nullable(),
-  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
-}).refine(data => {
-    if (userRole === 'master' || userRole === 'manager') {
-        return !!data.colegio_id;
-    }
-    return true;
-}, {
-    message: 'Se debe seleccionar un colegio.',
-    path: ['colegio_id'],
 });
 
-type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
+// Esquema para administradores que deben seleccionar un colegio
+const adminSchema = baseSchema.extend({
+  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
+});
+
+// Esquema para rol 'colegio' donde el id es opcional en el form pero se asigna en el backend
+const colegioSchema = baseSchema.extend({
+    colegio_id: z.string().uuid().optional().nullable(),
+});
+
+
+type FormValues = z.infer<typeof baseSchema> & { colegio_id?: string | null };
 
 type AddDriverDialogProps = {
   isOpen: boolean;
@@ -56,7 +59,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
   
   const [colegios, setColegios] = useState<Colegio[]>([]);
   
-  const formSchema = createFormSchema(user.rol);
+  const formSchema = user.rol === 'master' || user.rol === 'manager' ? adminSchema : colegioSchema;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,16 +81,9 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         let userColegioId: string | undefined = undefined;
 
         if (user.rol === 'colegio') {
-            const { data: colegioData, error } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
+            const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
             if (colegioData?.id) {
                 userColegioId = colegioData.id;
-            } else {
-                console.error("Could not find school for current user.", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error de Configuración',
-                    description: 'No se pudo encontrar el colegio asociado a tu cuenta.',
-                });
             }
         } else if (user.rol === 'master' || user.rol === 'manager') {
             const { data } = await supabase.from('colegios_view').select('*').order('nombre');
@@ -107,7 +103,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     if (isOpen) {
         fetchInitialData();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, form.reset]);
   
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
