@@ -73,37 +73,32 @@ export function EditBusForm({ user, bus, colegios, allConductores, initialRutas 
   const watchedColegioId = form.watch('colegio_id');
 
   useEffect(() => {
-    async function fetchSubDataForColegio() {
-        if (!watchedColegioId) {
-            setFilteredConductores([]);
-            setRutas([]);
-            return;
-        }
+    async function updateRelatedData() {
+      if (!watchedColegioId) {
+        setFilteredConductores([]);
+        setRutas([]);
+        return;
+      }
+      
+      const newFilteredDrivers = allConductores.filter(c => c.colegio_id === watchedColegioId);
+      setFilteredConductores(newFilteredDrivers);
 
-        // Filter drivers on the client side if admin, otherwise they are already filtered.
-        if(user.rol === 'master' || user.rol === 'manager') {
-            setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
-        } else {
-            setFilteredConductores(allConductores); // For 'colegio' role, drivers are pre-filtered
-        }
+      const supabase = createClient();
+      const { data: rutasData } = await supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId);
+      setRutas(rutasData || []);
 
-        const supabase = createClient();
-        const { data: rutasData } = await supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId);
-        setRutas(rutasData || []);
+      const currentConductorId = form.getValues('conductor_id');
+      if (currentConductorId && !newFilteredDrivers.some(c => c.id === currentConductorId)) {
+        form.setValue('conductor_id', null, { shouldValidate: true });
+      }
 
-        // Reset conductor and ruta if they don't belong to the new colegio
-        const currentConductorId = form.getValues('conductor_id');
-        if (currentConductorId && !allConductores.some(c => c.id === currentConductorId && c.colegio_id === watchedColegioId)) {
-            form.setValue('conductor_id', null);
-        }
-        
-        const currentRutaId = form.getValues('ruta_id');
-        if(currentRutaId && !rutasData?.some(r => r.id === currentRutaId)) {
-            form.setValue('ruta_id', null);
-        }
+      const currentRutaId = form.getValues('ruta_id');
+      if (currentRutaId && !rutasData?.some(r => r.id === currentRutaId)) {
+        form.setValue('ruta_id', null, { shouldValidate: true });
+      }
     }
-    fetchSubDataForColegio();
-  }, [watchedColegioId, allConductores, user.rol, form]);
+    updateRelatedData();
+  }, [watchedColegioId, allConductores, form]);
 
 
   useEffect(() => {
