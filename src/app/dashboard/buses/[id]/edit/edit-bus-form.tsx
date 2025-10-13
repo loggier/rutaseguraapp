@@ -32,8 +32,8 @@ type EditBusFormProps = {
   user: User;
   bus: Autobus;
   colegios: Colegio[];
-  conductoresInit: Conductor[];
-  rutasInit: Ruta[];
+  allConductores: Conductor[];
+  initialRutas: Ruta[];
 };
 
 function SubmitButton() {
@@ -46,12 +46,12 @@ function SubmitButton() {
   );
 }
 
-export function EditBusForm({ user, bus, colegios, conductoresInit, rutasInit }: EditBusFormProps) {
+export function EditBusForm({ user, bus, colegios, allConductores, initialRutas }: EditBusFormProps) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [conductores, setConductores] = useState<Conductor[]>(conductoresInit);
-  const [rutas, setRutas] = useState<Ruta[]>(rutasInit);
+  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
+  const [rutas, setRutas] = useState<Ruta[]>(initialRutas);
   
   const initialState: State = { message: null, errors: {} };
   const updateBusWithParams = updateBus.bind(null, bus.id, user);
@@ -73,32 +73,38 @@ export function EditBusForm({ user, bus, colegios, conductoresInit, rutasInit }:
   const watchedColegioId = form.watch('colegio_id');
 
   useEffect(() => {
-    async function fetchSubData() {
+    async function fetchSubDataForColegio() {
         if (!watchedColegioId) {
-            setConductores([]);
+            setFilteredConductores([]);
             setRutas([]);
             return;
         }
+
+        // Filter drivers on the client side if admin, otherwise they are already filtered.
+        if(user.rol === 'master' || user.rol === 'manager') {
+            setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
+        } else {
+            setFilteredConductores(allConductores); // For 'colegio' role, drivers are pre-filtered
+        }
+
         const supabase = createClient();
-        const [{data: conductoresData}, {data: rutasData}] = await Promise.all([
-            supabase.from('conductores').select('*').eq('colegio_id', watchedColegioId).eq('activo', true),
-            supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId)
-        ]);
-        setConductores(conductoresData || []);
+        const { data: rutasData } = await supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId);
         setRutas(rutasData || []);
+
         // Reset conductor and ruta if they don't belong to the new colegio
-        if (!conductoresData?.some(c => c.id === form.getValues('conductor_id'))) {
+        const currentConductorId = form.getValues('conductor_id');
+        if (currentConductorId && !allConductores.some(c => c.id === currentConductorId && c.colegio_id === watchedColegioId)) {
             form.setValue('conductor_id', null);
         }
-        if (!rutasData?.some(r => r.id === form.getValues('ruta_id'))) {
+        
+        const currentRutaId = form.getValues('ruta_id');
+        if(currentRutaId && !rutasData?.some(r => r.id === currentRutaId)) {
             form.setValue('ruta_id', null);
         }
     }
+    fetchSubDataForColegio();
+  }, [watchedColegioId, allConductores, user.rol, form]);
 
-    if (user.rol === 'master' || user.rol === 'manager') {
-        fetchSubData();
-    }
-  }, [watchedColegioId, user.rol, form]);
 
   useEffect(() => {
     if (state.message) {
@@ -203,7 +209,7 @@ export function EditBusForm({ user, bus, colegios, conductoresInit, rutasInit }:
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar conductor" /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="NONE">Sin Asignar</SelectItem>
-                    {conductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
+                    {filteredConductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />

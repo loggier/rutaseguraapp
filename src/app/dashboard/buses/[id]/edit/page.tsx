@@ -29,6 +29,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
     }
     
     async function fetchData() {
+        setLoading(true);
         const supabase = createClient();
         
         // Fetch bus data from the view to get all joined names correctly
@@ -41,29 +42,49 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
         if (busError || !busData) {
             console.error("Error fetching bus:", busError);
             setLoading(false);
-            return;
+            // We don't return here so we can show notFound() later
+        } else {
+            setBus(busData as Autobus);
         }
         
-        setBus(busData as Autobus);
-        
-        const targetColegioId = busData.colegio_id;
+        const targetColegioId = busData?.colegio_id;
 
+        // Fetch all related data in parallel
+        const promises = [];
+        
         if (user?.rol === 'master' || user?.rol === 'manager') {
-            const { data: colegiosData } = await supabase.from('colegios_view').select('*').order('nombre');
-            setColegios(colegiosData || []);
+            promises.push(supabase.from('colegios_view').select('*').order('nombre'));
+            // Admins need all drivers to filter on the client side
+            promises.push(supabase.from('conductores').select('*'));
+        } else if (user?.rol === 'colegio' && targetColegioId) {
+            // Colegio user only needs their own drivers
+             promises.push(supabase.from('conductores').select('*').eq('colegio_id', targetColegioId));
         }
 
-        if (targetColegioId) {
-             const [
-                { data: conductoresData },
-                { data: rutasData }
-            ] = await Promise.all([
-                supabase.from('conductores').select('*').eq('colegio_id', targetColegioId),
-                supabase.from('rutas').select('*').eq('colegio_id', targetColegioId)
-            ]);
-            setConductores(conductoresData || []);
-            setRutas(rutasData || []);
+        // Always fetch routes for the bus's current school
+        if(targetColegioId) {
+            promises.push(supabase.from('rutas').select('*').eq('colegio_id', targetColegioId));
         }
+
+        const results = await Promise.all(promises);
+        let resultIndex = 0;
+        
+        if (user?.rol === 'master' || user?.rol === 'manager') {
+            const colegiosResult = results[resultIndex++];
+            setColegios(colegiosResult.data || []);
+            
+            const conductoresResult = results[resultIndex++];
+            setConductores(conductoresResult.data || []);
+        } else if (user?.rol === 'colegio') {
+             const conductoresResult = results[resultIndex++];
+             setConductores(conductoresResult.data || []);
+        }
+
+        if(targetColegioId) {
+            const rutasResult = results[resultIndex];
+            if (rutasResult) setRutas(rutasResult.data || []);
+        }
+
         setLoading(false);
     }
     
@@ -96,7 +117,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
           <CardDescription>Realiza los cambios necesarios y guarda.</CardDescription>
         </CardHeader>
         <CardContent>
-          <EditBusForm user={user} bus={bus} colegios={colegios} conductoresInit={conductores} rutasInit={rutas} />
+          <EditBusForm user={user} bus={bus} colegios={colegios} allConductores={conductores} initialRutas={rutas} />
         </CardContent>
       </Card>
     </div>
