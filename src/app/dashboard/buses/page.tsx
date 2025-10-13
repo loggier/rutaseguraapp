@@ -25,7 +25,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useUser } from '@/contexts/user-context';
 import { createClient } from '@/lib/supabase/client';
 import type { Autobus } from '@/lib/types';
-import Link from 'next/link';
 import { DeleteBusAlert } from './delete-bus-alert';
 import { AddBusDialog } from './add-bus-dialog';
 import { EditBusDialog } from './edit-bus-dialog';

@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -104,7 +105,7 @@ export type Autobus = {
   conductor_id: string | null;
   ruta_id: string | null;
   creado_por: string;
-  // Campos join
+  // Campos join desde la vista
   colegio_nombre?: string;
   conductor_nombre?: string;
   ruta_nombre?: string;
