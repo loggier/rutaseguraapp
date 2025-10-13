@@ -191,10 +191,10 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Conductor</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={!watchedColegioId && user.rol !== 'colegio'}>
+                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? ''} disabled={!watchedColegioId && user.rol !== 'colegio'}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar conductor" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="">Sin Asignar</SelectItem>
+                    <SelectItem value="NONE">Sin Asignar</SelectItem>
                     {conductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -208,10 +208,10 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Ruta Asignada</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value ?? undefined} disabled={!watchedColegioId && user.rol !== 'colegio'}>
+                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? ''} disabled={!watchedColegioId && user.rol !== 'colegio'}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar ruta" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="">Sin Asignar</SelectItem>
+                    <SelectItem value="NONE">Sin Asignar</SelectItem>
                     {rutas.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
                   </SelectContent>
                 </Select>
