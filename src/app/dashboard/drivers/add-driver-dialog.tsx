@@ -24,17 +24,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Make colegio_id always required in the frontend form validation
 const createFormSchema = (userRole: User['rol']) => z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   apellido: z.string().min(1, 'El apellido es requerido'),
   licencia: z.string().min(1, 'La licencia es requerida'),
   telefono: z.string().optional().nullable(),
   avatar_url: z.string().url().optional().nullable(),
-  colegio_id: z.string().uuid('ID de colegio inválido'),
+  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
 }).refine(data => {
-    // For admin roles, explicitly check they've selected a school.
-    // For 'colegio' role, the value is set programmatically.
     if (userRole === 'master' || userRole === 'manager') {
         return !!data.colegio_id;
     }
@@ -63,21 +60,27 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    // We don't set defaultValues here to let useEffect handle it.
+    defaultValues: {
+        nombre: '',
+        apellido: '',
+        licencia: '',
+        telefono: '',
+        avatar_url: '',
+        colegio_id: undefined,
+    }
   });
 
   useEffect(() => {
     async function fetchInitialData() {
         if (!user) return;
 
-        // Always reset form on open to ensure clean state
         form.reset({
             nombre: '',
             apellido: '',
             licencia: '',
             telefono: '',
             avatar_url: '',
-            colegio_id: undefined, // Start with undefined
+            colegio_id: undefined,
         });
 
         const supabase = createClient();
@@ -88,7 +91,6 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         } else if (user.rol === 'colegio') {
             const { data: colegioData, error } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
             if (colegioData?.id) {
-                // Set the value for colegio user and trigger validation
                 form.setValue('colegio_id', colegioData.id, { shouldValidate: true });
             } else {
                 console.error("Could not find school for current user.", error);
@@ -104,7 +106,8 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     if (isOpen) {
         fetchInitialData();
     }
-  }, [isOpen, user, form, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user]);
   
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
