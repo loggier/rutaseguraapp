@@ -1,8 +1,4 @@
 
-
-
-
-
 export type User = {
   id: string;
   nombre: string;
@@ -85,14 +81,15 @@ export type Conductor = {
   id: string;
   nombre: string;
   apellido: string;
-  email: string;
-  telefono: string;
   licencia: string;
+  telefono: string | null;
   activo: boolean;
-  avatar_url?: string | null;
+  avatar_url: string | null;
   colegio_id: string;
   creado_por: string;
   fecha_creacion: string;
+  // Join fields
+  colegio_nombre?: string;
 };
 
 export type Autobus = {
