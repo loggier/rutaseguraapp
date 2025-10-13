@@ -11,7 +11,7 @@ const formSchema = z.object({
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
   estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
-  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido').optional().nullable(),
+  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
 });

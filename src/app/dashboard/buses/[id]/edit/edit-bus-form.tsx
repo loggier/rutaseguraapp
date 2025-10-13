@@ -67,6 +67,36 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   });
 
   const watchedColegioId = form.watch('colegio_id');
+  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
+  const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
+
+  useEffect(() => {
+    // Pre-filter lists based on the initial bus data
+    if (bus.colegio_id) {
+      setFilteredConductores(allConductores.filter(c => c.colegio_id === bus.colegio_id));
+      setFilteredRutas(allRutas.filter(r => r.colegio_id === bus.colegio_id));
+    }
+  }, [bus.colegio_id, allConductores, allRutas]);
+  
+  useEffect(() => {
+    // When selected school changes, update the filtered lists
+    if (watchedColegioId) {
+      setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
+      setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
+      
+      // If the currently selected driver/route doesn't belong to the new school, reset them
+      if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
+        form.setValue('conductor_id', null);
+      }
+      if (!allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
+        form.setValue('ruta_id', null);
+      }
+
+    } else if (user.rol !== 'colegio') {
+      setFilteredConductores([]);
+      setFilteredRutas([]);
+    }
+  }, [watchedColegioId, allConductores, allRutas, form, user.rol]);
 
   useEffect(() => {
     if (state.message) {
@@ -77,20 +107,6 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
       });
     }
   }, [state, toast]);
-  
-  const filteredConductores = allConductores.filter(c => c.colegio_id === watchedColegioId);
-  const filteredRutas = allRutas.filter(r => r.colegio_id === watchedColegioId);
-
-  useEffect(() => {
-    const currentConductorId = form.getValues('conductor_id');
-    if (currentConductorId && !filteredConductores.some(c => c.id === currentConductorId)) {
-        form.setValue('conductor_id', null);
-    }
-    const currentRutaId = form.getValues('ruta_id');
-    if (currentRutaId && !filteredRutas.some(r => r.id === currentRutaId)) {
-        form.setValue('ruta_id', null);
-    }
-  }, [watchedColegioId, form]);
 
   return (
     <Form {...form}>

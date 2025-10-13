@@ -32,7 +32,7 @@ type AddBusFormProps = {
   user: User;
   colegios: Colegio[];
   allConductores: Conductor[];
-  initialRutas: Ruta[];
+  allRutas: Ruta[];
 };
 
 function SubmitButton() {
@@ -45,13 +45,10 @@ function SubmitButton() {
   );
 }
 
-export function AddBusForm({ user, colegios, allConductores, initialRutas }: AddBusFormProps) {
+export function AddBusForm({ user, colegios, allConductores, allRutas }: AddBusFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>(allConductores);
-  const [rutas, setRutas] = useState<Ruta[]>(initialRutas);
-
   const initialState: State = { message: null, errors: {} };
   const createBusWithUser = createBus.bind(null, user);
   const [state, formAction] = useActionState(createBusWithUser, initialState);
@@ -64,33 +61,34 @@ export function AddBusForm({ user, colegios, allConductores, initialRutas }: Add
       imei_gps: '',
       estado: 'activo',
       colegio_id: user.rol === 'colegio' ? undefined : undefined,
-      conductor_id: undefined,
-      ruta_id: undefined,
+      conductor_id: null,
+      ruta_id: null,
     },
   });
 
   const watchedColegioId = form.watch('colegio_id');
+  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
+  const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
 
   useEffect(() => {
-    async function updateRelatedData() {
-      if (!watchedColegioId) {
-        setFilteredConductores(user.rol === 'colegio' ? allConductores : []);
-        setRutas(user.rol === 'colegio' ? initialRutas : []);
-        return;
-      }
-      
-      const newFilteredDrivers = allConductores.filter(c => c.colegio_id === watchedColegioId);
-      setFilteredConductores(newFilteredDrivers);
+    if (user.rol === 'colegio') {
+      setFilteredConductores(allConductores);
+      setFilteredRutas(allRutas);
+    }
+  }, [user, allConductores, allRutas]);
 
-      const supabase = createClient();
-      const { data: rutasData } = await supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId);
-      setRutas(rutasData || []);
+  useEffect(() => {
+    if (watchedColegioId) {
+      setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
+      setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
+      form.setValue('conductor_id', null);
+      form.setValue('ruta_id', null);
+    } else if (user.rol !== 'colegio') {
+      setFilteredConductores([]);
+      setFilteredRutas([]);
     }
-    
-    if (user.rol === 'master' || user.rol === 'manager') {
-      updateRelatedData();
-    }
-  }, [watchedColegioId, user.rol, allConductores, initialRutas]);
+  }, [watchedColegioId, allConductores, allRutas, form, user.rol]);
+
 
   useEffect(() => {
     if (state.message) {
@@ -116,7 +114,7 @@ export function AddBusForm({ user, colegios, allConductores, initialRutas }: Add
               render={({ field }) => (
                 <FormItem className='space-y-1 md:col-span-2'>
                   <FormLabel>Colegio *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} name={field.name}>
+                  <Select onValueChange={field.onChange} value={field.value ?? undefined} name={field.name}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un colegio" />
@@ -191,7 +189,7 @@ export function AddBusForm({ user, colegios, allConductores, initialRutas }: Add
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Conductor</FormLabel>
-                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? ''} disabled={!watchedColegioId && user.rol !== 'colegio'}>
+                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? 'NONE'} disabled={!watchedColegioId && user.rol !== 'colegio'}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar conductor" /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="NONE">Sin Asignar</SelectItem>
@@ -208,11 +206,11 @@ export function AddBusForm({ user, colegios, allConductores, initialRutas }: Add
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Ruta Asignada</FormLabel>
-                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? ''} disabled={!watchedColegioId && user.rol !== 'colegio'}>
+                <Select onValueChange={(value) => field.onChange(value === 'NONE' ? null : value)} value={field.value ?? 'NONE'} disabled={!watchedColegioId && user.rol !== 'colegio'}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar ruta" /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="NONE">Sin Asignar</SelectItem>
-                    {rutas.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
+                    {filteredRutas.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
