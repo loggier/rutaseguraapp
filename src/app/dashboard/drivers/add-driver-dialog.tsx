@@ -30,7 +30,7 @@ const formSchema = z.object({
   licencia: z.string().min(1, 'La licencia es requerida'),
   telefono: z.string().optional().nullable(),
   avatar_url: z.string().url().optional().nullable(),
-  colegio_id: z.string({required_error: 'Se debe seleccionar un colegio.'}).uuid('ID de colegio inválido').nullable(),
+  colegio_id: z.string({required_error: 'Se debe seleccionar un colegio.'}).uuid('ID de colegio inválido').optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
