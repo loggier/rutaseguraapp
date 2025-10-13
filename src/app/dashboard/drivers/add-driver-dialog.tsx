@@ -39,7 +39,7 @@ const adminSchema = baseSchema.extend({
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
 });
 
-// Esquema para rol 'colegio' donde el id es obligatorio pero se asigna en el backend
+// Esquema para rol 'colegio' donde el id se asigna en el backend
 const colegioSchema = baseSchema.extend({
     colegio_id: z.string().uuid('ID de colegio es requerido.'),
 });
@@ -101,7 +101,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     if (isOpen) {
         fetchInitialData();
     }
-  }, [isOpen, user, form.reset, form.setValue]);
+  }, [isOpen, user]);
   
   const onSubmit = async (values: FormValues) => {
     setIsPending(true);
