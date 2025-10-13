@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+
 // Esquema base sin colegio_id
 const baseSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
@@ -43,7 +44,8 @@ const colegioSchema = baseSchema.extend({
     colegio_id: z.string().uuid('ID de colegio es requerido.'),
 });
 
-type FormValues = z.infer<typeof baseSchema> & { colegio_id?: string | null };
+
+type FormValues = z.infer<typeof adminSchema>;
 
 type AddDriverDialogProps = {
   isOpen: boolean;
@@ -55,9 +57,8 @@ type AddDriverDialogProps = {
 export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDriverDialogProps) {
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
-  
   const [colegios, setColegios] = useState<Colegio[]>([]);
-  
+
   const formSchema = user.rol === 'master' || user.rol === 'manager' ? adminSchema : colegioSchema;
 
   const form = useForm<FormValues>({
@@ -68,46 +69,41 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
         licencia: '',
         telefono: '',
         avatar_url: '',
-        colegio_id: null,
+        colegio_id: undefined,
     }
   });
 
   useEffect(() => {
     async function fetchInitialData() {
         if (!user) return;
-        
         const supabase = createClient();
         
+        form.reset({
+            nombre: '',
+            apellido: '',
+            licencia: '',
+            telefono: '',
+            avatar_url: '',
+            colegio_id: undefined,
+        });
+
         if (user.rol === 'colegio') {
             const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-            form.reset({
-                nombre: '',
-                apellido: '',
-                licencia: '',
-                telefono: '',
-                avatar_url: '',
-                colegio_id: colegioData?.id || null,
-            });
+            if (colegioData) {
+                form.setValue('colegio_id', colegioData.id);
+            }
         } else if (user.rol === 'master' || user.rol === 'manager') {
             const { data } = await supabase.from('colegios_view').select('*').order('nombre');
             setColegios(data || []);
-            form.reset({
-                nombre: '',
-                apellido: '',
-                licencia: '',
-                telefono: '',
-                avatar_url: '',
-                colegio_id: null,
-            });
         }
     }
 
     if (isOpen) {
         fetchInitialData();
     }
-  }, [isOpen, user, form.reset]);
+  }, [isOpen, user, form.reset, form.setValue]);
   
-  const onSubmit = useCallback(async (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     setIsPending(true);
     try {
       const response = await fetch('/api/drivers', {
@@ -138,7 +134,7 @@ export function AddDriverDialog({ isOpen, onClose, onDriverAdded, user }: AddDri
     } finally {
       setIsPending(false);
     }
-  }, [user, onClose, onDriverAdded, toast]);
+  };
   
   if (!isOpen) return null;
 
