@@ -14,7 +14,7 @@ export default function AddBusPage() {
   const { user } = useUser();
   const router = useRouter();
   const [colegios, setColegios] = useState<Colegio[]>([]);
-  const [conductores, setConductores] = useState<Conductor[]>([]);
+  const [allConductores, setAllConductores] = useState<Conductor[]>([]);
   const [rutas, setRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,8 +29,15 @@ export default function AddBusPage() {
     async function fetchInitialData() {
         const supabase = createClient();
         if (user?.rol === 'master' || user?.rol === 'manager') {
-            const { data: colegiosData } = await supabase.from('colegios_view').select('*').order('nombre');
+            const [
+              { data: colegiosData },
+              { data: conductoresData }
+            ] = await Promise.all([
+              supabase.from('colegios_view').select('*').order('nombre'),
+              supabase.from('conductores_view').select('*')
+            ]);
             setColegios(colegiosData || []);
+            setAllConductores(conductoresData || []);
         } else if (user?.rol === 'colegio') {
              const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
              if (colegioData) {
@@ -38,10 +45,10 @@ export default function AddBusPage() {
                      { data: conductoresData },
                      { data: rutasData }
                  ] = await Promise.all([
-                    supabase.from('conductores').select('*').eq('colegio_id', colegioData.id),
+                    supabase.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
                     supabase.from('rutas').select('*').eq('colegio_id', colegioData.id)
                  ]);
-                 setConductores(conductoresData || []);
+                 setAllConductores(conductoresData || []);
                  setRutas(rutasData || []);
              }
         }
@@ -74,7 +81,7 @@ export default function AddBusPage() {
           <CardDescription>Los campos marcados con * son obligatorios.</CardDescription>
         </CardHeader>
         <CardContent>
-          <AddBusForm user={user} colegios={colegios} conductoresInit={conductores} rutasInit={rutas} />
+          <AddBusForm user={user} colegios={colegios} allConductores={allConductores} initialRutas={rutas} />
         </CardContent>
       </Card>
     </div>

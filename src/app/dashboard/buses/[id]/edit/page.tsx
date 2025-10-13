@@ -16,8 +16,8 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   const [bus, setBus] = useState<Autobus | null>(null);
   const [colegios, setColegios] = useState<Colegio[]>([]);
-  const [conductores, setConductores] = useState<Conductor[]>([]);
-  const [rutas, setRutas] = useState<Ruta[]>([]);
+  const [allConductores, setAllConductores] = useState<Conductor[]>([]);
+  const [initialRutas, setInitialRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
   const { id } = use(params);
 
@@ -32,7 +32,6 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
         setLoading(true);
         const supabase = createClient();
         
-        // Fetch bus data from the view to get all joined names correctly
         const { data: busData, error: busError } = await supabase
             .from('autobuses_view')
             .select('*')
@@ -41,27 +40,22 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
 
         if (busError || !busData) {
             console.error("Error fetching bus:", busError);
-            setLoading(false);
-            // We don't return here so we can show notFound() later
+            setBus(null);
         } else {
             setBus(busData as Autobus);
         }
         
         const targetColegioId = busData?.colegio_id;
 
-        // Fetch all related data in parallel
-        const promises = [];
+        const promises: Promise<any>[] = [];
         
         if (user?.rol === 'master' || user?.rol === 'manager') {
             promises.push(supabase.from('colegios_view').select('*').order('nombre'));
-            // Admins need all drivers to filter on the client side
-            promises.push(supabase.from('conductores').select('*'));
+            promises.push(supabase.from('conductores_view').select('*'));
         } else if (user?.rol === 'colegio' && targetColegioId) {
-            // Colegio user only needs their own drivers
-             promises.push(supabase.from('conductores').select('*').eq('colegio_id', targetColegioId));
+             promises.push(supabase.from('conductores_view').select('*').eq('colegio_id', targetColegioId));
         }
 
-        // Always fetch routes for the bus's current school
         if(targetColegioId) {
             promises.push(supabase.from('rutas').select('*').eq('colegio_id', targetColegioId));
         }
@@ -74,15 +68,15 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             setColegios(colegiosResult.data || []);
             
             const conductoresResult = results[resultIndex++];
-            setConductores(conductoresResult.data || []);
+            setAllConductores(conductoresResult.data || []);
         } else if (user?.rol === 'colegio') {
              const conductoresResult = results[resultIndex++];
-             setConductores(conductoresResult.data || []);
+             setAllConductores(conductoresResult.data || []);
         }
 
         if(targetColegioId) {
             const rutasResult = results[resultIndex];
-            if (rutasResult) setRutas(rutasResult.data || []);
+            if (rutasResult) setInitialRutas(rutasResult.data || []);
         }
 
         setLoading(false);
@@ -117,7 +111,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
           <CardDescription>Realiza los cambios necesarios y guarda.</CardDescription>
         </CardHeader>
         <CardContent>
-          <EditBusForm user={user} bus={bus} colegios={colegios} allConductores={conductores} initialRutas={rutas} />
+          <EditBusForm user={user} bus={bus} colegios={colegios} allConductores={allConductores} initialRutas={initialRutas} />
         </CardContent>
       </Card>
     </div>

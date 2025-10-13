@@ -31,8 +31,8 @@ type FormValues = z.infer<typeof formSchema>;
 type AddBusFormProps = {
   user: User;
   colegios: Colegio[];
-  conductoresInit: Conductor[];
-  rutasInit: Ruta[];
+  allConductores: Conductor[];
+  initialRutas: Ruta[];
 };
 
 function SubmitButton() {
@@ -45,12 +45,12 @@ function SubmitButton() {
   );
 }
 
-export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBusFormProps) {
+export function AddBusForm({ user, colegios, allConductores, initialRutas }: AddBusFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [conductores, setConductores] = useState<Conductor[]>(conductoresInit);
-  const [rutas, setRutas] = useState<Ruta[]>(rutasInit);
+  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>(allConductores);
+  const [rutas, setRutas] = useState<Ruta[]>(initialRutas);
 
   const initialState: State = { message: null, errors: {} };
   const createBusWithUser = createBus.bind(null, user);
@@ -63,7 +63,7 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
       capacidad: 20,
       imei_gps: '',
       estado: 'activo',
-      colegio_id: undefined,
+      colegio_id: user.rol === 'colegio' ? undefined : undefined,
       conductor_id: undefined,
       ruta_id: undefined,
     },
@@ -72,25 +72,25 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
   const watchedColegioId = form.watch('colegio_id');
 
   useEffect(() => {
-    async function fetchSubData() {
-        if (!watchedColegioId) {
-            setConductores([]);
-            setRutas([]);
-            return;
-        }
-        const supabase = createClient();
-        const [{data: conductoresData}, {data: rutasData}] = await Promise.all([
-            supabase.from('conductores').select('*').eq('colegio_id', watchedColegioId).eq('activo', true),
-            supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId)
-        ]);
-        setConductores(conductoresData || []);
-        setRutas(rutasData || []);
-    }
+    async function updateRelatedData() {
+      if (!watchedColegioId) {
+        setFilteredConductores(user.rol === 'colegio' ? allConductores : []);
+        setRutas(user.rol === 'colegio' ? initialRutas : []);
+        return;
+      }
+      
+      const newFilteredDrivers = allConductores.filter(c => c.colegio_id === watchedColegioId);
+      setFilteredConductores(newFilteredDrivers);
 
-    if (user.rol === 'master' || user.rol === 'manager') {
-        fetchSubData();
+      const supabase = createClient();
+      const { data: rutasData } = await supabase.from('rutas').select('*').eq('colegio_id', watchedColegioId);
+      setRutas(rutasData || []);
     }
-  }, [watchedColegioId, user.rol]);
+    
+    if (user.rol === 'master' || user.rol === 'manager') {
+      updateRelatedData();
+    }
+  }, [watchedColegioId, user.rol, allConductores, initialRutas]);
 
   useEffect(() => {
     if (state.message) {
@@ -195,7 +195,7 @@ export function AddBusForm({ user, colegios, conductoresInit, rutasInit }: AddBu
                   <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar conductor" /></SelectTrigger></FormControl>
                   <SelectContent>
                     <SelectItem value="NONE">Sin Asignar</SelectItem>
-                    {conductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
+                    {filteredConductores.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre} {c.apellido}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
