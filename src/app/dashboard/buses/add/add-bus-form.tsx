@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
 import { createBus, type State } from './actions';
-import type { User, Colegio, Conductor, Ruta } from '@/contexts/user-context';
+import type { User, Colegio, Conductor, Ruta } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from '@/lib/supabase/client';
 

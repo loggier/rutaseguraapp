@@ -52,6 +52,11 @@ export async function getBusData(busId: string, user: User) {
     let colegios: Colegio[] = [];
     let allConductores: Conductor[] = [];
     let allRutas: Ruta[] = [];
+    
+    // Get all assigned driver IDs to exclude them, but keep the current one
+    const { data: assignedBuses } = await supabaseAdmin.from('autobuses').select('conductor_id').not('conductor_id', 'is', null);
+    const assignedDriverIds = (assignedBuses || []).map(b => b.conductor_id).filter(id => id !== bus.conductor_id);
+
 
     if (user.rol === 'master' || user.rol === 'manager') {
         const [
@@ -64,8 +69,9 @@ export async function getBusData(busId: string, user: User) {
             supabaseAdmin.from('rutas').select('*')
         ]);
         colegios = colegiosData || [];
-        allConductores = conductoresData || [];
+        allConductores = (conductoresData || []).filter(c => !assignedDriverIds.includes(c.id));
         allRutas = rutasData || [];
+
     } else if (user.rol === 'colegio') {
         const { data: colegioData } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', user.id).single();
         if (colegioData) {
@@ -76,7 +82,7 @@ export async function getBusData(busId: string, user: User) {
                 supabaseAdmin.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
                 supabaseAdmin.from('rutas').select('*').eq('colegio_id', colegioData.id)
             ]);
-            allConductores = conductoresData || [];
+            allConductores = (conductoresData || []).filter(c => !assignedDriverIds.includes(c.id));
             allRutas = rutasData || [];
         }
     }
@@ -149,5 +155,6 @@ export async function updateBus(busId: string, user: User, values: FormValues): 
 
   revalidatePath('/dashboard/buses');
   revalidatePath(`/dashboard/buses/${busId}/edit`);
+  revalidatePath('/dashboard/drivers');
   return { message: 'Autobús actualizado con éxito.', success: true };
 }

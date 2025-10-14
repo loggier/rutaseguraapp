@@ -107,5 +107,6 @@ export async function createBus(user: User, prevState: State, formData: FormData
   }
 
   revalidatePath('/dashboard/buses');
+  revalidatePath('/dashboard/drivers');
   redirect('/dashboard/buses');
 }

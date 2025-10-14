@@ -52,7 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('conductores_view').select(`*, autobus_asignado:autobuses(matricula)`);
+      let query = supabase.from('conductores_view').select('*');
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -68,12 +68,21 @@ function DriversPageComponent() {
       }
 
       const { data: driversData, error: driversError } = await query.order('apellido');
-
       if (driversError) throw driversError;
+
+      // Get bus assignments
+      const { data: busAssignments, error: busError } = await supabase
+        .from('autobuses')
+        .select('conductor_id, matricula')
+        .not('conductor_id', 'is', null);
+
+      if (busError) throw busError;
       
+      const busMap = new Map(busAssignments.map(b => [b.conductor_id, b.matricula]));
+
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
-          bus_asignado: Array.isArray(driver.autobus_asignado) && driver.autobus_asignado.length > 0 ? driver.autobus_asignado[0].matricula : null,
+          bus_asignado: busMap.get(driver.id) || null,
       }));
 
       setDrivers(formattedData as Conductor[]);
@@ -94,6 +103,7 @@ function DriversPageComponent() {
   
   const handleDriverUpdated = (updatedDriver: Conductor) => {
     setDrivers(prev => prev.map(driver => driver.id === updatedDriver.id ? updatedDriver : driver));
+    fetchDrivers(); // Re-fetch to update assignment info
   };
 
   const handleDriverStatusUpdated = (driverId: string, newStatus: boolean) => {

@@ -28,6 +28,11 @@ export default function AddBusPage() {
     
     async function fetchInitialData() {
         const supabase = createClient();
+        
+        // Get all assigned driver IDs to exclude them
+        const { data: assignedBuses } = await supabase.from('autobuses').select('conductor_id').not('conductor_id', 'is', null);
+        const assignedDriverIds = (assignedBuses || []).map(b => b.conductor_id);
+
         if (user?.rol === 'master' || user?.rol === 'manager') {
             const [
               { data: colegiosData },
@@ -37,7 +42,8 @@ export default function AddBusPage() {
               supabase.from('conductores_view').select('*')
             ]);
             setColegios(colegiosData || []);
-            setAllConductores(conductoresData || []);
+            setAllConductores((conductoresData || []).filter(c => !assignedDriverIds.includes(c.id)));
+
         } else if (user?.rol === 'colegio') {
              const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
              if (colegioData) {
@@ -48,7 +54,7 @@ export default function AddBusPage() {
                     supabase.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
                     supabase.from('rutas').select('*').eq('colegio_id', colegioData.id)
                  ]);
-                 setAllConductores(conductoresData || []);
+                 setAllConductores((conductoresData || []).filter(c => !assignedDriverIds.includes(c.id)));
                  setRutas(rutasData || []);
              }
         }
@@ -81,7 +87,7 @@ export default function AddBusPage() {
           <CardDescription>Los campos marcados con * son obligatorios.</CardDescription>
         </CardHeader>
         <CardContent>
-          <AddBusForm user={user} colegios={colegios} allConductores={allConductores} initialRutas={rutas} />
+          <AddBusForm user={user} colegios={colegios} allConductores={allConductores} allRutas={rutas} />
         </CardContent>
       </Card>
     </div>
