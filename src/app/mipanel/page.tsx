@@ -168,22 +168,25 @@ export default function MiPanelPage() {
                 const avatarSize = size * 0.7;
                 const avatarX = (size - avatarSize) / 2;
                 const avatarY = (size - avatarSize) / 2;
+                const clipId = `clip_${hijo.id}`;
+                
+                const avatarUrl = hijo.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(hijo.nombre)}+${encodeURIComponent(hijo.apellido)}&background=fff&color=0D2C5B&bold=true`;
 
                 const svg = `
                     <svg width="${size}" height="${size}" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                       <defs>
-                        <clipPath id="circleClip">
-                          <circle cx="${size / 2}" cy="${size / 2}" r="${avatarSize / 2}" />
+                        <clipPath id="${clipId}">
+                          <circle cx="25" cy="21" r="${avatarSize * 0.4}" />
                         </clipPath>
                       </defs>
                       <path fill="${pinColor}" d="M25,0 C13.4,0 4,9.4 4,21 C4,33.4 25,50 25,50 C25,50 46,33.4 46,21 C46,9.4 36.6,0 25,0 Z" />
                       <image
-                        href="${hijo.avatar_url || `https://ui-avatars.com/api/?name=${hijo.nombre}+${hijo.apellido}&background=fff&color=0D2C5B&bold=true`}"
+                        href="${avatarUrl}"
                         x="${avatarX}"
-                        y="${avatarY}"
+                        y="${avatarY * 0.8}"
                         height="${avatarSize}"
                         width="${avatarSize}"
-                        clip-path="url(#circleClip)"
+                        clip-path="url(#${clipId})"
                       />
                     </svg>
                 `.trim();
