@@ -42,6 +42,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             console.error("Error fetching bus:", busError);
             setBus(null);
             setLoading(false);
+            notFound();
             return;
         } 
         
@@ -61,14 +62,16 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             setAllConductores(conductoresData || []);
             setAllRutas(rutasData || []);
         } else if (user.rol === 'colegio') {
-            const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
-            if (colegioData) {
+            // A 'colegio' user should only see their own drivers and routes.
+            // We get the colegio_id from the bus being edited.
+            const targetColegioId = busData?.colegio_id;
+            if (targetColegioId) {
               const [
                 { data: conductoresData },
                 { data: rutasData }
               ] = await Promise.all([
-                supabase.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
-                supabase.from('rutas').select('*').eq('colegio_id', colegioData.id)
+                supabase.from('conductores_view').select('*').eq('colegio_id', targetColegioId),
+                supabase.from('rutas').select('*').eq('colegio_id', targetColegioId)
               ]);
               setAllConductores(conductoresData || []);
               setAllRutas(rutasData || []);
@@ -92,7 +95,12 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
   }
 
   if (!bus) {
-    notFound();
+    // This will be handled by notFound() inside useEffect, but as a fallback:
+    return (
+        <div className="flex h-64 w-full items-center justify-center">
+            <p className="text-muted-foreground">Autobús no encontrado.</p>
+        </div>
+    );
   }
 
   return (

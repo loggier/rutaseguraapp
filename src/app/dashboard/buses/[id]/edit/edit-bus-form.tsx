@@ -76,6 +76,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
     
+    // This logic runs on first load to set the initial lists
     if (user.rol === 'colegio') {
       initialConductores = allConductores;
       initialRutas = allRutas;
@@ -90,12 +91,14 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   }, [bus.colegio_id, allConductores, allRutas, user.rol]);
   
   
+  // This logic runs when the user changes the selected school
   useEffect(() => {
     if (user.rol === 'master' || user.rol === 'manager') {
       if (watchedColegioId) {
         setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
+        // Reset conductor and ruta if they don't belong to the new school
         if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
@@ -111,7 +114,8 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
 
   useEffect(() => {
     if (!state) return;
-
+    
+    // If there are specific field errors, set them in the form.
     if (state.errors) {
         let hasShownToast = false;
         Object.entries(state.errors).forEach(([field, messages]) => {
@@ -120,7 +124,8 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
                     type: 'server',
                     message: messages.join(', '),
                 });
-                 if (!hasShownToast) {
+                // Show a generic toast only once if there are field errors
+                if (!hasShownToast) {
                     toast({
                         variant: "destructive",
                         title: "Error de Validación",
@@ -131,6 +136,8 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
             }
         });
     } else if (state.message) {
+      // If there are no field errors but there is a message, show it.
+      // This covers success messages and general server errors.
       toast({
         variant: state.message.startsWith('Error') ? "destructive" : "default",
         title: state.message.startsWith('Error') ? "Error" : "Éxito",
@@ -138,6 +145,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
       });
     }
 }, [state, toast, form]);
+
 
   return (
     <Form {...form}>

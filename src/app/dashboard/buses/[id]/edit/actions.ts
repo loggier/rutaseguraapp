@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { User } from '@/contexts/user-context';
+import type { User, Autobus } from '@/lib/types';
 
 const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
