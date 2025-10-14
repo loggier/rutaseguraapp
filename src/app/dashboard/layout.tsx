@@ -9,7 +9,7 @@ import {
   Menu, Bell, LogOut, Loader2, Shield, School, Contact,
 } from 'lucide-react';
 import {
-  Sheet, SheetContent, SheetTrigger,
+  Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,6 +82,9 @@ function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="flex flex-col">
+        <SheetHeader>
+          <SheetTitle className='sr-only'>Menú de Navegación</SheetTitle>
+        </SheetHeader>
         <nav className="grid gap-2 text-lg font-medium">
           <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold mb-4">
              <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} />
