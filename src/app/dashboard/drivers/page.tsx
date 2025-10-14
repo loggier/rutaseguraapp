@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, User, School, Loader2, AlertCircle, Trash2, Edit, UserCheck, UserX } from "lucide-react";
+import { MoreHorizontal, PlusCircle, User, School, Loader2, AlertCircle, Trash2, Edit, UserCheck, UserX, Bus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -52,7 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('conductores_view').select(`*`);
+      let query = supabase.from('conductores_view').select(`*, bus_asignado:autobuses(matricula)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -71,7 +71,12 @@ function DriversPageComponent() {
 
       if (driversError) throw driversError;
       
-      setDrivers(driversData as Conductor[]);
+      const formattedData = driversData.map((driver: any) => ({
+          ...driver,
+          bus_asignado: Array.isArray(driver.bus_asignado) && driver.bus_asignado.length > 0 ? driver.bus_asignado[0].matricula : null,
+      }));
+
+      setDrivers(formattedData as Conductor[]);
 
     } catch (err: any) {
       console.error("Error cargando conductores:", err);
@@ -126,6 +131,7 @@ function DriversPageComponent() {
             <TableHead>Nombre</TableHead>
             <TableHead>Licencia</TableHead>
             {isAdmin && <TableHead>Colegio</TableHead>}
+            <TableHead>Autobús Asignado</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>
               <span className="sr-only">Acciones</span>
@@ -156,6 +162,16 @@ function DriversPageComponent() {
                   </div>
                 </TableCell>
               )}
+              <TableCell>
+                {conductor.bus_asignado ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Bus className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant="outline">{conductor.bus_asignado}</Badge>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">No asignado</span>
+                )}
+              </TableCell>
               <TableCell>
                 <Badge variant={getStatusVariant(conductor.activo)}>{conductor.activo ? 'Activo' : 'Inactivo'}</Badge>
               </TableCell>
