@@ -3,6 +3,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -94,8 +95,7 @@ export type Conductor = {
   fecha_creacion: string;
   // Join fields
   colegio_nombre?: string;
-  bus_asignado?: string | null;
-  autobuses?: { matricula: string }[] | null;
+  placa_autobus?: string | null;
 };
 
 export type Autobus = {

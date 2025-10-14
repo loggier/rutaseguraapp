@@ -52,7 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let driversQuery = supabase.from('conductores_view').select(`*, autobuses!conductor_id(matricula)`);
+      let driversQuery = supabase.from('conductores_view').select('*');
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -70,12 +70,7 @@ function DriversPageComponent() {
       const { data: driversData, error: driversError } = await driversQuery.order('apellido');
       if (driversError) throw driversError;
 
-      const formattedData = driversData.map((driver: any) => ({
-          ...driver,
-          bus_asignado: (driver.autobuses && driver.autobuses.length > 0) ? driver.autobuses[0].matricula : null,
-      }));
-
-      setDrivers(formattedData as Conductor[]);
+      setDrivers(driversData as Conductor[]);
 
     } catch (err: any) {
       console.error("Error cargando conductores:", err);
@@ -163,10 +158,10 @@ function DriversPageComponent() {
                 </TableCell>
               )}
               <TableCell>
-                {conductor.bus_asignado ? (
+                {conductor.placa_autobus ? (
                   <div className="flex items-center gap-2 text-sm">
                     <Bus className="h-4 w-4 text-muted-foreground" />
-                    <Badge variant="outline">{conductor.bus_asignado}</Badge>
+                    <Badge variant="outline">{conductor.placa_autobus}</Badge>
                   </div>
                 ) : (
                   <span className="text-muted-foreground text-sm">No asignado</span>
