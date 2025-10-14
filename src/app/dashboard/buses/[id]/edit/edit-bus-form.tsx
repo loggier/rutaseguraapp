@@ -70,6 +70,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
 
+  // Effect to initialize lists based on the bus's initial school
   useEffect(() => {
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
@@ -86,12 +87,14 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
     setFilteredRutas(initialRutas);
   }, [bus.colegio_id, allConductores, allRutas, user.rol]);
   
+  // Effect to update lists when the school selection changes (for admin roles)
   useEffect(() => {
     if (user.rol === 'master' || user.rol === 'manager') {
       if (watchedColegioId) {
         setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
+        // Reset dependent fields if they don't belong to the new school
         if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
@@ -107,28 +110,30 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
 
   useEffect(() => {
     if (!state) return;
-    if (state.message && !state.errors) {
-        toast({
-            title: "Éxito",
-            description: state.message,
-        });
-    }
-    if (state.message && state.errors) {
-      toast({
-          variant: "destructive",
-          title: "Error al Actualizar",
-          description: state.message,
-      });
-      // Set errors on the form fields
+
+    // Si hay errores de campos, los asigna al formulario
+    if (state.errors) {
+      // Limpiar errores previos
+      form.clearErrors();
       for (const [field, messages] of Object.entries(state.errors)) {
-          if (messages) {
-              form.setError(field as keyof FormValues, {
-                  type: 'server',
-                  message: messages.join(', '),
-              });
-          }
+        if (messages) {
+          form.setError(field as keyof FormValues, {
+            type: 'server',
+            message: messages.join(', '),
+          });
+        }
       }
     }
+
+    // Si hay un mensaje, muestra el toast (ya sea de éxito o error general)
+    if (state.message) {
+      toast({
+        variant: state.errors ? "destructive" : "default",
+        title: state.errors ? "Error al Actualizar" : "Éxito",
+        description: state.message,
+      });
+    }
+
   }, [state, toast, form]);
 
   return (
