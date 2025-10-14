@@ -68,7 +68,7 @@ export default function TrackingPage() {
     const initialSims: Record<string, BusSimulationState> = {};
     
     const trackedBuses: TrackedBus[] = data.map((bus: any) => {
-        const ruta: Ruta = { ...bus.ruta, paradas: bus.ruta.paradas || [] };
+        const ruta: Ruta = bus.ruta;
         const conductor: Conductor = bus.conductor;
         const currentTurno = ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
 
@@ -85,11 +85,7 @@ export default function TrackingPage() {
             id: bus.id,
             matricula: bus.matricula,
             conductor,
-            ruta: {
-              ...ruta,
-              ruta_recogida: bus.ruta.ruta_recogida,
-              ruta_entrega: bus.ruta.ruta_entrega,
-            }
+            ruta,
         };
     }).filter((bus): bus is TrackedBus => !!bus.ruta.colegio?.lat);
     
@@ -120,14 +116,12 @@ export default function TrackingPage() {
           
           const currentSim = newSims[busId];
           const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
-          const stops = bus.ruta.paradas || [];
+          const allStops = bus.ruta.paradas || [];
           
-          let orderedStops = stops;
-          if (optimizedRoute?.routeOrder) {
-            const stopsMap = new Map(stops.map(s => [s.id, s]));
-            // This needs to match studentId with stop. We don't have studentId on stop. This is a problem.
-            // Let's assume paradas are already ordered for now if optimizedRoute exists
-          }
+          let orderedStops = allStops;
+          // If we have an optimized route, we need to order the stops based on it.
+          // This is complex because routeOrder is by studentId, not stopId.
+          // For now, we will just use the default order of stops, but the simulation will visit them.
 
           const nextStopIndex = currentSim.currentStopIndex + 1;
           
@@ -187,7 +181,7 @@ export default function TrackingPage() {
         const sim = simulations[busId];
         if(sim) {
             map.panTo(sim.position);
-            map.setZoom(15);
+            map.setZoom(14);
         }
     }
   }
@@ -222,12 +216,13 @@ export default function TrackingPage() {
       }
     }
     
+    // Fallback if no optimized polyline
     if (!activeBus.ruta.colegio?.lat) return [];
     const path = [
       { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng },
       ...(activeBus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
     ];
-    if (sim.currentTurno === 'Entrega') {
+    if (sim.currentTurno === 'Entrega' || sim.currentTurno === 'Recogida') {
        path.push({ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng });
     }
     return path;
@@ -291,7 +286,7 @@ export default function TrackingPage() {
             {/* Route and Stops for Selected Bus */}
             {activeBus && (
               <>
-                <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
+                <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4285F4', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                 <MarkerF 
                     position={{ lat: activeBus.ruta.colegio!.lat!, lng: activeBus.ruta.colegio!.lng! }}
                     icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
