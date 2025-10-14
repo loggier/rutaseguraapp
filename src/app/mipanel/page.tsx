@@ -210,7 +210,7 @@ export default function MiPanelPage() {
                             key={bus.id}
                             position={sim.position} 
                             icon={{
-                                url: '/bus.svg',
+                                url: '/bus.png',
                                 scaledSize: new google.maps.Size(isActive ? 48 : 36, isActive ? 48 : 36),
                                 anchor: new google.maps.Point(isActive ? 24 : 18, isActive ? 24 : 18),
                             }}
