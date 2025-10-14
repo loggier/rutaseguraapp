@@ -114,23 +114,31 @@ export default function TrackingPage() {
           if (!bus || !bus.ruta.colegio?.lat) return;
           
           const currentSim = newSims[busId];
-          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_optimizada_recogida : bus.ruta.ruta_optimizada_entrega;
+          
+          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
           const allStops = bus.ruta.paradas || [];
           
           let orderedStops: Parada[] = [];
           if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
             const stopsMap = new Map(allStops.map(s => [s.id, s]));
+            
+             const studentIdToParadaIdMap = new Map<string, string>();
+             bus.ruta.estudiantes?.forEach(est => {
+                 const parada = bus.ruta.paradas?.find(p => p.estudiante_id === est.id && p.tipo === currentSim.currentTurno && p.activo);
+                 if(parada) {
+                     studentIdToParadaIdMap.set(est.student_id, parada.id);
+                 }
+             });
+
             orderedStops = optimizedRoute.routeOrder
               .map(studentId => {
-                 const student = bus.ruta.estudiantes?.find(e => e.student_id === studentId);
-                 const parada = bus.ruta.paradas?.find(p => p.estudiante_id === student?.id && p.tipo === currentSim.currentTurno);
-                 return parada;
+                 const paradaId = studentIdToParadaIdMap.get(studentId);
+                 return paradaId ? stopsMap.get(paradaId) : undefined;
               })
               .filter((s): s is Parada => !!s);
           } else {
              orderedStops = allStops.filter(s => s.tipo === currentSim.currentTurno);
           }
-
 
           const nextStopIndex = currentSim.currentStopIndex + 1;
           
@@ -214,10 +222,10 @@ export default function TrackingPage() {
     if (!sim) return [];
 
     const optimizedRoute = sim.currentTurno === 'Recogida'
-      ? activeBus.ruta.ruta_optimizada_recogida
-      : activeBus.ruta.ruta_optimizada_entrega;
+      ? activeBus.ruta.ruta_recogida
+      : activeBus.ruta.ruta_entrega;
       
-    if (optimizedRoute && typeof optimizedRoute.polyline === 'string') {
+    if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
       try {
         return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
       } catch (e) {
