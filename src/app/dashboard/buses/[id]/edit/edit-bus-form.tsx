@@ -71,7 +71,6 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const watchedColegioId = form.watch('colegio_id');
   
   useEffect(() => {
-    // Cuando el colegio cambia, reseteamos las selecciones de conductor y ruta si no pertenecen al nuevo colegio
     if (user.rol === 'master' || user.rol === 'manager') {
       if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
         form.setValue('conductor_id', null);
@@ -84,17 +83,16 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
 
   useEffect(() => {
     if (!state) return;
-    
-    // Si hay errores específicos de campo, los distribuimos
+
     if (state.errors) {
       let hasShownToast = false;
       Object.entries(state.errors).forEach(([field, messages]) => {
+        if (field === '_form') return;
         if (messages) {
           form.setError(field as keyof FormValues, {
             type: 'server',
             message: messages.join(', '),
           });
-          // Mostramos un único toast genérico para alertar al usuario
           if (!hasShownToast) {
             toast({
               variant: "destructive",
@@ -106,7 +104,6 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         }
       });
     } else if (state.message) {
-      // Si no hay errores de campo, mostramos el mensaje (éxito o error general del servidor)
       toast({
         variant: state.message.startsWith('Error') ? "destructive" : "default",
         title: state.message.startsWith('Error') ? "Error" : "Éxito",

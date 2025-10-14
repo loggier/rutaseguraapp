@@ -10,9 +10,7 @@ const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
-  estado: z.enum(['activo', 'inactivo', 'mantenimiento'], {
-    errorMap: () => ({ message: "Debes seleccionar un estado válido." })
-  }),
+  estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
@@ -53,6 +51,7 @@ export async function getBusData(busId: string, user: User) {
         .single();
 
     if (busError || !bus) {
+        console.error("Error fetching bus:", busError);
         return null;
     }
 
@@ -137,22 +136,17 @@ export async function updateBus(busId: string, user: User, prevState: State, for
   }
 
   try {
-    const updateData: Partial<Autobus> = {
+    const { error } = await supabaseAdmin
+      .from('autobuses')
+      .update({
         matricula,
         capacidad,
         imei_gps,
+        estado,
         colegio_id,
         conductor_id,
         ruta_id,
-    };
-
-    if (estado) {
-        updateData.estado = estado;
-    }
-
-    const { error } = await supabaseAdmin
-      .from('autobuses')
-      .update(updateData)
+    })
       .eq('id', busId);
 
     if (error) {
