@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { TrackedBus, Parada, Conductor, Ruta, Colegio } from '@/lib/types';
+import type { TrackedBus, Parada, Conductor, Ruta, Colegio, OptimizedRouteResult } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ type BusSimulationState = {
   status: 'paused' | 'running' | 'stopped' | 'finished';
   currentStopIndex: number;
   position: google.maps.LatLngLiteral;
+  currentTurno: 'Recogida' | 'Entrega';
 }
 
 export default function TrackingPage() {
@@ -62,13 +64,29 @@ export default function TrackingPage() {
       }
       
       const initialSims: Record<string, BusSimulationState> = {};
-      const trackedBuses: TrackedBus[] = data.map((bus: any) => {
+      const trackedBuses: TrackedBus[] = (data as any[]).map((bus: any) => {
           const colegio = bus.ruta?.colegio as Colegio;
+          
+          const currentTurno = bus.ruta?.hora_salida_manana ? 'Recogida' : 'Entrega';
+
+          // Determine the order of stops
+          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? bus.ruta.ruta_optimizada_recogida : bus.ruta.ruta_optimizada_entrega;
+          let orderedStops: Parada[] = bus.ruta.paradas || [];
+          if(optimizedRoute?.routeOrder) {
+            const stopsMap = new Map((bus.ruta.paradas || []).map((p: Parada) => [p.id, p]));
+            // The optimized route order is by student ID, but we need the parada ID
+            // This is a simplification; we assume one stop per student for this logic
+            const studentToStopMap = new Map((bus.ruta.paradas || []).map((p: Parada) => [p.estudiante_id, p]));
+            orderedStops = optimizedRoute.routeOrder
+                .map(studentId => studentToStopMap.get(studentId))
+                .filter((p): p is Parada => !!p);
+          }
           
           initialSims[bus.id] = {
             status: 'stopped',
             currentStopIndex: 0,
             position: { lat: colegio.lat!, lng: colegio.lng! },
+            currentTurno: currentTurno
           };
           
           return {
@@ -76,10 +94,8 @@ export default function TrackingPage() {
             matricula: bus.matricula,
             conductor: bus.conductor as Conductor,
             ruta: {
-              id: bus.ruta.id,
-              nombre: bus.ruta.nombre,
-              colegio: colegio,
-              paradas: bus.ruta.paradas as Parada[],
+              ...(bus.ruta as Ruta),
+              paradas: orderedStops,
             },
           };
         });
@@ -105,11 +121,11 @@ export default function TrackingPage() {
         const newSims = { ...prevSims };
         activeSimulationIds.forEach(busId => {
           const bus = buses.find(b => b.id === busId);
-          if (!bus) return;
+          if (!bus || !bus.ruta.colegio?.lat) return;
           
           const currentSim = newSims[busId];
           const nextStopIndex = currentSim.currentStopIndex + 1;
-          const stops = bus.ruta.paradas;
+          const stops = bus.ruta.paradas || [];
 
           if (nextStopIndex > stops.length) {
             // Finished, back to school
@@ -139,21 +155,21 @@ export default function TrackingPage() {
   const handleSimulationControl = (busId: string, action: 'start' | 'pause' | 'reset') => {
     setSimulations(prevSims => {
       const bus = buses.find(b => b.id === busId);
-      if (!bus) return prevSims;
+      if (!bus || !bus.ruta.colegio?.lat) return prevSims;
 
       const currentSim = prevSims[busId];
       const newSims = { ...prevSims };
 
       if (action === 'start') {
         if (currentSim.status === 'finished') { // If finished, reset first
-           newSims[busId] = { status: 'running', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! } };
+           newSims[busId] = { ...currentSim, status: 'running', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! } };
         } else {
            newSims[busId] = { ...currentSim, status: 'running' };
         }
       } else if (action === 'pause') {
         newSims[busId] = { ...currentSim, status: 'paused' };
       } else if (action === 'reset') {
-        newSims[busId] = { status: 'stopped', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! } };
+        newSims[busId] = { ...currentSim, status: 'stopped', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! } };
       }
       return newSims;
     });
@@ -205,13 +221,13 @@ export default function TrackingPage() {
         >
           {buses.map(bus => {
             const sim = simulations[bus.id];
-            if (!sim) return null;
+            if (!sim || !bus.ruta.colegio?.lat) return null;
             
             const isSelected = activeBusId === bus.id;
-            const routePath = bus.ruta.paradas.length > 0 ? [
-                { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
-                ...bus.ruta.paradas.map(s => ({ lat: s.lat, lng: s.lng })),
-                { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! }
+            const routePath = (bus.ruta.paradas || []).length > 0 ? [
+                { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! },
+                ...(bus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
+                { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! }
             ] : [];
 
             return (
@@ -242,11 +258,11 @@ export default function TrackingPage() {
                       <>
                         <PolylineF path={routePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
                         <MarkerF 
-                            position={{ lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! }}
+                            position={{ lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! }}
                             icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
                             label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
                         />
-                        {bus.ruta.paradas.map((stop, index) => (
+                        {(bus.ruta.paradas || []).map((stop, index) => (
                            <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={sim.currentStopIndex > index ? 0.5 : 1} />
                         ))}
                       </>
@@ -267,9 +283,10 @@ export default function TrackingPage() {
             const sim = simulations[bus.id];
             if(!sim) return null;
             
-            const stopsCount = bus.ruta.paradas.length;
+            const stops = bus.ruta.paradas || [];
+            const stopsCount = stops.length;
             const currentStopInfo = sim.currentStopIndex > 0 && sim.currentStopIndex <= stopsCount
-                ? `Parada ${sim.currentStopIndex}/${stopsCount}: ${bus.ruta.paradas[sim.currentStopIndex-1]?.direccion}`
+                ? `Parada ${sim.currentStopIndex}/${stopsCount}: ${stops[sim.currentStopIndex-1]?.direccion}`
                 : sim.status === 'finished' ? 'Ruta finalizada' : 'En el colegio';
 
 
@@ -283,7 +300,7 @@ export default function TrackingPage() {
                     {getStatusBadge(sim.status)}
                 </div>
                  <div className='text-xs text-muted-foreground mt-2 truncate'>
-                  <span className='font-medium'>Prox:</span> {currentStopInfo}
+                  <span className='font-medium'>({sim.currentTurno}) Próx:</span> {currentStopInfo}
                 </div>
                 <div className="flex gap-2 mt-3">
                     <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'start')}} disabled={sim.status === 'running'} size="sm" className="flex-1">
