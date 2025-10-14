@@ -148,7 +148,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   };
 
   const directionsServiceOptions = useMemo<google.maps.DirectionsRequest | null>(() => {
-    if (!optimizedRoute || (optimizedRoute.polyline && !isGenerating)) return null;
+    if (!isLoaded || !optimizedRoute || (optimizedRoute.polyline && !isGenerating)) return null;
     
     const waypointsMap = new Map<string, { lat: number; lng: number }>();
     students.forEach(student => {
@@ -167,7 +167,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
       travelMode: google.maps.TravelMode.DRIVING,
       optimizeWaypoints: false,
     };
-  }, [optimizedRoute, students, route.colegio, turno, isGenerating]);
+  }, [isLoaded, optimizedRoute, students, route.colegio, turno, isGenerating]);
   
   const decodedPolylinePath = useMemo(() => {
     if (!currentPolyline || !isLoaded) return [];
