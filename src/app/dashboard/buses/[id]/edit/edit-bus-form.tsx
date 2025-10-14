@@ -73,19 +73,20 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
   
   useEffect(() => {
+    // On first load, or when bus data changes, set the initial filtered lists
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
     
-    // On first load, filter based on the bus's own school ID
     if (user.rol === 'colegio') {
+      // For colegio user, the props are already filtered
       initialConductores = allConductores;
       initialRutas = allRutas;
     } else {
-        const targetColegioId = bus.colegio_id;
-        if (targetColegioId) {
-            initialConductores = allConductores.filter(c => c.colegio_id === targetColegioId);
-            initialRutas = allRutas.filter(r => r.colegio_id === targetColegioId);
-        }
+      // For master/manager, filter based on the bus's school
+      if (bus.colegio_id) {
+          initialConductores = allConductores.filter(c => c.colegio_id === bus.colegio_id);
+          initialRutas = allRutas.filter(r => r.colegio_id === bus.colegio_id);
+      }
     }
     setFilteredConductores(initialConductores);
     setFilteredRutas(initialRutas);
@@ -100,10 +101,10 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
         // Reset conductor/route if they don't belong to the new school
-        if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
+        if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
-        if (!allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
+        if (form.getValues('ruta_id') && !allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
           form.setValue('ruta_id', null);
         }
       } else {
@@ -115,7 +116,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
 
   useEffect(() => {
     if (!state) return;
-
+    
     if (state.errors) {
       // Clear previous errors
       form.clearErrors();
@@ -137,9 +138,9 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         }
       }
     } else if (state.message) {
-      // Success case
       toast({
-        title: "Éxito",
+        variant: state.message.startsWith('Error') ? "destructive" : "default",
+        title: state.message.startsWith('Error') ? "Error" : "Éxito",
         description: state.message,
       });
     }
