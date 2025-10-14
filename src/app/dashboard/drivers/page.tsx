@@ -52,10 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('conductores_view').select(`
-        *,
-        bus_asignado:autobuses!conductor_id(matricula)
-      `);
+      let driversQuery = supabase.from('conductores_view').select('*');
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -67,15 +64,27 @@ function DriversPageComponent() {
         if (colegioError || !currentColegio) {
             throw new Error('No se pudo encontrar el colegio para este usuario.');
         }
-        query = query.eq('colegio_id', currentColegio.id);
+        driversQuery = driversQuery.eq('colegio_id', currentColegio.id);
       }
 
-      const { data: driversData, error: driversError } = await query.order('apellido');
+      // 1. Fetch all relevant drivers
+      const { data: driversData, error: driversError } = await driversQuery.order('apellido');
       if (driversError) throw driversError;
+
+      // 2. Fetch all bus assignments
+      const { data: busAssignments, error: busError } = await supabase
+        .from('autobuses')
+        .select('conductor_id, matricula')
+        .not('conductor_id', 'is', null);
+      if (busError) throw busError;
+
+      // 3. Create a map of assignments for easy lookup
+      const busMap = new Map(busAssignments.map(b => [b.conductor_id, b.matricula]));
       
+      // 4. Join the data in the client
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
-          bus_asignado: driver.bus_asignado && driver.bus_asignado.length > 0 ? driver.bus_asignado[0].matricula : null,
+          bus_asignado: busMap.get(driver.id) || null,
       }));
 
       setDrivers(formattedData as Conductor[]);
@@ -285,5 +294,3 @@ export default function DriversPage() {
     }
     return <DriversPageComponent />;
 }
-
-    
