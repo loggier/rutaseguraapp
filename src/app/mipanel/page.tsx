@@ -121,7 +121,7 @@ export default function MiPanelPage() {
       if (activeBus && map && activeBus.ruta.colegio) {
           map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
       } else if (activeChild && map) {
-          const stop = activeChild.paradas.find(p => p.activo && p.tipo === 'Recogida');
+          const stop = activeChild.paradas.find(p => p.activo);
           if (stop) {
             map.panTo({ lat: stop.lat, lng: stop.lng });
           }
@@ -149,12 +149,8 @@ export default function MiPanelPage() {
         const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
         
         hijos.forEach(hijo => {
-            const bus = buses.find(b => b.ruta?.id === hijo.ruta_id);
-            if (!bus) return;
-            const state = staticStates[bus.id];
-            if (!state) return;
-
-            const stop = hijo.paradas.find(p => p.activo && p.tipo === state.currentTurno);
+            // Find any active stop for the child
+            const stop = hijo.paradas.find(p => p.activo);
             if(stop) {
                 const key = `${stop.lat},${stop.lng}`;
                 if (!stopsMap.has(key)) {
@@ -177,7 +173,7 @@ export default function MiPanelPage() {
 
         return markers;
 
-    }, [hijos, buses, staticStates]);
+    }, [hijos]);
 
 
     if (loading || !isLoaded) {
