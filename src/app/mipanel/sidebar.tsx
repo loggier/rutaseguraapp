@@ -5,8 +5,15 @@ import { usePathname } from 'next/navigation';
 import { navItems } from './layout';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import type { Estudiante } from '@/lib/types';
+import { HijoCard } from './hijo-card'; // Asegúrate de que la ruta sea correcta
 
-export function MiPanelSidebar() {
+type MiPanelSidebarProps = {
+  hijos: Estudiante[];
+};
+
+export function MiPanelSidebar({ hijos }: MiPanelSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -34,6 +41,16 @@ export function MiPanelSidebar() {
           );
         })}
       </nav>
+      <div className="mt-auto flex flex-col gap-2">
+        <h3 className="px-3 text-xs font-semibold text-muted-foreground">Mis Hijos</h3>
+        <ScrollArea className="h-[calc(100vh-20rem)]">
+            <div className='space-y-2 pr-3'>
+              {hijos.map((hijo) => (
+                <HijoCard key={hijo.id} hijo={hijo} bus={undefined} isActive={false} />
+              ))}
+            </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }

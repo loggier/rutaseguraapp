@@ -78,8 +78,8 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user}>
-       <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[220px_1fr]">
-        <MiPanelSidebar />
+       <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
+        <MiPanelSidebar hijos={[]}/>
         <div className="flex flex-col">
             <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
                 <DropdownMenu>

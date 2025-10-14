@@ -52,7 +52,7 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 export default function MiPanelPage() {
     const { user } = useUser();
     const [buses, setBuses] = useState<MappedBus[]>([]);
-    const [hijos, setHijos] = useState<(Estudiante & {paradas: Parada[]})[]>([]);
+    const [hijos, setHijos] = useState<(Estudiante & {paradas: Parada[], ruta_id?: string})[]>([]);
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [loading, setLoading] = useState(true);
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -174,7 +174,7 @@ export default function MiPanelPage() {
         const state = staticStates[activeBus.id];
         if (!state) return [];
 
-        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_recogida : activeBus.ruta.ruta_entrega;
+        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_optimizada_recogida : activeBus.ruta.ruta_optimizada_entrega;
         
         if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
             try {
@@ -187,7 +187,7 @@ export default function MiPanelPage() {
     }, [isLoaded, activeBus, staticStates]);
 
     const hijoStopMarkers = useMemo(() => {
-        const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
+        const stopsMap: Map<string, (Estudiante & {paradas: Parada[], ruta_id?:string})[]> = new Map();
         
         hijos.forEach(hijo => {
             const stop = hijo.paradas.find(p => p.activo);
@@ -200,7 +200,7 @@ export default function MiPanelPage() {
             }
         });
 
-        const markers: {hijo: Estudiante, position: {lat: number, lng: number}, icon: string}[] = [];
+        const markers: {hijo: Estudiante & {paradas: Parada[], ruta_id?:string}, position: {lat: number, lng: number}, icon: string}[] = [];
         stopsMap.forEach((hijosAtStop, key) => {
             const [lat, lng] = key.split(',').map(Number);
             hijosAtStop.forEach((hijo, index) => {
@@ -334,7 +334,7 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-             <div className="absolute bottom-40 right-4 z-20 flex flex-col gap-2">
+             <div className="absolute bottom-40 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
                     <LocateFixed className="h-6 w-6" />
                 </Button>
@@ -342,7 +342,7 @@ export default function MiPanelPage() {
             </div>
             
             {hijos.length > 0 && isMobile && (
-                <div className="absolute bottom-20 left-0 right-0 p-4 z-10">
+                <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
