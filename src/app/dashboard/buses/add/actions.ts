@@ -10,7 +10,9 @@ const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
-  estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
+  estado: z.enum(['activo', 'inactivo', 'mantenimiento'], {
+    errorMap: () => ({ message: "Debes seleccionar un estado válido." })
+  }),
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
@@ -24,6 +26,8 @@ export type State = {
     imei_gps?: string[];
     estado?: string[];
     colegio_id?: string[];
+    conductor_id?: string[];
+    ruta_id?: string[];
     _form?: string[];
   };
 };
@@ -47,11 +51,11 @@ export async function createBus(user: User, prevState: State, formData: FormData
     if (user.rol === 'colegio') {
         const { data: colegioData, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', user.id).single();
         if (error || !colegioData) {
-             return { message: 'Error: No se pudo encontrar el colegio para este usuario.' };
+             return { message: 'Error: No se pudo encontrar el colegio para este usuario.', errors: { _form: ['Error de autenticación de colegio.'] } };
         }
         colegioIdFromForm = colegioData.id;
     }
-
+   
     const validatedFields = formSchema.safeParse({
         matricula: formData.get('matricula'),
         capacidad: formData.get('capacidad'),
@@ -65,13 +69,13 @@ export async function createBus(user: User, prevState: State, formData: FormData
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Faltan campos obligatorios. No se pudo crear el autobús.',
+      message: 'Faltan campos o tienen errores. Por favor, revisa el formulario.',
     };
   }
 
   const { matricula, capacidad, imei_gps, estado, colegio_id, conductor_id, ruta_id } = validatedFields.data;
   
-  if (!colegio_id) {
+  if (!colegio_id && user.rol !== 'colegio') {
     return {
       errors: { colegio_id: ['Se debe seleccionar un colegio.'] },
       message: 'Faltan campos obligatorios. No se pudo crear el autobús.',
