@@ -204,10 +204,10 @@ export default function MiPanelPage() {
                 const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                  <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                    <text x="192" y="235" font-family="sans-serif" font-size="120" font-weight="bold" fill="white" text-anchor="middle">${initials}</text>
-                  </svg>
+                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+                        <text x="192" y="235" font-family="sans-serif" font-size="120" font-weight="bold" fill="white" text-anchor="middle">${initials}</text>
+                    </svg>
                 `.trim();
 
                 markers.push({
@@ -296,7 +296,7 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-            <div className="absolute bottom-48 right-4 z-20">
+            <div className="absolute bottom-60 right-4 z-20">
               <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
             </div>
             
