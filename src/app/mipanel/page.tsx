@@ -211,8 +211,8 @@ export default function MiPanelPage() {
                             position={sim.position} 
                             icon={{
                                 url: '/bus.png',
-                                scaledSize: new google.maps.Size(isActive ? 48 : 36, isActive ? 48 : 36),
-                                anchor: new google.maps.Point(isActive ? 24 : 18, isActive ? 24 : 18),
+                                scaledSize: new google.maps.Size(isActive ? 40 : 32, isActive ? 40 : 32),
+                                anchor: new google.maps.Point(isActive ? 20 : 16, isActive ? 20 : 16),
                             }}
                             zIndex={isActive ? 100 : 50}
                         />
@@ -221,7 +221,7 @@ export default function MiPanelPage() {
 
                 {activeBus && (
                     <>
-                        <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4285F4', strokeWeight: 5, strokeOpacity: 0.8 }}/>
+                        <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                         {activeBus.ruta.colegio?.lat && <MarkerF 
                             position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
                             icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
