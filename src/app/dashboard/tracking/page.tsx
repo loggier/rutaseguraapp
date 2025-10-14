@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, Pause, RotateCcw, Share2 } from 'lucide-react';
+import { Loader2, Share2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { TrackedBus, Parada, Conductor, Ruta, OptimizedRouteResult } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
@@ -75,7 +75,7 @@ export default function TrackingPage() {
 
         if(ruta.colegio?.lat && ruta.colegio?.lng) {
             initialSims[bus.id] = {
-                status: 'stopped',
+                status: 'running', // Start running by default
                 currentStopIndex: 0,
                 position: { lat: ruta.colegio.lat, lng: ruta.colegio.lng },
                 currentTurno: currentTurno
@@ -125,21 +125,10 @@ export default function TrackingPage() {
           let orderedStops: Parada[] = [];
 
           if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
-              const stopsMap = new Map(stopsSource.map(s => [s.id, s]));
-              orderedStops = optimizedRoute.routeOrder
-                  .map(studentId => {
-                      // Find parada_id from ruta_estudiantes that matches student_id
-                      const routeStudent = (bus.ruta.estudiantes || []).find(re => re.student_id === studentId);
-                      return routeStudent ? stopsMap.get(routeStudent.id) : undefined; // This logic needs review based on actual data structure
-                  })
-                  .filter((p): p is Parada => !!p);
-               // This is a temporary fix. `ruta_estudiantes` mapping needs to be fixed.
-               if(orderedStops.length === 0) {
-                 const studentIdToParada = new Map(stopsSource.map(p => [p.estudiante_id, p]))
-                 orderedStops = optimizedRoute.routeOrder
-                   .map(studentId => studentIdToParada.get(studentId))
-                   .filter((p): p is Parada => !!p);
-               }
+              const stopsMap = new Map(stopsSource.map(s => [s.estudiante_id, s]));
+               orderedStops = optimizedRoute.routeOrder
+                 .map(studentId => stopsMap.get(studentId))
+                 .filter((p): p is Parada => !!p);
           } else {
             orderedStops = stopsSource.filter(s => s.tipo === currentSim.currentTurno);
           }
@@ -173,61 +162,28 @@ export default function TrackingPage() {
   }, [simulations, buses]);
   
 
-  const handleSimulationControl = (busId: string, action: 'start' | 'pause' | 'reset') => {
-    setSimulations(prevSims => {
-      const bus = buses.find(b => b.id === busId);
-      if (!bus || !bus.ruta.colegio?.lat) return prevSims;
-
-      const currentSim = prevSims[busId];
-      const newSims = { ...prevSims };
-
-      if (action === 'start') {
-        if (currentSim.status === 'finished') { // If finished, reset first
-           newSims[busId] = { ...currentSim, status: 'running', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! } };
-        } else {
-           newSims[busId] = { ...currentSim, status: 'running' };
-        }
-      } else if (action === 'pause') {
-        newSims[busId] = { ...currentSim, status: 'paused' };
-      } else if (action === 'reset') {
-        newSims[busId] = { ...currentSim, status: 'stopped', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! } };
-        setActiveBusId(null);
-      }
-      return newSims;
-    });
-  };
-  
-    const handleShareRoute = async (bus: TrackedBus, sim: BusSimulationState) => {
+    const handleCopyRouteLink = async (bus: TrackedBus, sim: BusSimulationState) => {
     const optimizedRoute = sim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
     const url = optimizedRoute?.googleMapsUrl;
 
     if (!url) {
       toast({
         variant: 'destructive',
-        title: 'No hay ruta para compartir',
+        title: 'No hay enlace para copiar',
         description: 'No se encontró una URL de Google Maps para esta ruta optimizada.',
       });
       return;
     }
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Ruta de autobús: ${bus.ruta.nombre}`,
-          text: `Sigue la ruta del autobús ${bus.matricula} en tiempo real.`,
-          url: url,
-        });
-        toast({ title: 'Éxito', description: 'Ruta compartida correctamente.' });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast({ title: 'Éxito', description: 'Enlace de la ruta copiado al portapapeles.' });
-      }
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Éxito', description: 'Enlace de la ruta copiado al portapapeles.' });
     } catch (error) {
-      console.error('Error al compartir la ruta:', error);
+      console.error('Error al copiar el enlace de la ruta:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo compartir o copiar el enlace de la ruta.',
+        description: 'No se pudo copiar el enlace de la ruta.',
       });
     }
   };
@@ -387,13 +343,9 @@ export default function TrackingPage() {
                   <span className='font-medium'>({sim.currentTurno}) Próx:</span> {currentStopInfo}
                 </div>
                 <div className="flex gap-2 mt-3">
-                   <Button onClick={(e) => { e.stopPropagation(); handleShareRoute(bus, sim); }} variant="outline" size="icon">
+                   <Button onClick={(e) => { e.stopPropagation(); handleCopyRouteLink(bus, sim); }} variant="outline" size="icon">
                       <Share2 className="h-4 w-4" />
-                      <span className="sr-only">Compartir Ruta</span>
-                    </Button>
-                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'reset')}} variant="ghost" size="icon">
-                        <RotateCcw className="h-4 w-4" />
-                        <span className="sr-only">Reiniciar Simulación</span>
+                      <span className="sr-only">Copiar Enlace de Ruta</span>
                     </Button>
                 </div>
               </div>
