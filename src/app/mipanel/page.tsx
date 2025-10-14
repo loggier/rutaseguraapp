@@ -22,6 +22,7 @@ import { HijoCard } from './hijo-card';
 import { MapTypeSelector } from './map-type-selector';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 type MappedBus = TrackedBus & {
@@ -59,6 +60,7 @@ export default function MiPanelPage() {
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
     const { toast } = useToast();
+    const isMobile = useIsMobile();
 
     const { isLoaded, loadError } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -339,7 +341,7 @@ export default function MiPanelPage() {
                 <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
             </div>
             
-            {hijos.length > 0 && (
+            {hijos.length > 0 && isMobile && (
                 <div className="absolute bottom-20 left-0 right-0 p-4 z-10">
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
