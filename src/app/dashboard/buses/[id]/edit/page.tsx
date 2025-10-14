@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useUser } from '@/contexts/user-context';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import type { Colegio, Conductor, Ruta, Autobus } from "@/lib/types";
 import { EditBusForm } from "./edit-bus-form";
 import { notFound } from 'next/navigation';
@@ -19,7 +19,7 @@ export default function EditBusPage({ params }: { params: { id: string } }) {
   const [allConductores, setAllConductores] = useState<Conductor[]>([]);
   const [allRutas, setAllRutas] = useState<Ruta[]>([]);
   const [loading, setLoading] = useState(true);
-  const { id } = use(params);
+  const { id } = params;
 
   useEffect(() => {
     if (!user) return;
