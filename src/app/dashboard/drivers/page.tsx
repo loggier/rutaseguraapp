@@ -78,7 +78,12 @@ function DriversPageComponent() {
 
       if (busError) throw busError;
       
-      const busMap = new Map(busAssignments.map(b => [b.conductor_id, b.matricula]));
+      const busMap = busAssignments.reduce((map, bus) => {
+        if(bus.conductor_id) {
+            map.set(bus.conductor_id, bus.matricula);
+        }
+        return map;
+      }, new Map<string, string>());
 
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
@@ -292,5 +297,3 @@ export default function DriversPage() {
     }
     return <DriversPageComponent />;
 }
-
-    
