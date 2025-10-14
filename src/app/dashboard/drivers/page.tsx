@@ -52,7 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let driversQuery = supabase.from('conductores_view').select('*');
+      let driversQuery = supabase.from('conductores_view').select(`*, autobuses!conductor_id(matricula)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -67,24 +67,12 @@ function DriversPageComponent() {
         driversQuery = driversQuery.eq('colegio_id', currentColegio.id);
       }
 
-      // 1. Fetch all relevant drivers
       const { data: driversData, error: driversError } = await driversQuery.order('apellido');
       if (driversError) throw driversError;
 
-      // 2. Fetch all bus assignments
-      const { data: busAssignments, error: busError } = await supabase
-        .from('autobuses')
-        .select('conductor_id, matricula')
-        .not('conductor_id', 'is', null);
-      if (busError) throw busError;
-
-      // 3. Create a map of assignments for easy lookup
-      const busMap = new Map(busAssignments.map(b => [b.conductor_id, b.matricula]));
-      
-      // 4. Join the data in the client
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
-          bus_asignado: busMap.get(driver.id) || null,
+          bus_asignado: (driver.autobuses && driver.autobuses.length > 0) ? driver.autobuses[0].matricula : null,
       }));
 
       setDrivers(formattedData as Conductor[]);

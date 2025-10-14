@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -94,6 +95,7 @@ export type Conductor = {
   // Join fields
   colegio_nombre?: string;
   bus_asignado?: string | null;
+  autobuses?: { matricula: string }[] | null;
 };
 
 export type Autobus = {
