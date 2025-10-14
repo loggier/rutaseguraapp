@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -60,6 +61,7 @@ export type Estudiante = {
   padre_email?: string;
   colegio_nombre?: string;
   paradas?: Parada[];
+  ruta_id?: string;
 };
 
 export type Parada = {

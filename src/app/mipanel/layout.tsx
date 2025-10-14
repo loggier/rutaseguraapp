@@ -16,49 +16,21 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
-  SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar,
-} from '@/components/ui/sidebar';
 import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
 
 
 const navItems = [
-  { href: '/mipanel/mapa', icon: Map, label: 'Mapa en Vivo' },
+  { href: '/mipanel', icon: Map, label: 'Mapa en Vivo' },
   { href: '/mipanel/hijos', icon: Users, label: 'Mis Hijos' },
   { href: '/mipanel/settings', icon: Settings, label: 'Configuración' },
 ];
-
-function SidebarNav() {
-  const pathname = usePathname();
-  const { open } = useSidebar();
-
-  return (
-    <SidebarMenu>
-      {navItems.map((item) => (
-         <SidebarMenuItem key={item.label}>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith(item.href)}
-              tooltip={open ? undefined : item.label}
-            >
-              <Link href={item.href}>
-                <item.icon />
-                <span>{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  );
-}
 
 function MobileNav() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-          <Menu className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="shrink-0">
+          <Menu className="h-6 w-6" />
           <span className="sr-only">Menú de navegación</span>
         </Button>
       </SheetTrigger>
@@ -134,61 +106,37 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user}>
-      <SidebarProvider>
-        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
-          <Sidebar collapsible="icon" className="hidden md:flex flex-col bg-card border-r">
-              <SidebarHeader className='p-4'>
-                  <Link href="/mipanel">
-                    <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} className='group-data-[collapsible=icon]:hidden' />
-                  </Link>
-              </SidebarHeader>
-              <SidebarContent className="flex-1 p-2">
-                  <SidebarNav />
-              </SidebarContent>
-          </Sidebar>
-
-          <div className="flex flex-col">
-              <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
-              <MobileNav />
-              <SidebarTrigger className="hidden md:flex" />
-              
-              <div className="w-full flex-1">
-                 <h1 className="font-semibold text-lg">Hola, {user.nombre}!</h1>
-                 <p className="text-sm text-muted-foreground">Bienvenido a tu panel en {user.colegio_nombre}</p>
-              </div>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                  <Bell className="h-5 w-5" />
-                  <span className="sr-only">Notificaciones</span>
-              </Button>
-              <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                      <Avatar className='h-8 w-8'>
-                          <AvatarImage src={user?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
-                          <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                      </Avatar>
-                      <span className="sr-only">Menú de usuario</span>
-                  </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild><Link href="/mipanel/settings">Configuración</Link></DropdownMenuItem>
-                  <DropdownMenuItem>Soporte</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
+       <div className="min-h-screen w-full bg-background text-foreground">
+        <header className="absolute top-0 left-0 right-0 z-20 flex h-16 items-center justify-between gap-4 bg-transparent px-4">
+            <MobileNav />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className='h-9 w-9 border'>
+                        <AvatarImage src={user?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                    </Avatar>
+                    <span className="sr-only">Menú de usuario</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild><Link href="/mipanel/hijos">Mis Hijos</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/mipanel/settings">Configuración</Link></DropdownMenuItem>
+                <DropdownMenuItem>Soporte</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Cerrar Sesión</span>
-                  </DropdownMenuItem>
-                  </DropdownMenuContent>
-              </DropdownMenu>
-              </header>
-              <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-                {children}
-              </main>
-          </div>
-        </div>
-      </SidebarProvider>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </header>
+        <main className="h-screen w-screen">
+          {children}
+        </main>
+       </div>
     </UserProvider>
   );
 }
