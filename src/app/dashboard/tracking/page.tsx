@@ -19,9 +19,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Pause, RotateCcw, MapPin, School, User, Bus as BusIcon, List, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { TrackedBus } from '@/lib/types';
+import type { TrackedBus, Parada, Conductor } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 
 const libraries: ('geometry')[] = ['geometry'];
@@ -58,15 +59,16 @@ export default function TrackingPage() {
           capacidad,
           imei_gps,
           conductor:conductores(*),
-          ruta:rutas!inner(*,
+          ruta:rutas!inner(
+            *,
             colegio:colegios(*),
             paradas:ruta_estudiantes!inner(
-              parada:paradas!inner(*)
+              parada:paradas!inner(id, direccion, lat, lng)
             )
           )
         `)
         .eq('estado', 'activo')
-        .not('ruta', 'is', null);
+        .not('ruta_id', 'is', null);
 
       if (error) {
         console.error('Error fetching tracked buses:', error);
@@ -89,7 +91,7 @@ export default function TrackingPage() {
             ruta: {
               ...bus.ruta,
               colegio,
-              paradas: uniqueParadas,
+              paradas: uniqueParadas as Parada[],
             },
           };
         });
