@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   useLoadScript,
   GoogleMap,
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { TrackedBus, Parada, Conductor, Ruta, Colegio, OptimizedRouteResult } from '@/lib/types';
+import type { TrackedBus, Parada, Conductor, Ruta, Colegio, OptimizedRouteResult, Autobus } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 
@@ -46,75 +46,114 @@ export default function TrackingPage() {
     libraries,
   });
 
-  // Fetch active buses with their relations
-  useEffect(() => {
-    async function fetchTrackedBuses() {
+  const fetchTrackedBuses = useCallback(async () => {
       setLoading(true);
       const supabase = createClient();
-      
-       const { data, error } = await supabase
+
+      // 1. Get base active buses with an assigned route
+      const { data: activeBuses, error: busesError } = await supabase
         .from('autobuses')
-        .select(`
-          id,
-          matricula,
-          conductor:conductores(*),
-          ruta:rutas!inner(*,
-            colegio:colegios(*),
-            paradas:paradas(id, estudiante_id, direccion, lat, lng, tipo, activo)
-          )
-        `)
+        .select('id, matricula, conductor_id, ruta_id')
         .eq('estado', 'activo')
         .not('ruta_id', 'is', null);
 
-      if (error) {
-        console.error('Error fetching tracked buses:', error);
+      if (busesError) {
+        console.error('Error step 1: fetching active buses', busesError);
         setLoading(false);
         return;
       }
+      if (!activeBuses || activeBuses.length === 0) {
+        setBuses([]);
+        setLoading(false);
+        return;
+      }
+
+      const routeIds = [...new Set(activeBuses.map(b => b.ruta_id))];
+      const conductorIds = [...new Set(activeBuses.map(b => b.conductor_id).filter(Boolean))];
+
+      // 2. Fetch all related data in parallel
+      const [
+        { data: routesData, error: routesError },
+        { data: conductorsData, error: conductorsError },
+        { data: stopsData, error: stopsError }
+      ] = await Promise.all([
+          supabase.from('rutas').select('*, colegio:colegios(*)').in('id', routeIds),
+          supabase.from('conductores').select('*').in('id', conductorIds),
+          supabase.from('paradas').select('*').in('estudiante_id', 
+            supabase.from('ruta_estudiantes').select('estudiante_id').in('ruta_id', routeIds)
+          ).eq('activo', true)
+      ]);
       
+      if (routesError || conductorsError || stopsError) {
+          console.error({ routesError, conductorsError, stopsError });
+          setLoading(false);
+          return;
+      }
+
+      // 3. Create maps for easy lookup
+      const routesMap = new Map((routesData || []).map(r => [r.id, r]));
+      const conductorsMap = new Map((conductorsData || []).map(c => [c.id, c]));
+      const stopsMap = new Map<string, Parada[]>();
+      (stopsData || []).forEach(stop => {
+          if (!stopsMap.has(stop.estudiante_id)) {
+              stopsMap.set(stop.estudiante_id, []);
+          }
+          stopsMap.get(stop.estudiante_id)!.push(stop);
+      });
+
       const initialSims: Record<string, BusSimulationState> = {};
-      const trackedBuses: TrackedBus[] = (data as any[]).map((bus: any) => {
-          const rutaTyped = bus.ruta as Ruta;
-          const colegio = rutaTyped.colegio as Colegio;
+      const trackedBuses: TrackedBus[] = [];
+
+      // 4. Assemble the final TrackedBus objects
+      for (const bus of activeBuses) {
+          const ruta = routesMap.get(bus.ruta_id!);
+          if (!ruta || !ruta.colegio) continue;
           
-          const currentTurno = rutaTyped.hora_salida_manana ? 'Recogida' : 'Entrega';
-          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? rutaTyped.ruta_optimizada_recogida : rutaTyped.ruta_optimizada_entrega;
+          const conductor = bus.conductor_id ? conductorsMap.get(bus.conductor_id) : undefined;
+          if (!conductor) continue;
+
+          const currentTurno = ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
+          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? ruta.ruta_optimizada_recogida : ruta.ruta_optimizada_entrega;
           
-          let orderedStops: Parada[] = (rutaTyped.paradas || []).filter(p => p.tipo === currentTurno && p.activo);
+          let orderedStops: Parada[] = (ruta.paradas || []).filter(p => p.tipo === currentTurno && p.activo);
           
           if(optimizedRoute?.routeOrder) {
-            const stopsMap = new Map(orderedStops.map((p: Parada) => [p.estudiante_id, p]));
-            orderedStops = optimizedRoute.routeOrder
-                .map(studentId => stopsMap.get(studentId))
-                .filter((p): p is Parada => !!p);
+              const studentStopsMap = new Map<string, Parada>();
+               (ruta.paradas || []).forEach(p => {
+                  if (p.tipo === currentTurno && p.activo) {
+                      studentStopsMap.set(p.estudiante_id, p);
+                  }
+              });
+              orderedStops = optimizedRoute.routeOrder.map(studentId => studentStopsMap.get(studentId)).filter((p): p is Parada => !!p);
           }
           
           initialSims[bus.id] = {
             status: 'stopped',
             currentStopIndex: 0,
-            position: { lat: colegio.lat!, lng: colegio.lng! },
+            position: { lat: ruta.colegio.lat!, lng: ruta.colegio.lng! },
             currentTurno: currentTurno
           };
-          
-          return {
-            id: bus.id,
-            matricula: bus.matricula,
-            conductor: bus.conductor as Conductor,
-            ruta: {
-              ...rutaTyped,
-              colegio,
-              paradas: orderedStops,
-            },
-          };
-        });
-        
-        setBuses(trackedBuses);
-        setSimulations(initialSims);
+
+          trackedBuses.push({
+              id: bus.id,
+              matricula: bus.matricula,
+              conductor: conductor as Conductor,
+              ruta: {
+                  ...(ruta as Ruta),
+                  paradas: orderedStops
+              },
+          });
+      }
       
+      setBuses(trackedBuses);
+      setSimulations(initialSims);
       setLoading(false);
-    }
-    fetchTrackedBuses();
   }, []);
+
+  // Fetch buses on initial load
+  useEffect(() => {
+    fetchTrackedBuses();
+  }, [fetchTrackedBuses]);
   
   // Simulation Engine
   useEffect(() => {
@@ -224,7 +263,6 @@ export default function TrackingPage() {
       }
     }
     
-    // Fallback to straight lines if no polyline
     if (!activeBus.ruta.colegio?.lat) return [];
     return [
       { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng },
