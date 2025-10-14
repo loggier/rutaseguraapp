@@ -164,33 +164,14 @@ export default function MiPanelPage() {
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
                 const pinColor = isActive ? '#0D2C5B' : '#01C998'; // Primary vs Secondary
-                const size = isActive ? 60 : 50;
-                const avatarSize = size * 0.7;
-                const avatarX = (size - avatarSize) / 2;
-                const avatarY = (size - avatarSize) / 2;
-                const clipId = `clip_${hijo.id}`;
-                
-                const avatarUrl = hijo.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(hijo.nombre)}+${encodeURIComponent(hijo.apellido)}&background=fff&color=0D2C5B&bold=true`;
+                const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                    <svg width="${size}" height="${size}" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                      <defs>
-                        <clipPath id="${clipId}">
-                          <circle cx="25" cy="21" r="${avatarSize * 0.4}" />
-                        </clipPath>
-                      </defs>
-                      <path fill="${pinColor}" d="M25,0 C13.4,0 4,9.4 4,21 C4,33.4 25,50 25,50 C25,50 46,33.4 46,21 C46,9.4 36.6,0 25,0 Z" />
-                      <image
-                        href="${avatarUrl}"
-                        x="${avatarX}"
-                        y="${avatarY * 0.8}"
-                        height="${avatarSize}"
-                        width="${avatarSize}"
-                        clip-path="url(#${clipId})"
-                      />
+                    <svg width="50" height="50" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="${pinColor}" d="M16 0C8.82 0 3 5.82 3 13c0 7.18 13 19 13 19s13-11.82 13-19C29 5.82 23.18 0 16 0Zm0 18a5 5 0 1 1 0-10a5 5 0 0 1 0 10Z"/>
+                        <text x="16" y="14" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
                     </svg>
                 `.trim();
-
 
                 markers.push({
                     hijo: hijo,
@@ -261,11 +242,12 @@ export default function MiPanelPage() {
                             position={position}
                             icon={{
                                 url: icon,
-                                scaledSize: new google.maps.Size(isActive ? 60 : 50, isActive ? 60 : 50),
-                                anchor: new google.maps.Point(isActive ? 30 : 25, isActive ? 60 : 50),
+                                scaledSize: new google.maps.Size(isActive ? 50 : 40, isActive ? 50 : 40),
+                                anchor: new google.maps.Point(isActive ? 25 : 20, isActive ? 50 : 40),
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
+                            onClick={() => setActiveChildId(hijo.id)}
                         />
                     );
                 })}
