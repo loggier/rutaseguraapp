@@ -194,7 +194,6 @@ export default function MiPanelPage() {
         const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
         
         hijos.forEach(hijo => {
-            // Find the active stop for the current turn (assuming Recogida for static view)
             const stop = hijo.paradas.find(p => p.activo);
             if(stop) {
                 const key = `${stop.lat},${stop.lng}`;
@@ -210,16 +209,21 @@ export default function MiPanelPage() {
             const [lat, lng] = key.split(',').map(Number);
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
-                const pinColor = isActive ? '#0D2C5B' : '#01C998'; // Primary vs Secondary
+                const pinColor = isActive ? '#01C998' : '#0D2C5B'; 
                 const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                        <text x="192" y="245" font-family="sans-serif" font-size="160" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                      <defs>
+                        <clipPath id="circleClip">
+                          <circle cx="192" cy="192" r="128"/>
+                        </clipPath>
+                      </defs>
+                      <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+                      <circle cx="192" cy="192" r="140" fill="white"/>
+                      <image href="${hijo.avatar_url || 'https://picsum.photos/seed/placeholder/256'}" x="64" y="64" width="256" height="256" clip-path="url(#circleClip)"/>
                     </svg>
                 `.trim();
-
 
                 markers.push({
                     hijo: hijo,
@@ -309,7 +313,7 @@ export default function MiPanelPage() {
             
             {hijos.length > 0 && (
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                     <div className="absolute bottom-24 right-4 z-20">
+                     <div className="absolute bottom-36 right-4 z-20">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg'>
