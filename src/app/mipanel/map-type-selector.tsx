@@ -13,9 +13,9 @@ type MapTypeSelectorProps = {
 };
 
 const mapTypes = [
-  { id: 'TRAFFIC', label: 'Auto', imageUrl: 'https://picsum.photos/seed/map-hybrid/200/200', hint: 'map traffic' },
-  { id: 'roadmap', label: 'Calle', imageUrl: 'https://picsum.photos/seed/map-road/200/200', hint: 'map road' },
-  { id: 'SATELLITE', label: 'Satélite', imageUrl: 'https://picsum.photos/seed/map-satellite/200/200', hint: 'map satellite' },
+  { id: 'TRAFFIC', label: 'Auto', imageUrl: '/google_trafic.png', hint: 'map traffic' },
+  { id: 'roadmap', label: 'Calle', imageUrl: '/google_normal.png', hint: 'map road' },
+  { id: 'SATELLITE', label: 'Satélite', imageUrl: '/google_sat.png', hint: 'map satellite' },
 ];
 
 export function MapTypeSelector({ value, onChange }: MapTypeSelectorProps) {
