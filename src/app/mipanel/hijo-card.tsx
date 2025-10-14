@@ -7,32 +7,19 @@ import type { Estudiante, TrackedBus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Bus, School } from "lucide-react";
 
-type SimulationState = {
-  status: 'paused' | 'running' | 'stopped' | 'finished';
-  currentStopIndex: number;
-  currentTurno: 'Recogida' | 'Entrega';
-};
-
 type HijoCardProps = {
     hijo: Estudiante;
     bus: TrackedBus | undefined;
-    simulation: SimulationState | undefined;
     isActive: boolean;
 }
 
-export function HijoCard({ hijo, bus, simulation, isActive }: HijoCardProps) {
+export function HijoCard({ hijo, bus, isActive }: HijoCardProps) {
     
     const getStatus = () => {
-        if (!bus || !simulation) {
-            return { text: "Fuera de ruta", variant: "secondary" as const };
+        if (!bus) {
+            return { text: "Esperando ruta", variant: "secondary" as const };
         }
-        if (simulation.status === 'finished') {
-            return { text: "Ruta finalizada", variant: "outline" as const };
-        }
-        if (simulation.status === 'running') {
-            return { text: `En ruta - ${simulation.currentTurno}`, variant: "default" as const, className: "bg-green-600" };
-        }
-        return { text: "Esperando ruta", variant: "secondary" as const };
+        return { text: "Listo para recogida", variant: "default" as const, className: "bg-blue-600" };
     }
     
     const status = getStatus();
@@ -46,11 +33,11 @@ export function HijoCard({ hijo, bus, simulation, isActive }: HijoCardProps) {
                         {(hijo.nombre?.[0] || '')}{(hijo.apellido?.[0] || '')}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
+                <div className="flex-1 overflow-hidden">
                     <h3 className="font-bold text-lg truncate">{hijo.nombre} {hijo.apellido}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                        {bus ? <Bus className="h-4 w-4" /> : <School className="h-4 w-4" />}
-                       <span>{bus?.matricula || "En el colegio"}</span>
+                       <span className="truncate">{bus?.ruta.colegio?.nombre || "Sin colegio asignado"}</span>
                     </div>
                     <Badge variant={status.variant} className={cn("mt-2", status.className)}>{status.text}</Badge>
                 </div>

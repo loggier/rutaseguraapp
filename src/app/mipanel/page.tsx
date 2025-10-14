@@ -25,12 +25,10 @@ type MappedBus = TrackedBus & {
   estudiantes_ids: string[];
 };
 
-type SimulationState = {
-  status: 'paused' | 'running' | 'stopped' | 'finished';
-  currentStopIndex: number;
-  position: google.maps.LatLngLiteral;
+type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
+
 
 const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
@@ -39,7 +37,7 @@ export default function MiPanelPage() {
     const { user } = useUser();
     const [buses, setBuses] = useState<MappedBus[]>([]);
     const [hijos, setHijos] = useState<(Estudiante & {paradas: Parada[]})[]>([]);
-    const [simulations, setSimulations] = useState<Record<string, SimulationState>>({});
+    const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [loading, setLoading] = useState(true);
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
@@ -59,14 +57,11 @@ export default function MiPanelPage() {
             const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
             setHijos(childrenWithParadas);
 
-            const initialSims: Record<string, SimulationState> = {};
+            const initialStates: Record<string, StaticState> = {};
             const mappedBuses = data.buses.map(bus => {
                 if (bus.ruta?.colegio?.lat && bus.ruta?.colegio?.lng) {
                      const currentTurno = bus.ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
-                     initialSims[bus.id] = {
-                        status: 'running',
-                        currentStopIndex: 0,
-                        position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng },
+                     initialStates[bus.id] = {
                         currentTurno: currentTurno
                     };
                 }
@@ -77,7 +72,7 @@ export default function MiPanelPage() {
             });
             
             setBuses(mappedBuses);
-            setSimulations(initialSims);
+            setStaticStates(initialStates);
             
             if (data.hijos.length > 0) {
               setActiveChildId(data.hijos[0].id);
@@ -98,56 +93,6 @@ export default function MiPanelPage() {
             }
         });
     }, [carouselApi, hijos]);
-
-    // Simulation Engine
-    useEffect(() => {
-      const activeSimulationIds = Object.entries(simulations)
-        .filter(([, sim]) => sim.status === 'running')
-        .map(([id]) => id);
-
-      if (activeSimulationIds.length === 0) return;
-
-      const interval = setInterval(() => {
-        setSimulations(prevSims => {
-          const newSims = { ...prevSims };
-          activeSimulationIds.forEach(busId => {
-            const bus = buses.find(b => b.id === busId);
-            if (!bus || !bus.ruta.colegio?.lat) return;
-            
-            const currentSim = newSims[busId];
-            const optimizedRoute = currentSim.currentTurno === 'Recogida'
-              ? bus.ruta.ruta_recogida
-              : bus.ruta.ruta_entrega;
-
-            const stopsSource = (bus.ruta.paradas || []);
-            let orderedStops: Parada[] = [];
-
-            if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
-                const stopsMap = new Map(stopsSource.map(s => [s.id, s]));
-                 orderedStops = optimizedRoute.routeOrder
-                   .map(stopId => stopsMap.get(stopId))
-                   .filter((p): p is Parada => !!p);
-            } else {
-              orderedStops = stopsSource.filter(s => s.tipo === currentSim.currentTurno);
-            }
-
-            const nextStopIndex = currentSim.currentStopIndex + 1;
-            
-            if (nextStopIndex > orderedStops.length) {
-              newSims[busId] = {...currentSim, status: 'finished', position: { lat: bus.ruta.colegio!.lat, lng: bus.ruta.colegio!.lng }, currentStopIndex: orderedStops.length };
-            } else {
-              const nextStop = orderedStops[nextStopIndex - 1];
-              if(nextStop) {
-                  newSims[busId] = { ...currentSim, currentStopIndex: nextStopIndex, position: { lat: nextStop.lat, lng: nextStop.lng } };
-              }
-            }
-          });
-          return newSims;
-        });
-      }, 5000); // Move every 5 seconds
-
-      return () => clearInterval(interval);
-    }, [simulations, buses]);
     
     const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
     
@@ -160,26 +105,22 @@ export default function MiPanelPage() {
 
 
     useEffect(() => {
-      if (activeBus && map) {
-        const sim = simulations[activeBus.id];
-        if (sim) {
-          map.panTo(sim.position);
-        }
+      if (activeBus && map && activeBus.ruta.colegio) {
+          map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
       } else if (activeChild && map) {
-          const sim = activeBus ? simulations[activeBus.id] : undefined;
-          const stop = activeChild.paradas.find(p => p.activo && p.tipo === sim?.currentTurno);
+          const stop = activeChild.paradas.find(p => p.activo && p.tipo === 'Recogida');
           if (stop) {
             map.panTo({ lat: stop.lat, lng: stop.lng });
           }
       }
-    }, [activeBus, activeChild, map, simulations]);
+    }, [activeBus, activeChild, map]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
-        const sim = simulations[activeBus.id];
-        if (!sim) return [];
+        const state = staticStates[activeBus.id];
+        if (!state) return [];
 
-        const optimizedRoute = sim.currentTurno === 'Recogida' ? activeBus.ruta.ruta_recogida : activeBus.ruta.ruta_entrega;
+        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_recogida : activeBus.ruta.ruta_entrega;
         
         if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
             try {
@@ -189,7 +130,7 @@ export default function MiPanelPage() {
             }
         }
         return [];
-    }, [isLoaded, activeBus, simulations]);
+    }, [isLoaded, activeBus, staticStates]);
 
 
     if (loading || !isLoaded) {
@@ -211,14 +152,15 @@ export default function MiPanelPage() {
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
                 {buses.map(bus => {
-                    const sim = simulations[bus.id];
-                    if (!sim) return null;
+                    const state = staticStates[bus.id];
+                    if (!state || !bus.ruta.colegio?.lat) return null;
                     const isActive = activeBus?.id === bus.id;
+                    const busPosition = {lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng!}
 
                     return (
                         <MarkerF 
                             key={bus.id}
-                            position={sim.position} 
+                            position={busPosition}
                             icon={{
                                 url: '/bus.png',
                                 scaledSize: new google.maps.Size(isActive ? 33 : 27, isActive ? 40 : 32),
@@ -242,10 +184,8 @@ export default function MiPanelPage() {
                 )}
                 
                  {hijos.map(hijo => {
-                    const bus = buses.find(b => b.ruta?.id === hijo.ruta_id);
-                    const sim = bus ? simulations[bus.id] : undefined;
-                    const turnoActual = sim?.currentTurno;
-                    const stop = hijo.paradas.find(p => p.activo && p.tipo === turnoActual);
+                    // Always show the pickup stop
+                    const stop = hijo.paradas.find(p => p.activo && p.tipo === 'Recogida');
 
                     if (!stop) return null;
 
@@ -282,7 +222,6 @@ export default function MiPanelPage() {
                                 <HijoCard 
                                     hijo={hijo} 
                                     bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
-                                    simulation={simulations[buses.find(b => b.ruta?.id === hijo.ruta_id)?.id || '']}
                                     isActive={activeChildId === hijo.id}
                                 />
                             </CarouselItem>
