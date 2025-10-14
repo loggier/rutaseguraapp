@@ -1,3 +1,4 @@
+
 // src/ai/flows/optimize-routes-with-ai.ts
 'use server';
 
@@ -10,7 +11,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 // Define Zod schema for geographic coordinates
 const CoordinatesSchema = z.object({
@@ -51,7 +52,11 @@ const OptimizedRouteSchema = z.object({
   estimatedTravelTime: z.number().describe('Estimated travel time for the route in minutes'),
   routeMapImageUrl: z
     .string()
-    .describe('URL for the map image of the optimized route')
+    .describe('URL for a static map image of the optimized route')
+    .optional(),
+  polyline: z
+    .string()
+    .describe('An encoded polyline string representing the entire route path.')
     .optional(),
 });
 
@@ -96,8 +101,8 @@ Considerations:
 *   Ensure that the bus capacity is not exceeded.
 
 Output:
-Provide the optimized route in terms of the order of student IDs, the estimated travel time in minutes, and, if possible, a URL for a map image of the route.
-`, // Changed output requirements to match the schema
+Provide the optimized route including the order of student IDs, the estimated travel time in minutes, a URL for a static map image of the route, and an encoded polyline for the route path.
+`,
 });
 
 const optimizeRoutesFlow = ai.defineFlow(
@@ -111,4 +116,3 @@ const optimizeRoutesFlow = ai.defineFlow(
     return output!;
   }
 );
-

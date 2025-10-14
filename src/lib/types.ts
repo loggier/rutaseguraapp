@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -93,7 +94,6 @@ export type Conductor = {
   // Join fields
   colegio_nombre?: string;
   placa_autobus?: string | null;
-  bus_asignado?: { matricula: string }[] | null;
 };
 
 export type Autobus = {
@@ -112,12 +112,16 @@ export type Autobus = {
   ruta_nombre?: string;
   ruta_estudiantes_count?: number;
   conductor?: Conductor | null;
+  bus_asignado?: { matricula: string }[] | null;
 };
 
 
 export type OptimizedRouteResult = {
   routeOrder: string[];
   estimatedTravelTime: number;
+  polyline?: string;
+  googleMapsUrl?: string;
+  routeMapImageUrl?: string;
 };
 
 export type Ruta = {

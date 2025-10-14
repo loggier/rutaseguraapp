@@ -1,3 +1,4 @@
+
 'use server';
 
 import { optimizeRoutes, type OptimizeRoutesInput, type OptimizeRoutesOutput } from '@/ai/flows/optimize-routes-with-ai';
@@ -95,6 +96,9 @@ const SaveRouteSchema = z.object({
     optimizedRoute: z.object({
         routeOrder: z.array(z.string()),
         estimatedTravelTime: z.number(),
+        polyline: z.string().optional(),
+        googleMapsUrl: z.string().url().optional(),
+        routeMapImageUrl: z.string().url().optional(),
     })
 });
 

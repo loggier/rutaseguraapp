@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useActionState } from 'react';
@@ -8,11 +9,11 @@ import { getOptimizedRoute, saveOptimizedRoute, type AIState, type SaveState } f
 import type { Estudiante, Parada, Ruta, Colegio, OptimizedRouteResult } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLoadScript, GoogleMap, DirectionsService, DirectionsRenderer, MarkerF } from '@react-google-maps/api';
+import { useLoadScript, GoogleMap, DirectionsService, DirectionsRenderer, MarkerF, PolylineF } from '@react-google-maps/api';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const libraries: ('places')[] = ['places'];
+const libraries: ('places' | 'geometry')[] = ['places', 'geometry'];
 
 type RouteOptimizationFormProps = {
   route: Ruta & { colegio: Colegio };
@@ -31,6 +32,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [studentsMap, setStudentsMap] = useState<Map<string, { nombre: string; apellido: string }>>(new Map());
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string>('');
+  const [currentPolyline, setCurrentPolyline] = useState<string | undefined>(undefined);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -82,6 +84,11 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
       const origin = `${route.colegio.lat},${route.colegio.lng}`;
       const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${origin}&waypoints=${orderedWaypoints.join('|')}&travelmode=driving`;
       setGoogleMapsUrl(url);
+      setCurrentPolyline(optimizedRoute.polyline);
+
+    } else {
+        setGoogleMapsUrl('');
+        setCurrentPolyline(undefined);
     }
   }, [optimizedRoute, students, route.colegio.lat, route.colegio.lng, turno]);
 
@@ -90,8 +97,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     setIsGenerating(true);
     setOptimizedRoute(null);
     setDirections(null);
-    setGoogleMapsUrl('');
-
+    
     const formData = new FormData();
     formData.append('routeId', route.id);
     formData.append('colegioLat', String(route.colegio.lat));
@@ -131,12 +137,19 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   };
   
   const directionsCallback = (response: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
-    if (status === 'OK' && response) setDirections(response);
+    if (status === 'OK' && response) {
+      setDirections(response);
+      const poly = response.routes[0]?.overview_polyline;
+      if (poly) {
+        setCurrentPolyline(poly);
+      }
+    }
     else console.error(`Directions request failed due to ${status}`);
   };
 
   const directionsServiceOptions = useMemo<google.maps.DirectionsRequest | null>(() => {
-    if (!optimizedRoute) return null;
+    if (!optimizedRoute || (optimizedRoute.polyline && !isGenerating)) return null;
+    
     const waypointsMap = new Map<string, { lat: number; lng: number }>();
     students.forEach(student => {
         const stop = student.paradas.find(p => p.tipo === turno && p.activo);
@@ -154,7 +167,12 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
       travelMode: google.maps.TravelMode.DRIVING,
       optimizeWaypoints: false,
     };
-  }, [optimizedRoute, students, route.colegio, turno]);
+  }, [optimizedRoute, students, route.colegio, turno, isGenerating]);
+  
+  const decodedPolylinePath = useMemo(() => {
+    if (!currentPolyline || !isLoaded) return [];
+    return google.maps.geometry.encoding.decodePath(currentPolyline);
+  }, [currentPolyline, isLoaded]);
 
   const bothTurnosExist = route.hora_salida_manana && route.hora_salida_tarde;
 
@@ -212,7 +230,7 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
                              <form action={saveOptimizedRouteAction} className='w-full'>
                                <input type="hidden" name="routeId" value={route.id} />
                                <input type="hidden" name="turno" value={turno} />
-                               <input type="hidden" name="optimizedRoute" value={JSON.stringify(optimizedRoute)} />
+                               <input type="hidden" name="optimizedRoute" value={JSON.stringify({ ...optimizedRoute, polyline: currentPolyline, googleMapsUrl: googleMapsUrl })} />
                                <Button type="submit" className="w-full"><Save className="mr-2 h-4 w-4" />Guardar Ruta</Button>
                               </form>
                         </div>
@@ -232,8 +250,22 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
           ) : (
              <GoogleMap mapContainerClassName="h-full w-full rounded-lg" center={{ lat: route.colegio.lat!, lng: route.colegio.lng! }} zoom={12} options={{ mapTypeControl: false, streetViewControl: false }}>
                 {directionsServiceOptions && !directions && <DirectionsService options={directionsServiceOptions} callback={directionsCallback} />}
-                {directions && <DirectionsRenderer options={{ directions }} />}
-                {!optimizedRoute && <MarkerF position={{ lat: route.colegio.lat!, lng: route.colegio.lng! }} label="C" title={route.colegio.nombre} />}
+                {directions && <DirectionsRenderer options={{ directions, suppressMarkers: true }} />}
+
+                {/* Render polyline from saved data if available */}
+                 {decodedPolylinePath.length > 0 && (
+                    <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4A90E2', strokeWeight: 5 }} />
+                )}
+
+                {/* Render markers */}
+                <MarkerF position={{ lat: route.colegio.lat!, lng: route.colegio.lng! }} label={{ text: 'C', color: 'white', fontWeight: 'bold' }} title={route.colegio.nombre} />
+                {optimizedRoute && students.map(student => {
+                    const stop = student.paradas.find(p => p.tipo === turno && p.activo);
+                    if (!stop) return null;
+                    const orderIndex = optimizedRoute.routeOrder.indexOf(student.student_id);
+                    if (orderIndex === -1) return null;
+                    return <MarkerF key={student.id} position={{ lat: stop.lat, lng: stop.lng }} label={(orderIndex + 1).toString()} title={`${student.nombre} ${student.apellido}`} />
+                })}
               </GoogleMap>
           )}
         </CardContent>
