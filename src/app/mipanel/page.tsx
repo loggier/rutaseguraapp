@@ -32,12 +32,11 @@ type StaticState = {
 const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
 
-// Function to calculate offset positions in a circle
 const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
     if (total <= 1) {
         return position;
     }
-    const offset = 0.0001; // Small radius for the circle
+    const offset = 0.0001; 
     const angle = (index / total) * 2 * Math.PI;
     return {
         lat: position.lat + offset * Math.cos(angle),
@@ -149,7 +148,6 @@ export default function MiPanelPage() {
         const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
         
         hijos.forEach(hijo => {
-            // Find any active stop for the child
             const stop = hijo.paradas.find(p => p.activo);
             if(stop) {
                 const key = `${stop.lat},${stop.lng}`;
@@ -160,20 +158,48 @@ export default function MiPanelPage() {
             }
         });
 
-        const markers: {hijo: Estudiante, position: {lat: number, lng: number}}[] = [];
+        const markers: {hijo: Estudiante, position: {lat: number, lng: number}, icon: string}[] = [];
         stopsMap.forEach((hijosAtStop, key) => {
             const [lat, lng] = key.split(',').map(Number);
             hijosAtStop.forEach((hijo, index) => {
+                const isActive = activeChildId === hijo.id;
+                const pinColor = isActive ? '#0D2C5B' : '#01C998'; // Primary vs Secondary
+                const size = isActive ? 60 : 50;
+                const avatarSize = size * 0.7;
+                const avatarX = (size - avatarSize) / 2;
+                const avatarY = (size - avatarSize) / 2;
+
+                const svg = `
+                    <svg width="${size}" height="${size}" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                      <defs>
+                        <clipPath id="circleClip">
+                          <circle cx="${size / 2}" cy="${size / 2}" r="${avatarSize / 2}" />
+                        </clipPath>
+                      </defs>
+                      <path fill="${pinColor}" d="M25,0 C13.4,0 4,9.4 4,21 C4,33.4 25,50 25,50 C25,50 46,33.4 46,21 C46,9.4 36.6,0 25,0 Z" />
+                      <image
+                        href="${hijo.avatar_url || `https://ui-avatars.com/api/?name=${hijo.nombre}+${hijo.apellido}&background=fff&color=0D2C5B&bold=true`}"
+                        x="${avatarX}"
+                        y="${avatarY}"
+                        height="${avatarSize}"
+                        width="${avatarSize}"
+                        clip-path="url(#circleClip)"
+                      />
+                    </svg>
+                `.trim();
+
+
                 markers.push({
                     hijo: hijo,
-                    position: getOffsetPosition({ lat, lng }, index, hijosAtStop.length)
+                    position: getOffsetPosition({ lat, lng }, index, hijosAtStop.length),
+                    icon: `data:image/svg+xml;base64,${btoa(svg)}`
                 });
             });
         });
 
         return markers;
 
-    }, [hijos]);
+    }, [hijos, activeChildId]);
 
 
     if (loading || !isLoaded) {
@@ -224,16 +250,16 @@ export default function MiPanelPage() {
                     </>
                 )}
                 
-                 {hijoStopMarkers.map(({hijo, position}) => {
+                 {hijoStopMarkers.map(({hijo, position, icon}) => {
                     const isActive = activeChildId === hijo.id;
                     return (
                         <MarkerF
                             key={hijo.id + '_stop'}
                             position={position}
-                             icon={{
-                                url: hijo.avatar_url || `https://ui-avatars.com/api/?name=${hijo.nombre}+${hijo.apellido}&background=random`,
-                                scaledSize: new google.maps.Size(isActive ? 50 : 40, isActive ? 50 : 40),
-                                anchor: new google.maps.Point(isActive ? 25 : 20, isActive ? 25 : 20),
+                            icon={{
+                                url: icon,
+                                scaledSize: new google.maps.Size(isActive ? 60 : 50, isActive ? 60 : 50),
+                                anchor: new google.maps.Point(isActive ? 30 : 25, isActive ? 60 : 50),
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
