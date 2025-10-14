@@ -10,7 +10,9 @@ const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
-  estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
+  estado: z.enum(['activo', 'inactivo', 'mantenimiento'], {
+    errorMap: () => ({ message: "Debes seleccionar un estado válido." })
+  }),
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
@@ -49,7 +51,7 @@ export async function updateBus(busId: string, user: User, prevState: State, for
     if (user.rol === 'colegio') {
         const { data: colegioData, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', user.id).single();
         if (error || !colegioData) {
-             return { message: 'Error: No se pudo encontrar el colegio para este usuario.' };
+             return { message: 'Error: No se pudo encontrar el colegio para este usuario.', errors: { _form: ['Error de autenticación de colegio.'] } };
         }
         colegioIdFromForm = colegioData.id;
     }

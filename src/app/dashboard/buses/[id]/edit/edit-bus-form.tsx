@@ -19,8 +19,10 @@ const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
-  estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
-  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido').optional().nullable(),
+  estado: z.enum(['activo', 'inactivo', 'mantenimiento'], {
+    errorMap: () => ({ message: "Debes seleccionar un estado válido." })
+  }),
+  colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
 });
@@ -69,11 +71,12 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const watchedColegioId = form.watch('colegio_id');
   const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
-
+  
   useEffect(() => {
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
     
+    // On first load, filter based on the bus's own school ID
     if (user.rol === 'colegio') {
       initialConductores = allConductores;
       initialRutas = allRutas;
@@ -90,11 +93,13 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   
   
   useEffect(() => {
+    // When school selection changes (for master/manager), filter the lists
     if (user.rol === 'master' || user.rol === 'manager') {
       if (watchedColegioId) {
         setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
+        // Reset conductor/route if they don't belong to the new school
         if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
@@ -112,6 +117,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
     if (!state) return;
 
     if (state.errors) {
+      // Clear previous errors
       form.clearErrors();
       let hasShownToast = false;
       for (const [field, messages] of Object.entries(state.errors)) {
@@ -131,6 +137,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         }
       }
     } else if (state.message) {
+      // Success case
       toast({
         title: "Éxito",
         description: state.message,

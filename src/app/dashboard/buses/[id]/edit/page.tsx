@@ -60,7 +60,7 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             setColegios(colegiosData || []);
             setAllConductores(conductoresData || []);
             setAllRutas(rutasData || []);
-        } else if (user.rol === 'colegio' && busData.colegio_id) {
+        } else if (user.rol === 'colegio') {
             const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
             if (colegioData) {
               const [
