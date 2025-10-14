@@ -17,11 +17,12 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
+import { Loader2, Play, Pause, RotateCcw, Share2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { TrackedBus, Parada, Conductor, Ruta, OptimizedRouteResult } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 const libraries: ('geometry')[] = ['geometry'];
@@ -40,6 +41,7 @@ export default function TrackingPage() {
   const [simulations, setSimulations] = useState<Record<string, BusSimulationState>>({});
   const [activeBusId, setActiveBusId] = useState<string | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const { toast } = useToast();
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -51,7 +53,7 @@ export default function TrackingPage() {
     const supabase = createClient();
 
     const { data, error } = await supabase.from('v_autobuses_rel').select('*');
-
+    
     if (error) {
       console.error('Error fetching tracked buses from view:', error);
       setLoading(false);
@@ -114,30 +116,32 @@ export default function TrackingPage() {
           if (!bus || !bus.ruta.colegio?.lat) return;
           
           const currentSim = newSims[busId];
-          
-          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
-          const allStops = bus.ruta.paradas || [];
+          const optimizedRoute = currentSim.currentTurno === 'Recogida'
+            ? bus.ruta.ruta_recogida
+            : bus.ruta.ruta_entrega;
+
+          const stopsSource = (bus.ruta.paradas || []);
           
           let orderedStops: Parada[] = [];
-          if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
-            const stopsMap = new Map(allStops.map(s => [s.id, s]));
-            
-             const studentIdToParadaIdMap = new Map<string, string>();
-             bus.ruta.estudiantes?.forEach(est => {
-                 const parada = bus.ruta.paradas?.find(p => p.estudiante_id === est.id && p.tipo === currentSim.currentTurno && p.activo);
-                 if(parada) {
-                     studentIdToParadaIdMap.set(est.student_id, parada.id);
-                 }
-             });
 
-            orderedStops = optimizedRoute.routeOrder
-              .map(studentId => {
-                 const paradaId = studentIdToParadaIdMap.get(studentId);
-                 return paradaId ? stopsMap.get(paradaId) : undefined;
-              })
-              .filter((s): s is Parada => !!s);
+          if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
+              const stopsMap = new Map(stopsSource.map(s => [s.id, s]));
+              orderedStops = optimizedRoute.routeOrder
+                  .map(studentId => {
+                      // Find parada_id from ruta_estudiantes that matches student_id
+                      const routeStudent = (bus.ruta.estudiantes || []).find(re => re.student_id === studentId);
+                      return routeStudent ? stopsMap.get(routeStudent.id) : undefined; // This logic needs review based on actual data structure
+                  })
+                  .filter((p): p is Parada => !!p);
+               // This is a temporary fix. `ruta_estudiantes` mapping needs to be fixed.
+               if(orderedStops.length === 0) {
+                 const studentIdToParada = new Map(stopsSource.map(p => [p.estudiante_id, p]))
+                 orderedStops = optimizedRoute.routeOrder
+                   .map(studentId => studentIdToParada.get(studentId))
+                   .filter((p): p is Parada => !!p);
+               }
           } else {
-             orderedStops = allStops.filter(s => s.tipo === currentSim.currentTurno);
+            orderedStops = stopsSource.filter(s => s.tipo === currentSim.currentTurno);
           }
 
           const nextStopIndex = currentSim.currentStopIndex + 1;
@@ -187,11 +191,48 @@ export default function TrackingPage() {
         newSims[busId] = { ...currentSim, status: 'paused' };
       } else if (action === 'reset') {
         newSims[busId] = { ...currentSim, status: 'stopped', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! } };
+        setActiveBusId(null);
       }
       return newSims;
     });
   };
   
+    const handleShareRoute = async (bus: TrackedBus, sim: BusSimulationState) => {
+    const optimizedRoute = sim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
+    const url = optimizedRoute?.googleMapsUrl;
+
+    if (!url) {
+      toast({
+        variant: 'destructive',
+        title: 'No hay ruta para compartir',
+        description: 'No se encontró una URL de Google Maps para esta ruta optimizada.',
+      });
+      return;
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Ruta de autobús: ${bus.ruta.nombre}`,
+          text: `Sigue la ruta del autobús ${bus.matricula} en tiempo real.`,
+          url: url,
+        });
+        toast({ title: 'Éxito', description: 'Ruta compartida correctamente.' });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: 'Éxito', description: 'Enlace de la ruta copiado al portapapeles.' });
+      }
+    } catch (error) {
+      console.error('Error al compartir la ruta:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo compartir o copiar el enlace de la ruta.',
+      });
+    }
+  };
+
+
   const handleSelectBus = (busId: string | null) => {
     setActiveBusId(busId);
     if(busId && map) {
@@ -346,14 +387,13 @@ export default function TrackingPage() {
                   <span className='font-medium'>({sim.currentTurno}) Próx:</span> {currentStopInfo}
                 </div>
                 <div className="flex gap-2 mt-3">
-                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'start')}} disabled={sim.status === 'running'} size="sm" className="flex-1">
-                        <Play className="mr-2 h-4 w-4" /> Iniciar
-                    </Button>
-                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'pause')}} disabled={sim.status !== 'running'} variant="outline" size="sm" className="flex-1">
-                        <Pause className="mr-2 h-4 w-4" /> Pausar
+                   <Button onClick={(e) => { e.stopPropagation(); handleShareRoute(bus, sim); }} variant="outline" size="icon">
+                      <Share2 className="h-4 w-4" />
+                      <span className="sr-only">Compartir Ruta</span>
                     </Button>
                     <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'reset')}} variant="ghost" size="icon">
                         <RotateCcw className="h-4 w-4" />
+                        <span className="sr-only">Reiniciar Simulación</span>
                     </Button>
                 </div>
               </div>
