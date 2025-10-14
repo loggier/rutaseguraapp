@@ -235,14 +235,17 @@ export default function MiPanelPage() {
                                 text: getInitials(hijo.nombre, hijo.apellido),
                                 color: "white",
                                 fontWeight: "bold",
+                                fontSize: "10px", // Smaller font for padding effect
                             }}
                             icon={{
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 12,
+                                path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z", // Material Design Place icon path
                                 fillColor: '#6B46C1', // Purple color
                                 fillOpacity: 1,
                                 strokeWeight: 2,
-                                strokeColor: 'white'
+                                strokeColor: 'white',
+                                anchor: new google.maps.Point(12, 24),
+                                labelOrigin: new google.maps.Point(12, 11), // Center the label inside the pin
+                                scale: 1.5,
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={90}
