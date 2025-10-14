@@ -15,294 +15,307 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, Pause, RotateCcw, MapPin, School, User, Bus as BusIcon } from 'lucide-react';
+import { Loader2, Play, Pause, RotateCcw, MapPin, School, User, Bus as BusIcon, List, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { Ruta, Autobus, Conductor, Estudiante, Parada, Colegio } from '@/lib/types';
+import type { TrackedBus } from '@/lib/types';
+import { PageHeader } from '@/components/page-header';
+import { cn } from '@/lib/utils';
 
-// Types for fetched data
-type EnrichedRuta = Ruta & {
-  colegio: Colegio;
-  autobus: (Autobus & { conductor: Conductor | null }) | null;
-  estudiantes: (Estudiante & { paradas: Parada[] })[];
-};
 
-const libraries: ('places' | 'drawing' | 'geometry' | 'visualization')[] = ['geometry'];
+const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 }; // Quito
 
-export default function TrackingPage() {
-  const [routes, setRoutes] = useState<EnrichedRuta[]>([]);
-  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+type BusSimulationState = {
+  status: 'paused' | 'running' | 'stopped' | 'finished';
+  currentStopIndex: number;
+  position: google.maps.LatLngLiteral;
+}
 
-  // Simulation state
-  const [simulationStatus, setSimulationStatus] = useState<'paused' | 'running' | 'stopped'>('stopped');
-  const [currentStopIndex, setCurrentStopIndex] = useState(0);
-  const [busPosition, setBusPosition] = useState<google.maps.LatLngLiteral | null>(null);
+export default function TrackingPage() {
+  const [buses, setBuses] = useState<TrackedBus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [simulations, setSimulations] = useState<Record<string, BusSimulationState>>({});
+  const [activeBusId, setActiveBusId] = useState<string | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries,
   });
 
-  // Fetch active routes with their relations
+  // Fetch active buses with their relations
   useEffect(() => {
-    async function fetchRoutes() {
+    async function fetchTrackedBuses() {
       setLoading(true);
       const supabase = createClient();
       const { data, error } = await supabase
-        .from('rutas')
+        .from('autobuses')
         .select(`
-          *,
-          colegio:colegios(*),
-          autobus:autobuses!inner(*, conductor:conductores(*)),
-          estudiantes:ruta_estudiantes!inner(
-            estudiante:estudiantes!inner(
-              *,
-              paradas!inner(*)
+          id,
+          matricula,
+          capacidad,
+          imei_gps,
+          conductor:conductores(*),
+          ruta:rutas!inner(*,
+            colegio:colegios(*),
+            paradas:ruta_estudiantes!inner(
+              parada:paradas!inner(*)
             )
           )
         `)
-        .eq('autobus.estado', 'activo');
+        .eq('estado', 'activo')
+        .not('ruta', 'is', null);
 
       if (error) {
-        console.error('Error fetching routes:', error);
+        console.error('Error fetching tracked buses:', error);
       } else {
-        const enrichedData: EnrichedRuta[] = data.map((route: any) => ({
-          ...route,
-          colegio: Array.isArray(route.colegio) ? route.colegio[0] : route.colegio,
-          autobus: Array.isArray(route.autobus) ? route.autobus[0] : route.autobus,
-          estudiantes: route.estudiantes.map((e: any) => e.estudiante),
-        }));
-        setRoutes(enrichedData);
-        if (enrichedData.length > 0) {
-          setSelectedRouteId(enrichedData[0].id);
-        }
+        const initialSims: Record<string, BusSimulationState> = {};
+        const trackedBuses: TrackedBus[] = data.map((bus: any) => {
+          const colegio = Array.isArray(bus.ruta.colegio) ? bus.ruta.colegio[0] : bus.ruta.colegio;
+          
+          const uniqueParadas = Array.from(new Map(bus.ruta.paradas.map((p: any) => p.parada).map((item: any) => [item.id, item])).values());
+          
+          initialSims[bus.id] = {
+            status: 'stopped',
+            currentStopIndex: 0,
+            position: { lat: colegio.lat, lng: colegio.lng },
+          };
+          
+          return {
+            ...bus,
+            conductor: Array.isArray(bus.conductor) ? bus.conductor[0] : bus.conductor,
+            ruta: {
+              ...bus.ruta,
+              colegio,
+              paradas: uniqueParadas,
+            },
+          };
+        });
+        
+        setBuses(trackedBuses);
+        setSimulations(initialSims);
       }
       setLoading(false);
     }
-    fetchRoutes();
+    fetchTrackedBuses();
   }, []);
-
-  const selectedRoute = useMemo(() => {
-    return routes.find(r => r.id === selectedRouteId);
-  }, [selectedRouteId, routes]);
-
-  const stops = useMemo(() => {
-    if (!selectedRoute) return [];
-    
-    // Use the optimized route order if available, otherwise just use the student list order
-    const orderedStudentIds = selectedRoute.ruta_optimizada_recogida?.routeOrder || selectedRoute.estudiantes.map(e => e.student_id);
-
-    const stopsMap = new Map<string, Parada>();
-    selectedRoute.estudiantes.forEach(student => {
-      const activeStop = student.paradas.find(p => p.activo && p.tipo === 'Recogida'); // Assuming 'Recogida' for now
-      if (activeStop) {
-        stopsMap.set(student.student_id, activeStop);
-      }
-    });
-
-    return orderedStudentIds
-      .map(studentId => stopsMap.get(studentId))
-      .filter((stop): stop is Parada => !!stop);
-
-  }, [selectedRoute]);
-
-  // Reset simulation when route changes
-  useEffect(() => {
-    setSimulationStatus('stopped');
-    setCurrentStopIndex(0);
-    if (selectedRoute?.colegio?.lat && selectedRoute?.colegio?.lng) {
-      setBusPosition({ lat: selectedRoute.colegio.lat, lng: selectedRoute.colegio.lng });
-    } else {
-      setBusPosition(null);
-    }
-  }, [selectedRoute]);
   
-  // Simulation interval
+  // Simulation Engine
   useEffect(() => {
-    if (simulationStatus !== 'running' || !stops.length || !selectedRoute?.colegio) {
-      return;
-    }
+    const activeSimulationIds = Object.entries(simulations)
+      .filter(([, sim]) => sim.status === 'running')
+      .map(([id]) => id);
+
+    if (activeSimulationIds.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentStopIndex(prevIndex => {
-        const nextIndex = prevIndex + 1;
-        
-        if (nextIndex > stops.length) {
-            // Reached the end, back to school
-            setBusPosition({ lat: selectedRoute.colegio.lat!, lng: selectedRoute.colegio.lng! });
-            setSimulationStatus('stopped');
-            return 0; // Reset for next run
-        }
-        
-        const nextStop = stops[nextIndex - 1];
-        if (nextStop) {
-            setBusPosition({ lat: nextStop.lat, lng: nextStop.lng });
-        }
-        
-        return nextIndex;
+      setSimulations(prevSims => {
+        const newSims = { ...prevSims };
+        activeSimulationIds.forEach(busId => {
+          const bus = buses.find(b => b.id === busId);
+          if (!bus) return;
+          
+          const currentSim = newSims[busId];
+          const nextStopIndex = currentSim.currentStopIndex + 1;
+          const stops = bus.ruta.paradas;
+
+          if (nextStopIndex > stops.length) {
+            // Finished, back to school
+            newSims[busId] = {
+              ...currentSim,
+              status: 'finished',
+              position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
+              currentStopIndex: stops.length,
+            };
+          } else {
+            const nextStop = stops[nextStopIndex - 1];
+            newSims[busId] = {
+              ...currentSim,
+              currentStopIndex: nextStopIndex,
+              position: { lat: nextStop.lat, lng: nextStop.lng },
+            };
+          }
+        });
+        return newSims;
       });
-    }, 3000); // Move every 3 seconds
+    }, 5000); // Move every 5 seconds
 
     return () => clearInterval(interval);
-  }, [simulationStatus, stops, selectedRoute?.colegio]);
+  }, [simulations, buses]);
+  
 
-  const handleSimulationControl = (action: 'start' | 'pause' | 'reset') => {
-    if (action === 'start') {
-        if(currentStopIndex > stops.length) { // If was finished, restart
-             setCurrentStopIndex(0);
-             if (selectedRoute?.colegio) setBusPosition({ lat: selectedRoute.colegio.lat, lng: selectedRoute.colegio.lng });
+  const handleSimulationControl = (busId: string, action: 'start' | 'pause' | 'reset') => {
+    setSimulations(prevSims => {
+      const bus = buses.find(b => b.id === busId);
+      if (!bus) return prevSims;
+
+      const currentSim = prevSims[busId];
+      const newSims = { ...prevSims };
+
+      if (action === 'start') {
+        if (currentSim.status === 'finished') { // If finished, reset first
+           newSims[busId] = { status: 'running', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! } };
+        } else {
+           newSims[busId] = { ...currentSim, status: 'running' };
         }
-        setSimulationStatus('running');
-    }
-    if (action === 'pause') setSimulationStatus('paused');
-    if (action === 'reset') {
-      setSimulationStatus('stopped');
-      setCurrentStopIndex(0);
-      if (selectedRoute?.colegio) setBusPosition({ lat: selectedRoute.colegio.lat, lng: selectedRoute.colegio.lng });
-    }
+      } else if (action === 'pause') {
+        newSims[busId] = { ...currentSim, status: 'paused' };
+      } else if (action === 'reset') {
+        newSims[busId] = { status: 'stopped', currentStopIndex: 0, position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! } };
+      }
+      return newSims;
+    });
   };
+  
+  const handleSelectBus = (busId: string | null) => {
+    setActiveBusId(busId);
+    if(busId && map) {
+        const sim = simulations[busId];
+        if(sim) {
+            map.panTo(sim.position);
+            map.setZoom(15);
+        }
+    }
+  }
+  
+  const getStatusBadge = (status: BusSimulationState['status']) => {
+    switch (status) {
+        case 'running': return <Badge variant="default" className="bg-green-600">En Ruta</Badge>;
+        case 'paused': return <Badge variant="secondary">Pausado</Badge>;
+        case 'finished': return <Badge variant="outline">Finalizado</Badge>;
+        case 'stopped':
+        default: return <Badge variant="outline">Detenido</Badge>;
+    }
+  }
 
 
   if (loading) {
-    return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando rutas...</p></div>;
+    return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando datos de seguimiento...</p></div>;
   }
   if (!isLoaded) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando mapa...</p></div>;
   }
   if (loadError) {
-    return <div>Error al cargar el mapa. Revisa la clave de API de Google Maps.</div>;
+    return <div className="p-4 text-destructive">Error al cargar el mapa. Revisa la clave de API de Google Maps.</div>;
   }
 
-  const routePath = [
-    ...(selectedRoute?.colegio ? [{ lat: selectedRoute.colegio.lat!, lng: selectedRoute.colegio.lng! }] : []),
-    ...stops.map(s => ({ lat: s.lat, lng: s.lng })),
-    ...(selectedRoute?.colegio ? [{ lat: selectedRoute.colegio.lat!, lng: selectedRoute.colegio.lng! }] : [])
-  ];
-
   return (
-    <div className="grid lg:grid-cols-3 gap-6 h-full">
-      <div className="lg:col-span-2 h-[calc(100vh-10rem)] rounded-lg overflow-hidden">
+    <>
+    <PageHeader title="Seguimiento de Flota" description="Monitorea todos los autobuses activos en tiempo real." />
+    <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+      <div className="lg:col-span-2 h-full rounded-lg overflow-hidden border">
         <GoogleMap
             mapContainerClassName='w-full h-full'
-            center={busPosition || mapCenter}
-            zoom={13}
+            center={mapCenter}
+            zoom={12}
+            onLoad={setMap}
+            options={{ mapTypeControl: false, streetViewControl: false, maxZoom: 18 }}
         >
-            {/* Colegio Marker */}
-            {selectedRoute?.colegio?.lat && selectedRoute.colegio.lng && (
-                <MarkerF 
-                    position={{ lat: selectedRoute.colegio.lat, lng: selectedRoute.colegio.lng }} 
-                    icon={{
-                        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                        scale: 6,
-                        fillColor: '#4285F4',
-                        fillOpacity: 1,
-                        strokeWeight: 2,
-                        strokeColor: 'white',
-                    }}
-                    label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                />
-            )}
-            {/* Stops Markers */}
-            {stops.map((stop, index) => (
-                <MarkerF 
-                    key={stop.id} 
-                    position={{ lat: stop.lat, lng: stop.lng }}
-                    label={(index + 1).toString()}
-                    opacity={currentStopIndex > index ? 0.5 : 1}
-                />
-            ))}
-            {/* Bus Marker */}
-            {busPosition && simulationStatus !== 'stopped' && (
-                <MarkerF 
-                    position={busPosition} 
-                    icon={{
-                        url: '/bus.svg',
-                        scaledSize: new google.maps.Size(40, 40),
-                        anchor: new google.maps.Point(20, 20),
-                    }}
-                    zIndex={100}
-                >
-                     <InfoWindowF position={busPosition} options={{ pixelOffset: new google.maps.Size(0, -40) }}>
-                        <div>
-                            <p className='font-bold'>{selectedRoute?.autobus?.matricula}</p>
-                            <p>En ruta...</p>
-                        </div>
-                    </InfoWindowF>
-                </MarkerF>
-            )}
-            {/* Route Polyline */}
-            <PolylineF path={routePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
+          {buses.map(bus => {
+            const sim = simulations[bus.id];
+            if (!sim) return null;
+            
+            const isSelected = activeBusId === bus.id;
+            const routePath = [
+                { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
+                ...bus.ruta.paradas.map(s => ({ lat: s.lat, lng: s.lng })),
+                { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! }
+            ];
+
+            return (
+                <React.Fragment key={bus.id}>
+                    {/* Bus Marker */}
+                    <MarkerF 
+                        position={sim.position} 
+                        icon={{
+                            url: '/bus.svg',
+                            scaledSize: new google.maps.Size(isSelected ? 40 : 32, isSelected ? 40 : 32),
+                            anchor: new google.maps.Point(isSelected ? 20 : 16, isSelected ? 20 : 16),
+                        }}
+                        zIndex={isSelected ? 100 : sim.status === 'running' ? 50 : 10}
+                        onClick={() => handleSelectBus(bus.id)}
+                    >
+                        {isSelected && (
+                             <InfoWindowF position={sim.position} onCloseClick={() => handleSelectBus(null)}>
+                                <div>
+                                    <p className='font-bold'>{bus.matricula}</p>
+                                    <p className='text-sm'>{bus.ruta.nombre}</p>
+                                    <p className='text-xs capitalize'>{sim.status}</p>
+                                </div>
+                            </InfoWindowF>
+                        )}
+                    </MarkerF>
+                    {/* Route and Stops for Selected Bus */}
+                    {isSelected && (
+                      <>
+                        <PolylineF path={routePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
+                        <MarkerF 
+                            position={{ lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! }}
+                            icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
+                            label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                        />
+                        {bus.ruta.paradas.map((stop, index) => (
+                           <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={sim.currentStopIndex > index ? 0.5 : 1} />
+                        ))}
+                      </>
+                    )}
+                </React.Fragment>
+            )
+          })}
         </GoogleMap>
       </div>
 
-      <Card className="flex flex-col">
+      <Card className="flex flex-col h-full">
         <CardHeader>
-          <CardTitle>Seguimiento en Vivo</CardTitle>
-           <Select onValueChange={setSelectedRouteId} value={selectedRouteId || ''} disabled={simulationStatus === 'running'}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona una ruta activa" />
-              </SelectTrigger>
-              <SelectContent>
-                {routes.map(r => <SelectItem key={r.id} value={r.id}>{r.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <CardTitle>Autobuses Activos ({buses.length})</CardTitle>
+          <CardDescription>Controla la simulación de cada unidad.</CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col justify-between">
-          {selectedRoute ? (
-            <div className='flex flex-col h-full'>
-                {/* Trip Info */}
-                <div className='space-y-3 mb-4'>
-                    <div className="flex items-center gap-2 text-sm"><BusIcon className="w-4 h-4 text-muted-foreground"/> <strong>Autobús:</strong> {selectedRoute.autobus?.matricula}</div>
-                    <div className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-muted-foreground"/> <strong>Conductor:</strong> {selectedRoute.autobus?.conductor?.nombre} {selectedRoute.autobus?.conductor?.apellido}</div>
-                    <div className="flex items-center gap-2 text-sm capitalize"><Badge variant={simulationStatus === 'running' ? 'default' : 'secondary'}>{simulationStatus.replace('_', ' ')}</Badge> ({currentStopIndex > stops.length ? stops.length : currentStopIndex} de {stops.length} paradas)</div>
-                </div>
+        <CardContent className="flex-1 overflow-y-auto space-y-4">
+          {buses.length > 0 ? buses.map(bus => {
+            const sim = simulations[bus.id];
+            if(!sim) return null;
+            
+            const stopsCount = bus.ruta.paradas.length;
+            const currentStopInfo = sim.currentStopIndex > 0 && sim.currentStopIndex <= stopsCount
+                ? `Parada ${sim.currentStopIndex}/${stopsCount}: ${bus.ruta.paradas[sim.currentStopIndex-1]?.direccion}`
+                : sim.status === 'finished' ? 'Ruta finalizada' : 'En el colegio';
 
-                {/* Controls */}
-                <div className="flex gap-2 mb-4">
-                    <Button onClick={() => handleSimulationControl('start')} disabled={simulationStatus === 'running'} className="flex-1">
+
+            return (
+              <div key={bus.id} className={cn("p-3 rounded-lg border transition-all cursor-pointer", activeBusId === bus.id && "ring-2 ring-primary bg-muted/50")} onClick={() => handleSelectBus(bus.id)}>
+                <div className='flex justify-between items-start'>
+                    <div>
+                        <h4 className='font-semibold'>{bus.matricula}</h4>
+                        <p className='text-sm text-muted-foreground'>{bus.ruta.nombre}</p>
+                    </div>
+                    {getStatusBadge(sim.status)}
+                </div>
+                 <div className='text-xs text-muted-foreground mt-2 truncate'>
+                  <span className='font-medium'>Prox:</span> {currentStopInfo}
+                </div>
+                <div className="flex gap-2 mt-3">
+                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'start')}} disabled={sim.status === 'running'} size="sm" className="flex-1">
                         <Play className="mr-2 h-4 w-4" /> Iniciar
                     </Button>
-                    <Button onClick={() => handleSimulationControl('pause')} disabled={simulationStatus !== 'running'} variant="outline" className="flex-1">
+                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'pause')}} disabled={sim.status !== 'running'} variant="outline" size="sm" className="flex-1">
                         <Pause className="mr-2 h-4 w-4" /> Pausar
                     </Button>
-                    <Button onClick={() => handleSimulationControl('reset')} variant="destructive" size="icon">
+                    <Button onClick={(e) => {e.stopPropagation(); handleSimulationControl(bus.id, 'reset')}} variant="ghost" size="icon">
                         <RotateCcw className="h-4 w-4" />
                     </Button>
                 </div>
-                
-                {/* Stops List */}
-                <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-                    <h4 className='font-semibold'>Paradas del Recorrido</h4>
-                     <div className='flex items-center gap-3 p-2 rounded-md bg-muted'>
-                        <School className="w-5 h-5 text-primary"/>
-                        <p className='font-medium text-sm'>{selectedRoute.colegio.nombre}</p>
-                    </div>
-                    {stops.map((stop, index) => (
-                        <div key={stop.id} className={`flex items-center gap-3 p-2 rounded-md transition-all ${currentStopIndex > index ? 'bg-green-100 dark:bg-green-900/50 opacity-70' : 'bg-muted/50'}`}>
-                            <MapPin className={`w-5 h-5 ${currentStopIndex > index ? 'text-green-600' : 'text-muted-foreground'}`}/>
-                            <p className={`text-sm flex-1 truncate ${currentStopIndex > index ? 'line-through' : ''}`}>{stop.direccion}</p>
-                        </div>
-                    ))}
-                </div>
-
-            </div>
-          ) : (
-            <div className='flex h-full items-center justify-center text-muted-foreground'>
-                <p>Selecciona una ruta para iniciar el seguimiento.</p>
+              </div>
+            )
+          }) : (
+            <div className='flex h-full items-center justify-center text-muted-foreground text-center'>
+                <p>No hay autobuses activos con rutas asignadas en este momento.</p>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

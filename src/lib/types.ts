@@ -5,6 +5,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -161,4 +162,16 @@ export type Viaje = {
   conductor: string;
   autobus: string;
   estado: 'activo' | 'suspendido' | 'papelera';
+}
+
+export type TrackedBus = {
+  id: string;
+  matricula: string;
+  conductor: Conductor;
+  ruta: {
+    id: string;
+    nombre: string;
+    colegio: Colegio;
+    paradas: Parada[];
+  }
 }
