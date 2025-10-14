@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { User, Autobus } from '@/lib/types';
+import type { User, Autobus, Colegio, Conductor, Ruta } from '@/lib/types';
 
 const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
@@ -42,6 +42,60 @@ const createSupabaseAdminClient = () => {
       }
   );
 };
+
+export async function getBusData(busId: string, user: User) {
+    const supabaseAdmin = createSupabaseAdminClient();
+
+    const { data: bus, error: busError } = await supabaseAdmin
+        .from('autobuses')
+        .select('*')
+        .eq('id', busId)
+        .single();
+
+    if (busError || !bus) {
+        return null;
+    }
+
+    let colegios: Colegio[] = [];
+    let allConductores: Conductor[] = [];
+    let allRutas: Ruta[] = [];
+
+    if (user.rol === 'master' || user.rol === 'manager') {
+        const [
+            { data: colegiosData },
+            { data: conductoresData },
+            { data: rutasData }
+        ] = await Promise.all([
+            supabaseAdmin.from('colegios_view').select('*').order('nombre'),
+            supabaseAdmin.from('conductores_view').select('*'),
+            supabaseAdmin.from('rutas').select('*')
+        ]);
+        colegios = colegiosData || [];
+        allConductores = conductoresData || [];
+        allRutas = rutasData || [];
+    } else if (user.rol === 'colegio') {
+        const { data: colegioData } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', user.id).single();
+        if (colegioData) {
+            const [
+                { data: conductoresData },
+                { data: rutasData }
+            ] = await Promise.all([
+                supabaseAdmin.from('conductores_view').select('*').eq('colegio_id', colegioData.id),
+                supabaseAdmin.from('rutas').select('*').eq('colegio_id', colegioData.id)
+            ]);
+            allConductores = conductoresData || [];
+            allRutas = rutasData || [];
+        }
+    }
+    
+    return {
+        bus,
+        colegios,
+        allConductores,
+        allRutas
+    };
+}
+
 
 export async function updateBus(busId: string, user: User, prevState: State, formData: FormData): Promise<State> {
     const supabaseAdmin = createSupabaseAdminClient();

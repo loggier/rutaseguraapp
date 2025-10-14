@@ -6,10 +6,10 @@ import { useUser } from '@/contexts/user-context';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, use } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { Colegio, Conductor, Ruta, Autobus } from "@/lib/types";
 import { EditBusForm } from "./edit-bus-form";
 import { notFound } from 'next/navigation';
+import { getBusData } from "./actions";
 
 export default function EditBusPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useUser();
@@ -30,53 +30,20 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
     
     async function fetchData() {
         setLoading(true);
-        const supabase = createClient();
-        
-        // Fetch from the main 'autobuses' table to ensure 'estado' is present
-        const { data: busData, error: busError } = await supabase
-            .from('autobuses')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const data = await getBusData(id, user);
 
-        if (busError || !busData) {
-            console.error("Error fetching bus:", busError);
+        if (!data || !data.bus) {
+            console.error("Error fetching bus data from server action.");
             setBus(null);
             setLoading(false);
             notFound();
             return;
         } 
         
-        setBus(busData as Autobus);
-        
-        if (user.rol === 'master' || user.rol === 'manager') {
-            const [
-                { data: colegiosData },
-                { data: conductoresData },
-                { data: rutasData }
-            ] = await Promise.all([
-                supabase.from('colegios_view').select('*').order('nombre'),
-                supabase.from('conductores_view').select('*'),
-                supabase.from('rutas').select('*')
-            ]);
-            setColegios(colegiosData || []);
-            setAllConductores(conductoresData || []);
-            setAllRutas(rutasData || []);
-        } else if (user.rol === 'colegio') {
-            const targetColegioId = busData?.colegio_id;
-            if (targetColegioId) {
-              const [
-                { data: conductoresData },
-                { data: rutasData }
-              ] = await Promise.all([
-                supabase.from('conductores_view').select('*').eq('colegio_id', targetColegioId),
-                supabase.from('rutas').select('*').eq('colegio_id', targetColegioId)
-              ]);
-              setAllConductores(conductoresData || []);
-              setAllRutas(rutasData || []);
-            }
-        }
-
+        setBus(data.bus);
+        setColegios(data.colegios);
+        setAllConductores(data.allConductores);
+        setAllRutas(data.allRutas);
         setLoading(false);
     }
     
