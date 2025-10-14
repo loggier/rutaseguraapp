@@ -29,9 +29,22 @@ type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
 
-
 const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
+
+// Function to calculate offset positions in a circle
+const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
+    if (total <= 1) {
+        return position;
+    }
+    const offset = 0.0001; // Small radius for the circle
+    const angle = (index / total) * 2 * Math.PI;
+    return {
+        lat: position.lat + offset * Math.cos(angle),
+        lng: position.lng + offset * Math.sin(angle),
+    };
+};
+
 
 export default function MiPanelPage() {
     const { user } = useUser();
@@ -132,6 +145,40 @@ export default function MiPanelPage() {
         return [];
     }, [isLoaded, activeBus, staticStates]);
 
+    const hijoStopMarkers = useMemo(() => {
+        const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
+        
+        hijos.forEach(hijo => {
+            const bus = buses.find(b => b.ruta?.id === hijo.ruta_id);
+            if (!bus) return;
+            const state = staticStates[bus.id];
+            if (!state) return;
+
+            const stop = hijo.paradas.find(p => p.activo && p.tipo === state.currentTurno);
+            if(stop) {
+                const key = `${stop.lat},${stop.lng}`;
+                if (!stopsMap.has(key)) {
+                    stopsMap.set(key, []);
+                }
+                stopsMap.get(key)!.push(hijo);
+            }
+        });
+
+        const markers: {hijo: Estudiante, position: {lat: number, lng: number}}[] = [];
+        stopsMap.forEach((hijosAtStop, key) => {
+            const [lat, lng] = key.split(',').map(Number);
+            hijosAtStop.forEach((hijo, index) => {
+                markers.push({
+                    hijo: hijo,
+                    position: getOffsetPosition({ lat, lng }, index, hijosAtStop.length)
+                });
+            });
+        });
+
+        return markers;
+
+    }, [hijos, buses, staticStates]);
+
 
     if (loading || !isLoaded) {
         return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando mapa...</p></div>;
@@ -183,16 +230,11 @@ export default function MiPanelPage() {
                     </>
                 )}
                 
-                 {hijos.map(hijo => {
-                    // Always show the pickup stop
-                    const stop = hijo.paradas.find(p => p.activo && p.tipo === 'Recogida');
-
-                    if (!stop) return null;
-
+                 {hijoStopMarkers.map(({hijo, position}) => {
                     return (
                         <MarkerF
                             key={hijo.id + '_stop'}
-                            position={{ lat: stop.lat, lng: stop.lng }}
+                            position={position}
                             label={{
                                 text: getInitials(hijo.nombre, hijo.apellido),
                                 color: "white",
