@@ -12,10 +12,13 @@ type ParentDashboardData = {
 export async function getParentDashboardData(parentId: string): Promise<ParentDashboardData> {
     const supabase = createServerClient();
 
-    // 1. Get children of the parent
+    // 1. Get children of the parent with school name
     const { data: hijos, error: hijosError } = await supabase
         .from('estudiantes')
-        .select('id, student_id, nombre, apellido, avatar_url, colegio_id, activo')
+        .select(`
+            id, student_id, nombre, apellido, avatar_url, colegio_id, activo,
+            colegio:colegios ( nombre )
+        `)
         .eq('padre_id', parentId);
 
     if (hijosError) {
@@ -50,8 +53,9 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return acc;
     }, {} as Record<string, { ruta_id: string; paradas: Parada[] }>);
 
-    const childrenWithRoutes = hijos.map(hijo => ({
+    const childrenWithRoutes = hijos.map((hijo: any) => ({
         ...hijo,
+        colegio_nombre: hijo.colegio?.nombre || 'No Asignado',
         ruta_id: assignmentsByStudent[hijo.id]?.ruta_id,
         paradas: assignmentsByStudent[hijo.id]?.paradas || [],
     }));
