@@ -52,7 +52,7 @@ function DriversPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('conductores_view').select(`*, bus_asignado:autobuses!conductor_id(matricula)`);
+      let query = supabase.from('conductores_view').select(`*, autobus_asignado:autobuses(matricula)`);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -73,7 +73,7 @@ function DriversPageComponent() {
       
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
-          bus_asignado: Array.isArray(driver.bus_asignado) && driver.bus_asignado.length > 0 ? driver.bus_asignado[0].matricula : null,
+          bus_asignado: Array.isArray(driver.autobus_asignado) && driver.autobus_asignado.length > 0 ? driver.autobus_asignado[0].matricula : null,
       }));
 
       setDrivers(formattedData as Conductor[]);
