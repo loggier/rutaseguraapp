@@ -18,8 +18,10 @@ import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import type { Colegio } from '@/lib/types';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function LoginPage() {
+  const [userType, setUserType] = useState<'parent' | 'staff'>('staff');
   const [colegioId, setColegioId] = useState<string>('');
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
@@ -50,7 +52,11 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!colegioId) {
+    // Si es padre, el colegio es obligatorio.
+    // Si es staff, usamos el primer colegio de la lista como dummy, ya que el backend lo ignorará si el rol es master/manager.
+    const finalColegioId = userType === 'parent' ? colegioId : (colegios[0]?.id || '');
+
+    if (!finalColegioId) {
         toast({
             variant: "destructive",
             title: "Campo Requerido",
@@ -67,7 +73,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, colegioId }),
+        body: JSON.stringify({ email, password, colegioId: finalColegioId }),
       });
 
       const data = await response.json();
@@ -107,26 +113,47 @@ export default function LoginPage() {
               Bienvenido a RutaSegura
             </CardTitle>
             <CardDescription className="text-center">
-              Selecciona tu colegio e inicia sesión para acceder.
+              Selecciona tu rol e inicia sesión para acceder.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="grid gap-4">
                <div className="grid gap-2">
-                <Label htmlFor="colegio">Colegio</Label>
-                 <Select onValueChange={setColegioId} value={colegioId}>
-                    <SelectTrigger id="colegio">
-                        <SelectValue placeholder="Selecciona tu colegio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {colegios.map(colegio => (
-                            <SelectItem key={colegio.id} value={colegio.id}>
-                                {colegio.nombre}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Label>Tipo de Usuario</Label>
+                <RadioGroup defaultValue="staff" onValueChange={(value: 'parent' | 'staff') => setUserType(value)} className="grid grid-cols-2 gap-4">
+                    <div>
+                        <RadioGroupItem value="staff" id="staff" className="peer sr-only" />
+                        <Label htmlFor="staff" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        Personal/Admin
+                        </Label>
+                    </div>
+                    <div>
+                        <RadioGroupItem value="parent" id="parent" className="peer sr-only" />
+                        <Label htmlFor="parent" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        Padre/Tutor
+                        </Label>
+                    </div>
+                </RadioGroup>
               </div>
+
+              {userType === 'parent' && (
+                <div className="grid gap-2">
+                    <Label htmlFor="colegio">Colegio</Label>
+                    <Select onValueChange={setColegioId} value={colegioId}>
+                        <SelectTrigger id="colegio">
+                            <SelectValue placeholder="Selecciona tu colegio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {colegios.map(colegio => (
+                                <SelectItem key={colegio.id} value={colegio.id}>
+                                    {colegio.nombre}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -158,7 +185,7 @@ export default function LoginPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isPending || colegios.length === 0}>
+              <Button type="submit" className="w-full" disabled={isPending || (userType === 'parent' && colegios.length === 0)}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
