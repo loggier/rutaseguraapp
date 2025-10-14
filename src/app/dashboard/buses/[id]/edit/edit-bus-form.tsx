@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useActionState, useState } from 'react';
+import { useEffect, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,45 +69,15 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   });
 
   const watchedColegioId = form.watch('colegio_id');
-  const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
-  const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
   
   useEffect(() => {
-    let initialConductores: Conductor[] = [];
-    let initialRutas: Ruta[] = [];
-    
-    // This logic runs on first load to set the initial lists
-    if (user.rol === 'colegio') {
-      initialConductores = allConductores;
-      initialRutas = allRutas;
-    } else {
-      if (bus.colegio_id) {
-          initialConductores = allConductores.filter(c => c.colegio_id === bus.colegio_id);
-          initialRutas = allRutas.filter(r => r.colegio_id === bus.colegio_id);
-      }
-    }
-    setFilteredConductores(initialConductores);
-    setFilteredRutas(initialRutas);
-  }, [bus.colegio_id, allConductores, allRutas, user.rol]);
-  
-  
-  // This logic runs when the user changes the selected school
-  useEffect(() => {
+    // Cuando el colegio cambia, reseteamos las selecciones de conductor y ruta si no pertenecen al nuevo colegio
     if (user.rol === 'master' || user.rol === 'manager') {
-      if (watchedColegioId) {
-        setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
-        setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
-        
-        // Reset conductor and ruta if they don't belong to the new school
-        if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
-          form.setValue('conductor_id', null);
-        }
-        if (form.getValues('ruta_id') && !allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
-          form.setValue('ruta_id', null);
-        }
-      } else {
-        setFilteredConductores([]);
-        setFilteredRutas([]);
+      if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
+        form.setValue('conductor_id', null);
+      }
+      if (form.getValues('ruta_id') && !allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
+        form.setValue('ruta_id', null);
       }
     }
   }, [watchedColegioId, allConductores, allRutas, form, user.rol]);
@@ -115,37 +85,39 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   useEffect(() => {
     if (!state) return;
     
-    // If there are specific field errors, set them in the form.
+    // Si hay errores específicos de campo, los distribuimos
     if (state.errors) {
-        let hasShownToast = false;
-        Object.entries(state.errors).forEach(([field, messages]) => {
-            if (messages) {
-                form.setError(field as keyof FormValues, {
-                    type: 'server',
-                    message: messages.join(', '),
-                });
-                // Show a generic toast only once if there are field errors
-                if (!hasShownToast) {
-                    toast({
-                        variant: "destructive",
-                        title: "Error de Validación",
-                        description: state.message || "Faltan campos o tienen errores. Por favor, revisa el formulario.",
-                    });
-                    hasShownToast = true;
-                }
-            }
-        });
+      let hasShownToast = false;
+      Object.entries(state.errors).forEach(([field, messages]) => {
+        if (messages) {
+          form.setError(field as keyof FormValues, {
+            type: 'server',
+            message: messages.join(', '),
+          });
+          // Mostramos un único toast genérico para alertar al usuario
+          if (!hasShownToast) {
+            toast({
+              variant: "destructive",
+              title: "Error de Validación",
+              description: state.message || "Faltan campos o tienen errores. Por favor, revisa el formulario.",
+            });
+            hasShownToast = true;
+          }
+        }
+      });
     } else if (state.message) {
-      // If there are no field errors but there is a message, show it.
-      // This covers success messages and general server errors.
+      // Si no hay errores de campo, mostramos el mensaje (éxito o error general del servidor)
       toast({
         variant: state.message.startsWith('Error') ? "destructive" : "default",
         title: state.message.startsWith('Error') ? "Error" : "Éxito",
         description: state.message,
       });
     }
-}, [state, toast, form]);
+  }, [state, toast, form]);
 
+
+  const filteredConductores = allConductores.filter(c => c.colegio_id === watchedColegioId);
+  const filteredRutas = allRutas.filter(r => r.colegio_id === watchedColegioId);
 
   return (
     <Form {...form}>
@@ -161,7 +133,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
               render={({ field }) => (
                 <FormItem className='space-y-1 md:col-span-2'>
                   <FormLabel>Colegio *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? undefined} name={field.name}>
+                  <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un colegio" />
@@ -218,14 +190,18 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
             render={({ field }) => (
               <FormItem className='space-y-1'>
                 <FormLabel>Estado *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un estado" /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="activo">Activo</SelectItem>
-                    <SelectItem value="inactivo">Inactivo</SelectItem>
-                    <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
-                  </SelectContent>
-                </Select>
+                 <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un estado" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="activo">Activo</SelectItem>
+                      <SelectItem value="inactivo">Inactivo</SelectItem>
+                      <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                    </SelectContent>
+                  </Select>
                 <FormMessage />
               </FormItem>
             )}
