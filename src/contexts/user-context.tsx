@@ -7,6 +7,7 @@ import type { Profile } from '@/lib/types';
 export type User = Profile & {
     email?: string;
     avatar_url?: string | null;
+    colegio_id?: string | null;
     colegio_nombre?: string | null;
 };
 

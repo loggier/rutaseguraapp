@@ -52,8 +52,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // Si es padre, el colegio es obligatorio.
-    // Si es staff, usamos el primer colegio de la lista como dummy, ya que el backend lo ignorará si el rol es master/manager.
     const finalColegioId = userType === 'parent' ? colegioId : (colegios[0]?.id || '');
 
     if (userType === 'parent' && !finalColegioId) {
@@ -86,10 +84,14 @@ export default function LoginPage() {
 
       toast({
         title: "Inicio de Sesión Exitoso",
-        description: "Redirigiendo al dashboard...",
+        description: "Redirigiendo...",
       });
       
-      router.push('/dashboard');
+      if (data.user.rol === 'padre') {
+        router.push('/mipanel');
+      } else {
+        router.push('/dashboard');
+      }
 
     } catch (error: any) {
       toast({
