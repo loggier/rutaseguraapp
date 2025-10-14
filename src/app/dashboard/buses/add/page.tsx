@@ -36,13 +36,16 @@ export default function AddBusPage() {
         if (user?.rol === 'master' || user?.rol === 'manager') {
             const [
               { data: colegiosData },
-              { data: conductoresData }
+              { data: conductoresData },
+              { data: rutasData },
             ] = await Promise.all([
               supabase.from('colegios_view').select('*').order('nombre'),
-              supabase.from('conductores_view').select('*')
+              supabase.from('conductores_view').select('*'),
+              supabase.from('rutas').select('*')
             ]);
             setColegios(colegiosData || []);
             setAllConductores((conductoresData || []).filter(c => !assignedDriverIds.includes(c.id)));
+            setRutas(rutasData || []);
 
         } else if (user?.rol === 'colegio') {
              const { data: colegioData } = await supabase.from('colegios').select('id').eq('usuario_id', user.id).single();
