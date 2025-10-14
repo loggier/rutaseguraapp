@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -115,13 +114,15 @@ export default function TrackingPage() {
           if (!bus || !bus.ruta.colegio?.lat) return;
           
           const currentSim = newSims[busId];
-          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
+          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_optimizada_recogida : bus.ruta.ruta_optimizada_entrega;
           const allStops = bus.ruta.paradas || [];
           
           let orderedStops = allStops;
-          // If we have an optimized route, we need to order the stops based on it.
-          // This is complex because routeOrder is by studentId, not stopId.
-          // For now, we will just use the default order of stops, but the simulation will visit them.
+          if (optimizedRoute && optimizedRoute.routeOrder) {
+            const stopsMap = new Map(allStops.map(s => [s.id, s]));
+            orderedStops = optimizedRoute.routeOrder.map(stopId => stopsMap.get(stopId)).filter((s): s is Parada => !!s);
+          }
+
 
           const nextStopIndex = currentSim.currentStopIndex + 1;
           
@@ -205,10 +206,10 @@ export default function TrackingPage() {
     if (!sim) return [];
 
     const optimizedRoute = sim.currentTurno === 'Recogida'
-      ? activeBus.ruta.ruta_recogida
-      : activeBus.ruta.ruta_entrega;
+      ? activeBus.ruta.ruta_optimizada_recogida
+      : activeBus.ruta.ruta_optimizada_entrega;
 
-    if (optimizedRoute?.polyline) {
+    if (optimizedRoute && typeof optimizedRoute === 'object' && 'polyline' in optimizedRoute && typeof optimizedRoute.polyline === 'string') {
       try {
         return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
       } catch (e) {
