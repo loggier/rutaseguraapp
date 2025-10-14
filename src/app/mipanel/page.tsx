@@ -312,7 +312,7 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-             <div className="absolute bottom-44 right-4 z-20 flex flex-col gap-2 md:bottom-4">
+             <div className="absolute bottom-56 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
                     <LocateFixed className="h-6 w-6" />
                 </Button>
