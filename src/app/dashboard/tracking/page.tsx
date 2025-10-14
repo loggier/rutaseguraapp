@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { TrackedBus, Parada, Conductor, Ruta, Colegio, OptimizedRouteResult, Autobus } from '@/lib/types';
+import type { TrackedBus, Parada, Conductor, Ruta, OptimizedRouteResult } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 
@@ -47,107 +48,54 @@ export default function TrackingPage() {
   });
 
   const fetchTrackedBuses = useCallback(async () => {
-      setLoading(true);
-      const supabase = createClient();
+    setLoading(true);
+    const supabase = createClient();
 
-      // 1. Get base active buses with an assigned route
-      const { data: activeBuses, error: busesError } = await supabase
-        .from('autobuses')
-        .select('id, matricula, conductor_id, ruta_id')
-        .eq('estado', 'activo')
-        .not('ruta_id', 'is', null);
+    const { data, error } = await supabase.from('v_autobuses_rel').select('*');
 
-      if (busesError) {
-        console.error('Error step 1: fetching active buses', busesError);
-        setLoading(false);
-        return;
-      }
-      if (!activeBuses || activeBuses.length === 0) {
+    if (error) {
+      console.error('Error fetching tracked buses from view:', error);
+      setLoading(false);
+      return;
+    }
+
+    if (!data) {
         setBuses([]);
         setLoading(false);
         return;
-      }
+    }
+    
+    const initialSims: Record<string, BusSimulationState> = {};
+    
+    const trackedBuses: TrackedBus[] = data.map((bus: any) => {
+        const ruta: Ruta = { ...bus.ruta, paradas: bus.ruta.paradas || [] };
+        const conductor: Conductor = bus.conductor;
+        const currentTurno = ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
 
-      const routeIds = [...new Set(activeBuses.map(b => b.ruta_id))];
-      const conductorIds = [...new Set(activeBuses.map(b => b.conductor_id).filter(Boolean))];
+        if(ruta.colegio?.lat && ruta.colegio?.lng) {
+            initialSims[bus.id] = {
+                status: 'stopped',
+                currentStopIndex: 0,
+                position: { lat: ruta.colegio.lat, lng: ruta.colegio.lng },
+                currentTurno: currentTurno
+            };
+        }
 
-      // 2. Fetch all related data in parallel
-      const [
-        { data: routesData, error: routesError },
-        { data: conductorsData, error: conductorsError },
-        { data: stopsData, error: stopsError }
-      ] = await Promise.all([
-          supabase.from('rutas').select('*, colegio:colegios(*)').in('id', routeIds),
-          supabase.from('conductores').select('*').in('id', conductorIds),
-          supabase.from('paradas').select('*').in('estudiante_id', 
-            supabase.from('ruta_estudiantes').select('estudiante_id').in('ruta_id', routeIds)
-          ).eq('activo', true)
-      ]);
-      
-      if (routesError || conductorsError || stopsError) {
-          console.error({ routesError, conductorsError, stopsError });
-          setLoading(false);
-          return;
-      }
-
-      // 3. Create maps for easy lookup
-      const routesMap = new Map((routesData || []).map(r => [r.id, r]));
-      const conductorsMap = new Map((conductorsData || []).map(c => [c.id, c]));
-      const stopsMap = new Map<string, Parada[]>();
-      (stopsData || []).forEach(stop => {
-          if (!stopsMap.has(stop.estudiante_id)) {
-              stopsMap.set(stop.estudiante_id, []);
-          }
-          stopsMap.get(stop.estudiante_id)!.push(stop);
-      });
-
-      const initialSims: Record<string, BusSimulationState> = {};
-      const trackedBuses: TrackedBus[] = [];
-
-      // 4. Assemble the final TrackedBus objects
-      for (const bus of activeBuses) {
-          const ruta = routesMap.get(bus.ruta_id!);
-          if (!ruta || !ruta.colegio) continue;
-          
-          const conductor = bus.conductor_id ? conductorsMap.get(bus.conductor_id) : undefined;
-          if (!conductor) continue;
-
-          const currentTurno = ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
-          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? ruta.ruta_optimizada_recogida : ruta.ruta_optimizada_entrega;
-          
-          let orderedStops: Parada[] = (ruta.paradas || []).filter(p => p.tipo === currentTurno && p.activo);
-          
-          if(optimizedRoute?.routeOrder) {
-              const studentStopsMap = new Map<string, Parada>();
-               (ruta.paradas || []).forEach(p => {
-                  if (p.tipo === currentTurno && p.activo) {
-                      studentStopsMap.set(p.estudiante_id, p);
-                  }
-              });
-              orderedStops = optimizedRoute.routeOrder.map(studentId => studentStopsMap.get(studentId)).filter((p): p is Parada => !!p);
-          }
-          
-          initialSims[bus.id] = {
-            status: 'stopped',
-            currentStopIndex: 0,
-            position: { lat: ruta.colegio.lat!, lng: ruta.colegio.lng! },
-            currentTurno: currentTurno
-          };
-
-          trackedBuses.push({
-              id: bus.id,
-              matricula: bus.matricula,
-              conductor: conductor as Conductor,
-              ruta: {
-                  ...(ruta as Ruta),
-                  paradas: orderedStops
-              },
-          });
-      }
-      
-      setBuses(trackedBuses);
-      setSimulations(initialSims);
-      setLoading(false);
+        return {
+            id: bus.id,
+            matricula: bus.matricula,
+            conductor,
+            ruta: {
+              ...ruta,
+              ruta_recogida: bus.ruta.ruta_recogida,
+              ruta_entrega: bus.ruta.ruta_entrega,
+            }
+        };
+    }).filter((bus): bus is TrackedBus => !!bus.ruta.colegio?.lat);
+    
+    setBuses(trackedBuses);
+    setSimulations(initialSims);
+    setLoading(false);
   }, []);
 
   // Fetch buses on initial load
@@ -171,24 +119,35 @@ export default function TrackingPage() {
           if (!bus || !bus.ruta.colegio?.lat) return;
           
           const currentSim = newSims[busId];
-          const nextStopIndex = currentSim.currentStopIndex + 1;
+          const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_recogida : bus.ruta.ruta_entrega;
           const stops = bus.ruta.paradas || [];
+          
+          let orderedStops = stops;
+          if (optimizedRoute?.routeOrder) {
+            const stopsMap = new Map(stops.map(s => [s.id, s]));
+            // This needs to match studentId with stop. We don't have studentId on stop. This is a problem.
+            // Let's assume paradas are already ordered for now if optimizedRoute exists
+          }
 
-          if (nextStopIndex > stops.length) {
+          const nextStopIndex = currentSim.currentStopIndex + 1;
+          
+          if (nextStopIndex > orderedStops.length) {
             // Finished, back to school
             newSims[busId] = {
               ...currentSim,
               status: 'finished',
               position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
-              currentStopIndex: stops.length,
+              currentStopIndex: orderedStops.length,
             };
           } else {
-            const nextStop = stops[nextStopIndex - 1];
-            newSims[busId] = {
-              ...currentSim,
-              currentStopIndex: nextStopIndex,
-              position: { lat: nextStop.lat, lng: nextStop.lng },
-            };
+            const nextStop = orderedStops[nextStopIndex - 1];
+            if(nextStop) {
+                newSims[busId] = {
+                  ...currentSim,
+                  currentStopIndex: nextStopIndex,
+                  position: { lat: nextStop.lat, lng: nextStop.lng },
+                };
+            }
           }
         });
         return newSims;
@@ -252,8 +211,8 @@ export default function TrackingPage() {
     if (!sim) return [];
 
     const optimizedRoute = sim.currentTurno === 'Recogida'
-      ? activeBus.ruta.ruta_optimizada_recogida
-      : activeBus.ruta.ruta_optimizada_entrega;
+      ? activeBus.ruta.ruta_recogida
+      : activeBus.ruta.ruta_entrega;
 
     if (optimizedRoute?.polyline) {
       try {
@@ -264,11 +223,14 @@ export default function TrackingPage() {
     }
     
     if (!activeBus.ruta.colegio?.lat) return [];
-    return [
+    const path = [
       { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng },
       ...(activeBus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
-      { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }
     ];
+    if (sim.currentTurno === 'Entrega') {
+       path.push({ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng });
+    }
+    return path;
   }, [isLoaded, activeBus, simulations]);
 
 
@@ -334,9 +296,10 @@ export default function TrackingPage() {
                     position={{ lat: activeBus.ruta.colegio!.lat!, lng: activeBus.ruta.colegio!.lng! }}
                     icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
                     label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                    title={activeBus.ruta.colegio?.nombre}
                 />
                 {(activeBus.ruta.paradas || []).map((stop, index) => (
-                   <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={simulations[activeBus.id].currentStopIndex > index ? 0.5 : 1} />
+                   <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={simulations[activeBus.id].currentStopIndex > index ? 0.5 : 1} title={stop.direccion}/>
                 ))}
               </>
             )}

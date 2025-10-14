@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -135,12 +136,7 @@ export type Ruta = {
   estudiantes_count: number;
   ruta_optimizada_recogida: OptimizedRouteResult | null;
   ruta_optimizada_entrega: OptimizedRouteResult | null;
-  colegio?: {
-    id: string;
-    nombre: string;
-    lat: number;
-    lng: number;
-  };
+  colegio?: Colegio;
   paradas?: Parada[];
 };
 
@@ -167,9 +163,13 @@ export type Viaje = {
   estado: 'activo' | 'suspendido' | 'papelera';
 }
 
+// Tipo específico para la página de seguimiento, basado en la vista v_autobuses_rel
 export type TrackedBus = {
-  id: string;
+  id: string; // bus id
   matricula: string;
   conductor: Conductor;
-  ruta: Ruta;
+  ruta: Ruta & {
+    ruta_recogida?: OptimizedRouteResult | null;
+    ruta_entrega?: OptimizedRouteResult | null;
+  };
 }
