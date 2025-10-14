@@ -149,6 +149,8 @@ export default function MiPanelPage() {
       return () => clearInterval(interval);
     }, [simulations, buses]);
     
+    const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
+    
     const activeBus = useMemo(() => {
         if (!activeChildId) return null;
         const child = hijos.find(h => h.id === activeChildId);
@@ -163,8 +165,14 @@ export default function MiPanelPage() {
         if (sim) {
           map.panTo(sim.position);
         }
+      } else if (activeChild && map) {
+          const sim = activeBus ? simulations[activeBus.id] : undefined;
+          const stop = activeChild.paradas.find(p => p.activo && p.tipo === sim?.currentTurno);
+          if (stop) {
+            map.panTo({ lat: stop.lat, lng: stop.lng });
+          }
       }
-    }, [activeBus, map, simulations]);
+    }, [activeBus, activeChild, map, simulations]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
@@ -190,6 +198,8 @@ export default function MiPanelPage() {
     if (loadError) {
         return <div className="p-4 text-destructive">Error al cargar el mapa.</div>;
     }
+    
+    const getInitials = (name: string, lastName: string) => `${name?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
 
     return (
         <div className="h-full w-full relative">
@@ -230,6 +240,37 @@ export default function MiPanelPage() {
                         />}
                     </>
                 )}
+                
+                {activeChild && (() => {
+                  const sim = activeBus ? simulations[activeBus.id] : undefined;
+                  const turnoActual = sim?.currentTurno;
+                  const stop = activeChild.paradas.find(p => p.activo && p.tipo === turnoActual);
+
+                  if (stop) {
+                    return (
+                      <MarkerF
+                        key={activeChild.id + '_stop'}
+                        position={{ lat: stop.lat, lng: stop.lng }}
+                        label={{
+                          text: getInitials(activeChild.nombre, activeChild.apellido),
+                          color: "white",
+                          fontWeight: "bold",
+                        }}
+                        icon={{
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 12,
+                            fillColor: '#6B46C1', // Un color morado, por ejemplo
+                            fillOpacity: 1,
+                            strokeWeight: 2,
+                            strokeColor: 'white'
+                        }}
+                        title={`Parada de ${activeChild.nombre}`}
+                        zIndex={90}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
             </GoogleMap>
             
             {hijos.length > 0 && (
