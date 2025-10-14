@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { Estudiante, Parada, TrackedBus } from '@/lib/types';
 
 
@@ -66,7 +66,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     const { data: busesData, error: busesError } = await supabase
         .from('v_autobuses_rel')
         .select('*')
-        .in('ruta->>id', rutaIds);
+        .in('ruta->>id', rutaIds as string[]);
 
     if (busesError) {
         console.error("Error fetching buses from view:", busesError);
