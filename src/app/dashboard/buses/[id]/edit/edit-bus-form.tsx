@@ -70,31 +70,31 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const [filteredConductores, setFilteredConductores] = useState<Conductor[]>([]);
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
 
-  // Effect to initialize lists based on the bus's initial school
   useEffect(() => {
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
-    const targetColegioId = bus.colegio_id;
-
+    
     if (user.rol === 'colegio') {
       initialConductores = allConductores;
       initialRutas = allRutas;
-    } else if (targetColegioId) {
-      initialConductores = allConductores.filter(c => c.colegio_id === targetColegioId);
-      initialRutas = allRutas.filter(r => r.colegio_id === targetColegioId);
+    } else {
+        const targetColegioId = bus.colegio_id;
+        if (targetColegioId) {
+            initialConductores = allConductores.filter(c => c.colegio_id === targetColegioId);
+            initialRutas = allRutas.filter(r => r.colegio_id === targetColegioId);
+        }
     }
     setFilteredConductores(initialConductores);
     setFilteredRutas(initialRutas);
   }, [bus.colegio_id, allConductores, allRutas, user.rol]);
   
-  // Effect to update lists when the school selection changes (for admin roles)
+  
   useEffect(() => {
     if (user.rol === 'master' || user.rol === 'manager') {
       if (watchedColegioId) {
         setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
-        // Reset dependent fields if they don't belong to the new school
         if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
@@ -111,25 +111,28 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   useEffect(() => {
     if (!state) return;
 
-    // Si hay errores de campos, los asigna al formulario
     if (state.errors) {
-      // Limpiar errores previos
       form.clearErrors();
+      let hasShownToast = false;
       for (const [field, messages] of Object.entries(state.errors)) {
         if (messages) {
           form.setError(field as keyof FormValues, {
             type: 'server',
             message: messages.join(', '),
           });
+          if (!hasShownToast) {
+            toast({
+              variant: "destructive",
+              title: "Error de Validación",
+              description: state.message || "Por favor corrige los errores.",
+            });
+            hasShownToast = true;
+          }
         }
       }
-    }
-
-    // Si hay un mensaje, muestra el toast (ya sea de éxito o error general)
-    if (state.message) {
+    } else if (state.message) {
       toast({
-        variant: state.errors ? "destructive" : "default",
-        title: state.errors ? "Error al Actualizar" : "Éxito",
+        title: "Éxito",
         description: state.message,
       });
     }
