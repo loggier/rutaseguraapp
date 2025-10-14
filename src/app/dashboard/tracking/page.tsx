@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   useLoadScript,
   GoogleMap,
@@ -17,12 +17,11 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, Pause, RotateCcw, MapPin, School, User, Bus as BusIcon, List, X } from 'lucide-react';
+import { Loader2, Play, Pause, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { TrackedBus, Parada, Conductor, Ruta, Colegio } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 
 
 const libraries: ('geometry')[] = ['geometry'];
@@ -52,49 +51,35 @@ export default function TrackingPage() {
       setLoading(true);
       const supabase = createClient();
       
-      // Corrected, simpler query
       const { data, error } = await supabase
-        .from('autobuses')
-        .select(`
-            id,
-            matricula,
-            conductor:conductores(*),
-            ruta:rutas!inner(
-                id,
-                nombre,
-                colegio:colegios!inner(*),
-                paradas:ruta_estudiantes(parada:paradas!inner(id, direccion, lat, lng))
-            )
-        `)
-        .eq('estado', 'activo')
-        .not('ruta_id', 'is', null);
-
+        .from('v_autobuses_rel')
+        .select('*');
 
       if (error) {
-        console.error('Error fetching tracked buses:', error);
+        console.error('Error fetching tracked buses from view:', error);
         setLoading(false);
         return;
       }
-
+      
       const initialSims: Record<string, BusSimulationState> = {};
       const trackedBuses: TrackedBus[] = data.map((bus: any) => {
-          const colegio = Array.isArray(bus.ruta.colegio) ? bus.ruta.colegio[0] : bus.ruta.colegio;
-          
-          const uniqueParadas = Array.from(new Map(bus.ruta.paradas.map((p: any) => p.parada).filter(Boolean).map((item: any) => [item.id, item])).values());
+          const colegio = bus.ruta?.colegio as Colegio;
           
           initialSims[bus.id] = {
             status: 'stopped',
             currentStopIndex: 0,
-            position: { lat: colegio.lat, lng: colegio.lng },
+            position: { lat: colegio.lat!, lng: colegio.lng! },
           };
           
           return {
-            ...bus,
-            conductor: Array.isArray(bus.conductor) ? bus.conductor[0] : bus.conductor,
+            id: bus.id,
+            matricula: bus.matricula,
+            conductor: bus.conductor as Conductor,
             ruta: {
-              ...bus.ruta,
-              colegio,
-              paradas: uniqueParadas as Parada[],
+              id: bus.ruta.id,
+              nombre: bus.ruta.nombre,
+              colegio: colegio,
+              paradas: bus.ruta.paradas as Parada[],
             },
           };
         });
@@ -223,11 +208,11 @@ export default function TrackingPage() {
             if (!sim) return null;
             
             const isSelected = activeBusId === bus.id;
-            const routePath = [
+            const routePath = bus.ruta.paradas.length > 0 ? [
                 { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
                 ...bus.ruta.paradas.map(s => ({ lat: s.lat, lng: s.lng })),
                 { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! }
-            ];
+            ] : [];
 
             return (
                 <React.Fragment key={bus.id}>
