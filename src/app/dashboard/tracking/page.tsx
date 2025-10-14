@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Pause, RotateCcw, MapPin, School, User, Bus as BusIcon, List, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import type { TrackedBus, Parada, Conductor } from '@/lib/types';
+import type { TrackedBus, Parada, Conductor, Ruta, Colegio } from '@/lib/types';
 import { PageHeader } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -51,33 +51,36 @@ export default function TrackingPage() {
     async function fetchTrackedBuses() {
       setLoading(true);
       const supabase = createClient();
+      
+      // Corrected, simpler query
       const { data, error } = await supabase
         .from('autobuses')
         .select(`
-          id,
-          matricula,
-          capacidad,
-          imei_gps,
-          conductor:conductores(*),
-          ruta:rutas!inner(
-            *,
-            colegio:colegios(*),
-            paradas:ruta_estudiantes!inner(
-              parada:paradas!inner(id, direccion, lat, lng)
+            id,
+            matricula,
+            conductor:conductores(*),
+            ruta:rutas!inner(
+                id,
+                nombre,
+                colegio:colegios!inner(*),
+                paradas:ruta_estudiantes(parada:paradas!inner(id, direccion, lat, lng))
             )
-          )
         `)
         .eq('estado', 'activo')
         .not('ruta_id', 'is', null);
 
+
       if (error) {
         console.error('Error fetching tracked buses:', error);
-      } else {
-        const initialSims: Record<string, BusSimulationState> = {};
-        const trackedBuses: TrackedBus[] = data.map((bus: any) => {
+        setLoading(false);
+        return;
+      }
+
+      const initialSims: Record<string, BusSimulationState> = {};
+      const trackedBuses: TrackedBus[] = data.map((bus: any) => {
           const colegio = Array.isArray(bus.ruta.colegio) ? bus.ruta.colegio[0] : bus.ruta.colegio;
           
-          const uniqueParadas = Array.from(new Map(bus.ruta.paradas.map((p: any) => p.parada).map((item: any) => [item.id, item])).values());
+          const uniqueParadas = Array.from(new Map(bus.ruta.paradas.map((p: any) => p.parada).filter(Boolean).map((item: any) => [item.id, item])).values());
           
           initialSims[bus.id] = {
             status: 'stopped',
@@ -98,7 +101,7 @@ export default function TrackingPage() {
         
         setBuses(trackedBuses);
         setSimulations(initialSims);
-      }
+      
       setLoading(false);
     }
     fetchTrackedBuses();
