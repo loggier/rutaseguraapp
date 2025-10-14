@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Bus, User, School, Loader2, AlertCircle, Trash2, Edit } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Bus, User, School, Loader2, AlertCircle, Trash2, Edit, RouteIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from '@/contexts/user-context';
@@ -57,7 +57,12 @@ function BusesPageComponent() {
 
     try {
       const supabase = createClient();
-      let query = supabase.from('autobuses_view').select(`*`);
+      let query = supabase.from('autobuses_view').select(`
+        *,
+        ruta_estudiantes_count:rutas!autobuses_ruta_id_fkey(
+          estudiantes_count:ruta_estudiantes(count)
+        )
+      `);
 
       if (user.rol === 'colegio') {
          const { data: currentColegio, error: colegioError } = await supabase
@@ -75,8 +80,13 @@ function BusesPageComponent() {
       const { data: busesData, error: busesError } = await query.order('matricula');
 
       if (busesError) throw busesError;
+
+      const formattedData = busesData.map((bus: any) => ({
+        ...bus,
+        ruta_estudiantes_count: bus.ruta_estudiantes_count?.estudiantes_count[0]?.count || 0,
+      }));
       
-      setBuses(busesData as Autobus[]);
+      setBuses(formattedData as Autobus[]);
 
     } catch (err: any) {
       console.error("Error cargando autobuses:", err);
@@ -124,6 +134,7 @@ function BusesPageComponent() {
             {isAdmin && <TableHead>Colegio</TableHead>}
             <TableHead>Capacidad</TableHead>
             <TableHead className="hidden md:table-cell">Conductor</TableHead>
+            <TableHead className="hidden lg:table-cell">Ruta / Estudiantes</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>
               <span className="sr-only">Acciones</span>
@@ -157,6 +168,19 @@ function BusesPageComponent() {
                       </div>
                     ) : (
                       <span className="text-muted-foreground">No asignado</span>
+                    )}
+              </TableCell>
+               <TableCell className="hidden lg:table-cell text-sm">
+                 {autobus.ruta_nombre ? (
+                      <div className="flex items-center gap-2">
+                        <RouteIcon className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <span>{autobus.ruta_nombre}</span>
+                          <div className="text-xs text-muted-foreground">{autobus.ruta_estudiantes_count} estudiantes</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Sin ruta asignada</span>
                     )}
               </TableCell>
               <TableCell>

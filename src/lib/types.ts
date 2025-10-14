@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -106,6 +107,7 @@ export type Autobus = {
   colegio_nombre?: string;
   conductor_nombre?: string;
   ruta_nombre?: string;
+  ruta_estudiantes_count?: number;
 };
 
 
