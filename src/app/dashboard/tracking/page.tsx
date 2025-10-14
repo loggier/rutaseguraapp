@@ -52,14 +52,22 @@ export default function TrackingPage() {
       setLoading(true);
       const supabase = createClient();
       
-      const { data, error } = await supabase
-        .from('v_autobuses_rel')
-        .select('*')
+       const { data, error } = await supabase
+        .from('autobuses')
+        .select(`
+          id,
+          matricula,
+          conductor:conductores(*),
+          ruta:rutas!inner(*,
+            colegio:colegios(*),
+            paradas:paradas(id, estudiante_id, direccion, lat, lng, tipo, activo)
+          )
+        `)
         .eq('estado', 'activo')
-        .not('ruta', 'is', null);
+        .not('ruta_id', 'is', null);
 
       if (error) {
-        console.error('Error fetching tracked buses from view:', error);
+        console.error('Error fetching tracked buses:', error);
         setLoading(false);
         return;
       }
@@ -209,7 +217,11 @@ export default function TrackingPage() {
       : activeBus.ruta.ruta_optimizada_entrega;
 
     if (optimizedRoute?.polyline) {
-      return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
+      try {
+        return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
+      } catch (e) {
+        console.error("Error decoding polyline: ", e);
+      }
     }
     
     // Fallback to straight lines if no polyline
