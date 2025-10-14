@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useUser } from '@/contexts/user-context';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import type { Colegio, Conductor, Ruta, Autobus } from "@/lib/types";
 import { EditBusForm } from "./edit-bus-form";
 import { notFound } from 'next/navigation';
 import { getBusData } from "./actions";
+import { use } from 'react';
 
 export default function EditBusPage({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useUser();
@@ -30,10 +31,10 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
     
     async function fetchData() {
         setLoading(true);
-        const data = await getBusData(id, user);
+        const data = await getBusData(id, user!);
 
         if (!data || !data.bus) {
-            console.error("Error fetching bus data from server action.");
+            console.error("Error fetching bus data from server action or bus not found.");
             setBus(null);
             setLoading(false);
             notFound();
@@ -41,9 +42,9 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
         } 
         
         setBus(data.bus);
-        setColegios(data.colegios);
-        setAllConductores(data.allConductores);
-        setAllRutas(data.allRutas);
+        setColegios(data.colegios || []);
+        setAllConductores(data.allConductores || []);
+        setAllRutas(data.allRutas || []);
         setLoading(false);
     }
     
