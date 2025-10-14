@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -15,16 +15,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { createClient } from '@/lib/supabase/client';
+import type { Colegio } from '@/lib/types';
 
 export default function LoginPage() {
+  const [colegioId, setColegioId] = useState<string>('');
   const [email, setEmail] = useState('master@rutasegura.com');
   const [password, setPassword] = useState('Martes13');
   const [isPending, setIsPending] = useState(false);
+  const [colegios, setColegios] = useState<Colegio[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    async function fetchColegios() {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('colegios').select('id, nombre').eq('activo', true).order('nombre');
+      if (error) {
+        console.error("Error fetching colegios", error);
+        toast({
+            variant: "destructive",
+            title: "Error de Carga",
+            description: "No se pudieron cargar los colegios.",
+        });
+      } else {
+        setColegios(data || []);
+      }
+    }
+    fetchColegios();
+  }, [toast]);
+
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!colegioId) {
+        toast({
+            variant: "destructive",
+            title: "Campo Requerido",
+            description: "Por favor, selecciona un colegio.",
+        });
+        return;
+    }
+
     setIsPending(true);
 
     try {
@@ -33,7 +67,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, colegioId }),
       });
 
       const data = await response.json();
@@ -42,7 +76,6 @@ export default function LoginPage() {
       }
       
       const userDataString = JSON.stringify(data.user);
-      // Usando localStorage y la clave correcta 'supabase_session'
       localStorage.setItem('supabase_session', userDataString);
 
       toast({
@@ -74,11 +107,26 @@ export default function LoginPage() {
               Bienvenido a RutaSegura
             </CardTitle>
             <CardDescription className="text-center">
-              Inicia sesión para acceder a tu cuenta
+              Selecciona tu colegio e inicia sesión para acceder.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="grid gap-4">
+               <div className="grid gap-2">
+                <Label htmlFor="colegio">Colegio</Label>
+                 <Select onValueChange={setColegioId} value={colegioId}>
+                    <SelectTrigger id="colegio">
+                        <SelectValue placeholder="Selecciona tu colegio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {colegios.map(colegio => (
+                            <SelectItem key={colegio.id} value={colegio.id}>
+                                {colegio.nombre}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -110,7 +158,7 @@ export default function LoginPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isPending}>
+              <Button type="submit" className="w-full" disabled={isPending || colegios.length === 0}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
