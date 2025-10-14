@@ -3,60 +3,26 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
-  Map, Users, Settings, Menu, Bell, LogOut, Loader2,
+  Map, Users, Settings, Bell, LogOut, Loader2, Home,
 } from 'lucide-react';
-import {
-  Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
+import { UserProvider, type User as AppUser } from '@/contexts/user-context';
+import { BottomNavBar } from './bottom-nav-bar';
 
-
-const navItems = [
-  { href: '/mipanel', icon: Map, label: 'Mapa en Vivo' },
+export const navItems = [
+  { href: '/mipanel', icon: Map, label: 'Mapa' },
   { href: '/mipanel/hijos', icon: Users, label: 'Mis Hijos' },
-  { href: '/mipanel/settings', icon: Settings, label: 'Configuración' },
+  { href: '/mipanel/home-placeholder', icon: Home, label: 'Inicio' }, // Placeholder
+  { href: '/mipanel/notifications', icon: Bell, label: 'Alertas' }, // Placeholder
+  { href: '/mipanel/settings', icon: Settings, label: 'Ajustes' },
 ];
-
-function MobileNav() {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="shrink-0">
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Menú de navegación</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-        </SheetHeader>
-        <nav className="grid gap-2 text-lg font-medium">
-          <Link href="/mipanel" className="flex items-center gap-2 text-lg font-semibold mb-4">
-             <Image src="/logo-main.jpeg" alt="RutaSegura" width={130} height={30} style={{height: "auto"}} />
-          </Link>
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -110,12 +76,11 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider user={user}>
        <div className="min-h-screen w-full bg-background text-foreground">
-        <header className="absolute top-0 left-0 right-0 z-20 flex h-16 items-center justify-between gap-4 bg-transparent px-4">
-            <MobileNav />
+        <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className='h-9 w-9 border'>
+                    <Avatar className='h-9 w-9 border-2 border-background shadow-md'>
                         <AvatarImage src={user?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
@@ -139,6 +104,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
         <main className="h-screen w-screen">
           {children}
         </main>
+        <BottomNavBar />
        </div>
     </UserProvider>
   );
