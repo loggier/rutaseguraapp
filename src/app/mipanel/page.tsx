@@ -183,8 +183,6 @@ export default function MiPanelPage() {
         return <div className="p-4 text-destructive">Error al cargar el mapa.</div>;
     }
     
-    const getInitials = (name: string, lastName: string) => `${name?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-
     return (
         <div className="h-full w-full relative">
             <GoogleMap
@@ -227,28 +225,18 @@ export default function MiPanelPage() {
                 )}
                 
                  {hijoStopMarkers.map(({hijo, position}) => {
+                    const isActive = activeChildId === hijo.id;
                     return (
                         <MarkerF
                             key={hijo.id + '_stop'}
                             position={position}
-                            label={{
-                                text: getInitials(hijo.nombre, hijo.apellido),
-                                color: "white",
-                                fontWeight: "bold",
-                                fontSize: "10px", // Smaller font for padding effect
-                            }}
-                            icon={{
-                                path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z", // Material Design Place icon path
-                                fillColor: '#6B46C1', // Purple color
-                                fillOpacity: 1,
-                                strokeWeight: 2,
-                                strokeColor: 'white',
-                                anchor: new google.maps.Point(12, 24),
-                                labelOrigin: new google.maps.Point(12, 11), // Center the label inside the pin
-                                scale: 1.5,
+                             icon={{
+                                url: hijo.avatar_url || `https://ui-avatars.com/api/?name=${hijo.nombre}+${hijo.apellido}&background=random`,
+                                scaledSize: new google.maps.Size(isActive ? 50 : 40, isActive ? 50 : 40),
+                                anchor: new google.maps.Point(isActive ? 25 : 20, isActive ? 25 : 20),
                             }}
                             title={`Parada de ${hijo.nombre}`}
-                            zIndex={90}
+                            zIndex={isActive ? 95 : 90}
                         />
                     );
                 })}
