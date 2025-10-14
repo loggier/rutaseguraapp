@@ -8,7 +8,7 @@ import {
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
-import { Loader2, Layers } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
 import { getParentDashboardData } from './actions';
@@ -19,16 +19,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { HijoCard } from './hijo-card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from '@/components/ui/button';
+import { MapTypeSelector } from './map-type-selector';
 
 
 type MappedBus = TrackedBus & {
@@ -213,16 +204,10 @@ export default function MiPanelPage() {
                 const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                      <defs>
-                        <clipPath id="circleClip">
-                          <circle cx="192" cy="192" r="128"/>
-                        </clipPath>
-                      </defs>
-                      <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                      <circle cx="192" cy="192" r="140" fill="white"/>
-                      <image href="${hijo.avatar_url || 'https://picsum.photos/seed/placeholder/256'}" x="64" y="64" width="256" height="256" clip-path="url(#circleClip)"/>
-                    </svg>
+                  <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                    <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+                    <text x="192" y="210" font-family="sans-serif" font-size="120" font-weight="bold" fill="white" text-anchor="middle">${initials}</text>
+                  </svg>
                 `.trim();
 
                 markers.push({
@@ -311,27 +296,12 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
+            <div className="absolute bottom-36 right-4 z-20">
+              <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
+            </div>
+            
             {hijos.length > 0 && (
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                     <div className="absolute bottom-36 right-4 z-20">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg'>
-                                    <Layers className="h-6 w-6" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align='end'>
-                                <DropdownMenuLabel>Tipo de Mapa</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuRadioGroup value={mapTypeId} onValueChange={setMapTypeId}>
-                                <DropdownMenuRadioItem value="roadmap">Mapa</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="SATELLITE">Satélite</DropdownMenuRadioItem>
-                                <DropdownMenuRadioItem value="TRAFFIC">Tráfico</DropdownMenuRadioItem>
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
