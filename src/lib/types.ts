@@ -4,6 +4,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -113,6 +114,7 @@ export type Autobus = {
   conductor_nombre?: string;
   ruta_nombre?: string;
   ruta_estudiantes_count?: number;
+  conductor?: Conductor | null;
 };
 
 
@@ -160,5 +162,3 @@ export type Viaje = {
   autobus: string;
   estado: 'activo' | 'suspendido' | 'papelera';
 }
-
-    
