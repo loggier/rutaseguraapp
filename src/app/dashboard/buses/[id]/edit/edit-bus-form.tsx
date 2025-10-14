@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
-import { updateBus, type State } from './actions';
+import { updateBus, type UpdateBusState, type FormValues } from './actions';
 import type { User, Colegio, Conductor, Ruta, Autobus } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -27,8 +26,6 @@ const formSchema = z.object({
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
-
 type EditBusFormProps = {
   user: User;
   bus: Autobus;
@@ -37,23 +34,10 @@ type EditBusFormProps = {
   allRutas: Ruta[];
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Guardar Cambios
-    </Button>
-  );
-}
-
 export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: EditBusFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  
-  const initialState: State = { message: null, errors: {} };
-  const updateBusWithParams = updateBus.bind(null, bus.id, user);
-  const [state, formAction] = useActionState(updateBusWithParams, initialState);
+  const [isPending, setIsPending] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +52,36 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
     },
   });
 
+  const onSubmit = async (values: FormValues) => {
+    setIsPending(true);
+    const result = await updateBus(bus.id, user, values);
+    setIsPending(false);
+
+    if (result.success) {
+      toast({
+        title: 'Éxito',
+        description: result.message,
+      });
+      router.push('/dashboard/buses');
+    } else {
+      if (result.errors) {
+        Object.entries(result.errors).forEach(([field, messages]) => {
+          if (messages) {
+            form.setError(field as keyof FormValues, {
+              type: 'server',
+              message: messages.join(', '),
+            });
+          }
+        });
+      }
+      toast({
+        variant: "destructive",
+        title: "Error al Actualizar",
+        description: result.message,
+      });
+    }
+  };
+
   const watchedColegioId = form.watch('colegio_id');
   
   useEffect(() => {
@@ -81,45 +95,13 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
     }
   }, [watchedColegioId, allConductores, allRutas, form, user.rol]);
 
-  useEffect(() => {
-    if (!state) return;
-
-    if (state.errors) {
-      let hasShownToast = false;
-      Object.entries(state.errors).forEach(([field, messages]) => {
-        if (field === '_form') return;
-        if (messages) {
-          form.setError(field as keyof FormValues, {
-            type: 'server',
-            message: messages.join(', '),
-          });
-          if (!hasShownToast) {
-            toast({
-              variant: "destructive",
-              title: "Error de Validación",
-              description: state.message || "Faltan campos o tienen errores. Por favor, revisa el formulario.",
-            });
-            hasShownToast = true;
-          }
-        }
-      });
-    } else if (state.message) {
-      toast({
-        variant: state.message.startsWith('Error') ? "destructive" : "default",
-        title: state.message.startsWith('Error') ? "Error" : "Éxito",
-        description: state.message,
-      });
-    }
-  }, [state, toast, form]);
-
-
   const filteredConductores = allConductores.filter(c => c.colegio_id === watchedColegioId);
   const filteredRutas = allRutas.filter(r => r.colegio_id === watchedColegioId);
 
   return (
     <Form {...form}>
       <form
-        action={formAction}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8"
       >
         <div className='grid md:grid-cols-2 gap-6'>
@@ -241,7 +223,10 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         
         <div className="flex justify-end gap-4 pt-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
-          <SubmitButton />
+          <Button type="submit" disabled={isPending}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Guardar Cambios
+          </Button>
         </div>
       </form>
     </Form>

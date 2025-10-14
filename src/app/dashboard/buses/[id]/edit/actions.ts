@@ -10,24 +10,18 @@ const formSchema = z.object({
   matricula: z.string().min(1, 'La matrícula es requerida'),
   capacidad: z.coerce.number().int().min(1, 'La capacidad debe ser mayor a 0'),
   imei_gps: z.string().min(1, 'El IMEI del GPS es requerido'),
-  estado: z.enum(['activo', 'inactivo', 'mantenimiento']),
+  estado: z.enum(['activo', 'inactivo', 'mantenimiento'], { required_error: 'Debes seleccionar un estado válido.'}),
   colegio_id: z.string({ required_error: 'Se debe seleccionar un colegio.' }).uuid('ID de colegio inválido'),
   conductor_id: z.string().uuid('ID de conductor inválido').optional().nullable(),
   ruta_id: z.string().uuid('ID de ruta inválido').optional().nullable(),
 });
 
-export type State = {
-  message?: string | null;
-  errors?: {
-    matricula?: string[];
-    capacidad?: string[];
-    imei_gps?: string[];
-    estado?: string[];
-    colegio_id?: string[];
-    conductor_id?: string[];
-    ruta_id?: string[];
-    _form?: string[];
-  };
+export type FormValues = z.infer<typeof formSchema>;
+
+export type UpdateBusState = {
+  message: string;
+  errors?: Record<string, string[]>;
+  success: boolean;
 };
 
 const createSupabaseAdminClient = () => {
@@ -88,41 +82,33 @@ export async function getBusData(busId: string, user: User) {
     }
     
     return {
-        bus,
+        bus: bus as Autobus,
         colegios,
         allConductores,
         allRutas
     };
 }
 
-
-export async function updateBus(busId: string, user: User, prevState: State, formData: FormData): Promise<State> {
+export async function updateBus(busId: string, user: User, values: FormValues): Promise<UpdateBusState> {
     const supabaseAdmin = createSupabaseAdminClient();
     
-    let colegioIdFromForm = formData.get('colegio_id') as string | null;
+    let finalValues = { ...values };
 
     if (user.rol === 'colegio') {
         const { data: colegioData, error } = await supabaseAdmin.from('colegios').select('id').eq('usuario_id', user.id).single();
         if (error || !colegioData) {
-             return { message: 'Error: No se pudo encontrar el colegio para este usuario.', errors: { _form: ['Error de autenticación de colegio.'] } };
+             return { message: 'Error: No se pudo encontrar el colegio para este usuario.', success: false };
         }
-        colegioIdFromForm = colegioData.id;
+        finalValues.colegio_id = colegioData.id;
     }
    
-    const validatedFields = formSchema.safeParse({
-        matricula: formData.get('matricula'),
-        capacidad: formData.get('capacidad'),
-        imei_gps: formData.get('imei_gps'),
-        estado: formData.get('estado'),
-        colegio_id: colegioIdFromForm,
-        conductor_id: formData.get('conductor_id') || null,
-        ruta_id: formData.get('ruta_id') || null,
-    });
+    const validatedFields = formSchema.safeParse(finalValues);
   
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
       message: 'Faltan campos o tienen errores. Por favor, revisa el formulario.',
+      success: false,
     };
   }
 
@@ -132,6 +118,7 @@ export async function updateBus(busId: string, user: User, prevState: State, for
     return {
       errors: { colegio_id: ['Se debe seleccionar un colegio.'] },
       message: 'Faltan campos obligatorios. No se pudo actualizar el autobús.',
+      success: false,
     };
   }
 
@@ -151,15 +138,16 @@ export async function updateBus(busId: string, user: User, prevState: State, for
 
     if (error) {
       console.error('Error al actualizar autobús:', error);
-      return { message: `Error en la base de datos: ${error.message}` };
+      return { message: `Error en la base de datos: ${error.message}`, success: false };
     }
   } catch (e: any) {
     return {
       message: `Error inesperado: ${e.message}`,
+      success: false,
     };
   }
 
   revalidatePath('/dashboard/buses');
   revalidatePath(`/dashboard/buses/${busId}/edit`);
-  redirect('/dashboard/buses');
+  return { message: 'Autobús actualizado con éxito.', success: true };
 }
