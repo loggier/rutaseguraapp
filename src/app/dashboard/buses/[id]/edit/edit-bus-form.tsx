@@ -73,16 +73,13 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
   
   useEffect(() => {
-    // On first load, or when bus data changes, set the initial filtered lists
     let initialConductores: Conductor[] = [];
     let initialRutas: Ruta[] = [];
     
     if (user.rol === 'colegio') {
-      // For colegio user, the props are already filtered
       initialConductores = allConductores;
       initialRutas = allRutas;
     } else {
-      // For master/manager, filter based on the bus's school
       if (bus.colegio_id) {
           initialConductores = allConductores.filter(c => c.colegio_id === bus.colegio_id);
           initialRutas = allRutas.filter(r => r.colegio_id === bus.colegio_id);
@@ -94,13 +91,11 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   
   
   useEffect(() => {
-    // When school selection changes (for master/manager), filter the lists
     if (user.rol === 'master' || user.rol === 'manager') {
       if (watchedColegioId) {
         setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
         setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
         
-        // Reset conductor/route if they don't belong to the new school
         if (form.getValues('conductor_id') && !allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
           form.setValue('conductor_id', null);
         }
@@ -116,27 +111,25 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
 
   useEffect(() => {
     if (!state) return;
-    
+
     if (state.errors) {
-      // Clear previous errors
-      form.clearErrors();
-      let hasShownToast = false;
-      for (const [field, messages] of Object.entries(state.errors)) {
-        if (messages) {
-          form.setError(field as keyof FormValues, {
-            type: 'server',
-            message: messages.join(', '),
-          });
-          if (!hasShownToast) {
-            toast({
-              variant: "destructive",
-              title: "Error de Validación",
-              description: state.message || "Por favor corrige los errores.",
-            });
-            hasShownToast = true;
-          }
-        }
-      }
+        let hasShownToast = false;
+        Object.entries(state.errors).forEach(([field, messages]) => {
+            if (messages) {
+                form.setError(field as keyof FormValues, {
+                    type: 'server',
+                    message: messages.join(', '),
+                });
+                 if (!hasShownToast) {
+                    toast({
+                        variant: "destructive",
+                        title: "Error de Validación",
+                        description: state.message || "Faltan campos o tienen errores. Por favor, revisa el formulario.",
+                    });
+                    hasShownToast = true;
+                }
+            }
+        });
     } else if (state.message) {
       toast({
         variant: state.message.startsWith('Error') ? "destructive" : "default",
@@ -144,8 +137,7 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
         description: state.message,
       });
     }
-
-  }, [state, toast, form]);
+}, [state, toast, form]);
 
   return (
     <Form {...form}>
