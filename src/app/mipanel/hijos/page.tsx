@@ -26,8 +26,8 @@ export default function HijosPage() {
     return (
         <div className="flex flex-col gap-6 p-4 md:p-6">
             <PageHeader
-                title="Alumnos"
-                description="Gestiona la información de tus hijos y sus rutas."
+                title="Gestión de Mis Hijos"
+                description="Visualiza la información de tus hijos y sus rutas."
             />
 
             <div className="space-y-6">
