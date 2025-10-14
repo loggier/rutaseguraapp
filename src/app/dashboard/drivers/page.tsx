@@ -54,7 +54,7 @@ function DriversPageComponent() {
       const supabase = createClient();
       let query = supabase.from('conductores_view').select(`
         *,
-        bus_asignado:autobuses(matricula)
+        bus_asignado:autobuses!conductor_id(matricula)
       `);
 
       if (user.rol === 'colegio') {
@@ -285,3 +285,5 @@ export default function DriversPage() {
     }
     return <DriversPageComponent />;
 }
+
+    
