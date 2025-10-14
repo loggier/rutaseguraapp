@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
-  SidebarMenuItem, SidebarMenuButton, SidebarTrigger,
+  SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { UserProvider, useUser as useAppUser, type User as AppUser } from '@/contexts/user-context';
 
