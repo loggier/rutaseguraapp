@@ -241,36 +241,36 @@ export default function MiPanelPage() {
                     </>
                 )}
                 
-                {activeChild && (() => {
-                  const sim = activeBus ? simulations[activeBus.id] : undefined;
-                  const turnoActual = sim?.currentTurno;
-                  const stop = activeChild.paradas.find(p => p.activo && p.tipo === turnoActual);
+                 {hijos.map(hijo => {
+                    const bus = buses.find(b => b.ruta?.id === hijo.ruta_id);
+                    const sim = bus ? simulations[bus.id] : undefined;
+                    const turnoActual = sim?.currentTurno;
+                    const stop = hijo.paradas.find(p => p.activo && p.tipo === turnoActual);
 
-                  if (stop) {
+                    if (!stop) return null;
+
                     return (
-                      <MarkerF
-                        key={activeChild.id + '_stop'}
-                        position={{ lat: stop.lat, lng: stop.lng }}
-                        label={{
-                          text: getInitials(activeChild.nombre, activeChild.apellido),
-                          color: "white",
-                          fontWeight: "bold",
-                        }}
-                        icon={{
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 12,
-                            fillColor: '#6B46C1', // Un color morado, por ejemplo
-                            fillOpacity: 1,
-                            strokeWeight: 2,
-                            strokeColor: 'white'
-                        }}
-                        title={`Parada de ${activeChild.nombre}`}
-                        zIndex={90}
-                      />
+                        <MarkerF
+                            key={hijo.id + '_stop'}
+                            position={{ lat: stop.lat, lng: stop.lng }}
+                            label={{
+                                text: getInitials(hijo.nombre, hijo.apellido),
+                                color: "white",
+                                fontWeight: "bold",
+                            }}
+                            icon={{
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 12,
+                                fillColor: '#6B46C1', // Purple color
+                                fillOpacity: 1,
+                                strokeWeight: 2,
+                                strokeColor: 'white'
+                            }}
+                            title={`Parada de ${hijo.nombre}`}
+                            zIndex={90}
+                        />
                     );
-                  }
-                  return null;
-                })()}
+                })}
             </GoogleMap>
             
             {hijos.length > 0 && (
