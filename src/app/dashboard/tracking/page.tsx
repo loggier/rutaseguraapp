@@ -117,10 +117,18 @@ export default function TrackingPage() {
           const optimizedRoute = currentSim.currentTurno === 'Recogida' ? bus.ruta.ruta_optimizada_recogida : bus.ruta.ruta_optimizada_entrega;
           const allStops = bus.ruta.paradas || [];
           
-          let orderedStops = allStops;
-          if (optimizedRoute && optimizedRoute.routeOrder) {
+          let orderedStops: Parada[] = [];
+          if (optimizedRoute && Array.isArray(optimizedRoute.routeOrder)) {
             const stopsMap = new Map(allStops.map(s => [s.id, s]));
-            orderedStops = optimizedRoute.routeOrder.map(stopId => stopsMap.get(stopId)).filter((s): s is Parada => !!s);
+            orderedStops = optimizedRoute.routeOrder
+              .map(studentId => {
+                 const student = bus.ruta.estudiantes?.find(e => e.student_id === studentId);
+                 const parada = bus.ruta.paradas?.find(p => p.estudiante_id === student?.id && p.tipo === currentSim.currentTurno);
+                 return parada;
+              })
+              .filter((s): s is Parada => !!s);
+          } else {
+             orderedStops = allStops.filter(s => s.tipo === currentSim.currentTurno);
           }
 
 
@@ -131,7 +139,7 @@ export default function TrackingPage() {
             newSims[busId] = {
               ...currentSim,
               status: 'finished',
-              position: { lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng! },
+              position: { lat: bus.ruta.colegio!.lat, lng: bus.ruta.colegio!.lng },
               currentStopIndex: orderedStops.length,
             };
           } else {
@@ -208,8 +216,8 @@ export default function TrackingPage() {
     const optimizedRoute = sim.currentTurno === 'Recogida'
       ? activeBus.ruta.ruta_optimizada_recogida
       : activeBus.ruta.ruta_optimizada_entrega;
-
-    if (optimizedRoute && typeof optimizedRoute === 'object' && 'polyline' in optimizedRoute && typeof optimizedRoute.polyline === 'string') {
+      
+    if (optimizedRoute && typeof optimizedRoute.polyline === 'string') {
       try {
         return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
       } catch (e) {
@@ -217,15 +225,13 @@ export default function TrackingPage() {
       }
     }
     
-    // Fallback if no optimized polyline
+    // Fallback path
     if (!activeBus.ruta.colegio?.lat) return [];
     const path = [
       { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng },
       ...(activeBus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
     ];
-    if (sim.currentTurno === 'Entrega' || sim.currentTurno === 'Recogida') {
-       path.push({ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng });
-    }
+    path.push({ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng });
     return path;
   }, [isLoaded, activeBus, simulations]);
 

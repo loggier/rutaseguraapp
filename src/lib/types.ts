@@ -1,8 +1,4 @@
 
-
-
-
-
 export type User = {
   id: string;
   nombre: string;
@@ -138,6 +134,7 @@ export type Ruta = {
   ruta_optimizada_entrega: OptimizedRouteResult | null;
   colegio?: Colegio;
   paradas?: Parada[];
+  estudiantes?: Estudiante[];
 };
 
 export type RutaEstudiante = {
