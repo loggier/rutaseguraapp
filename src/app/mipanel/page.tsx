@@ -296,7 +296,7 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-            <div className="absolute bottom-36 right-4 z-20">
+            <div className="absolute bottom-48 right-4 z-20">
               <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
             </div>
             
