@@ -32,8 +32,9 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
         setLoading(true);
         const supabase = createClient();
         
+        // Fetch from the main 'autobuses' table to ensure 'estado' is present
         const { data: busData, error: busError } = await supabase
-            .from('autobuses_view')
+            .from('autobuses')
             .select('*')
             .eq('id', id)
             .single();
@@ -62,8 +63,6 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
             setAllConductores(conductoresData || []);
             setAllRutas(rutasData || []);
         } else if (user.rol === 'colegio') {
-            // A 'colegio' user should only see their own drivers and routes.
-            // We get the colegio_id from the bus being edited.
             const targetColegioId = busData?.colegio_id;
             if (targetColegioId) {
               const [
@@ -95,7 +94,6 @@ export default function EditBusPage({ params }: { params: Promise<{ id: string }
   }
 
   if (!bus) {
-    // This will be handled by notFound() inside useEffect, but as a fallback:
     return (
         <div className="flex h-64 w-full items-center justify-center">
             <p className="text-muted-foreground">Autobús no encontrado.</p>
