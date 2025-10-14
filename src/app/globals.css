@@ -10,10 +10,10 @@
     --card-foreground: 222 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 4.9%;
-    --primary: 215 76% 21%; /* #0D2C5B - Azul marino */
+    --primary: 165 98% 39%; /* #01C998 - Verde turquesa */
     --primary-foreground: 210 40% 98%;
-    --secondary: 165 98% 39%; /* #01C998 - Verde turquesa */
-    --secondary-foreground: 215 76% 21%;
+    --secondary: 215 76% 21%; /* #0D2C5B - Azul marino */
+    --secondary-foreground: 210 40% 98%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 49 86% 51%; /* #EECA19 - Amarillo dorado */
@@ -22,9 +22,9 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 215 76% 21%;
-    --chart-1: 224 76% 51%;
-    --chart-2: 170 76% 31%;
+    --ring: 165 98% 39%;
+    --chart-1: 170 76% 31%;
+    --chart-2: 224 76% 51%;
     --chart-3: 43 74% 66%;
     --chart-4: 27 87% 67%;
     --chart-5: 12 76% 61%;
@@ -38,10 +38,10 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 215 76% 21%; /* #0D2C5B - Azul marino */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 165 98% 39%; /* #01C998 - Verde turquesa */
-    --secondary-foreground: 215 76% 21%;
+    --primary: 165 98% 39%; /* #01C998 - Verde turquesa */
+    --primary-foreground: 215 76% 21%;
+    --secondary: 215 76% 21%; /* #0D2C5B - Azul marino */
+    --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 49 86% 51%; /* #EECA19 - Amarillo dorado */
@@ -50,9 +50,9 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 210 40% 98%;
-    --chart-1: 224 100% 68%;
-    --chart-2: 170 100% 47%;
+    --ring: 165 98% 39%;
+    --chart-1: 170 100% 47%;
+    --chart-2: 224 100% 68%;
     --chart-3: 45 100% 60%;
     --chart-4: 300 100% 60%;
     --chart-5: 200 100% 60%;
