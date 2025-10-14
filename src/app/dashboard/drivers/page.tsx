@@ -54,8 +54,7 @@ function DriversPageComponent() {
       const supabase = createClient();
       let query = supabase.from('conductores').select(`
         *,
-        colegio:colegios_view(nombre),
-        bus_asignado:autobuses(matricula)
+        colegio:colegios_view(nombre)
       `);
 
       if (user.rol === 'colegio') {
@@ -74,10 +73,20 @@ function DriversPageComponent() {
       const { data: driversData, error: driversError } = await query.order('apellido');
       if (driversError) throw driversError;
 
+      // Get bus assignments in a separate query
+      const { data: busAssignments, error: busError } = await supabase
+        .from('autobuses')
+        .select('conductor_id, matricula')
+        .not('conductor_id', 'is', null);
+
+      if (busError) throw busError;
+      
+      const busMap = new Map(busAssignments.map(b => [b.conductor_id, b.matricula]));
+
       const formattedData = driversData.map((driver: any) => ({
           ...driver,
           colegio_nombre: driver.colegio?.nombre || 'No asignado',
-          bus_asignado: driver.bus_asignado[0]?.matricula || null,
+          bus_asignado: busMap.get(driver.id) || null,
       }));
 
       setDrivers(formattedData as Conductor[]);
@@ -287,5 +296,3 @@ export default function DriversPage() {
     }
     return <DriversPageComponent />;
 }
-
-    
