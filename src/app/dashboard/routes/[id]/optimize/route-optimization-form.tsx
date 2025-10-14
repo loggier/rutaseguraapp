@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useActionState } from 'react';
@@ -29,7 +28,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   const [turno, setTurno] = useState<'Recogida' | 'Entrega'>(route.hora_salida_manana ? 'Recogida' : 'Entrega');
   const [optimizedRoute, setOptimizedRoute] = useState<OptimizedRouteResult | null>(null);
   
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [studentsMap, setStudentsMap] = useState<Map<string, { nombre: string; apellido: string }>>(new Map());
   const [googleMapsUrl, setGoogleMapsUrl] = useState<string>('');
   const [currentPolyline, setCurrentPolyline] = useState<string | undefined>(undefined);
@@ -47,7 +45,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
     } else {
       setOptimizedRoute(null);
     }
-    setDirections(null);
   }, [turno, route]);
 
 
@@ -96,7 +93,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
   const handleOptimize = async () => {
     setIsGenerating(true);
     setOptimizedRoute(null);
-    setDirections(null);
     
     const formData = new FormData();
     formData.append('routeId', route.id);
@@ -135,39 +131,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
       setOptimizedRoute(aiStateResult.result.optimizedRoute);
     }
   };
-  
-  const directionsCallback = (response: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
-    if (status === 'OK' && response) {
-      setDirections(response);
-      const poly = response.routes[0]?.overview_polyline;
-      if (poly) {
-        setCurrentPolyline(poly);
-      }
-    }
-    else console.error(`Directions request failed due to ${status}`);
-  };
-
-  const directionsServiceOptions = useMemo<google.maps.DirectionsRequest | null>(() => {
-    if (!isLoaded || !optimizedRoute || (optimizedRoute.polyline && !isGenerating)) return null;
-    
-    const waypointsMap = new Map<string, { lat: number; lng: number }>();
-    students.forEach(student => {
-        const stop = student.paradas.find(p => p.tipo === turno && p.activo);
-        if (stop) waypointsMap.set(student.student_id, { lat: stop.lat, lng: stop.lng });
-    });
-    const orderedWaypoints = optimizedRoute.routeOrder
-      .map(studentId => waypointsMap.get(studentId))
-      .filter((loc): loc is { lat: number; lng: number } => !!loc)
-      .map(location => ({ location: new google.maps.LatLng(location.lat, location.lng), stopover: true }));
-    if (orderedWaypoints.length === 0) return null;
-    return {
-      origin: new google.maps.LatLng(route.colegio.lat!, route.colegio.lng!),
-      destination: new google.maps.LatLng(route.colegio.lat!, route.colegio.lng!),
-      waypoints: orderedWaypoints,
-      travelMode: google.maps.TravelMode.DRIVING,
-      optimizeWaypoints: false,
-    };
-  }, [isLoaded, optimizedRoute, students, route.colegio, turno, isGenerating]);
   
   const decodedPolylinePath = useMemo(() => {
     if (!currentPolyline || !isLoaded) return [];
@@ -249,9 +212,6 @@ export function RouteOptimizationForm({ route, students }: RouteOptimizationForm
             <div className="flex flex-col items-center justify-center h-full text-center text-destructive"><AlertTriangle className="h-8 w-8 mb-4"/><p>Error al cargar el mapa.</p></div>
           ) : (
              <GoogleMap mapContainerClassName="h-full w-full rounded-lg" center={{ lat: route.colegio.lat!, lng: route.colegio.lng! }} zoom={12} options={{ mapTypeControl: false, streetViewControl: false }}>
-                {directionsServiceOptions && !directions && <DirectionsService options={directionsServiceOptions} callback={directionsCallback} />}
-                {directions && <DirectionsRenderer options={{ directions, suppressMarkers: true }} />}
-
                 {/* Render polyline from saved data if available */}
                  {decodedPolylinePath.length > 0 && (
                     <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4A90E2', strokeWeight: 5 }} />

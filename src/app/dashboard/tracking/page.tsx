@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -55,7 +54,9 @@ export default function TrackingPage() {
       
       const { data, error } = await supabase
         .from('v_autobuses_rel')
-        .select('*');
+        .select('*')
+        .eq('estado', 'activo')
+        .not('ruta', 'is', null);
 
       if (error) {
         console.error('Error fetching tracked buses from view:', error);
@@ -65,20 +66,18 @@ export default function TrackingPage() {
       
       const initialSims: Record<string, BusSimulationState> = {};
       const trackedBuses: TrackedBus[] = (data as any[]).map((bus: any) => {
-          const colegio = bus.ruta?.colegio as Colegio;
+          const rutaTyped = bus.ruta as Ruta;
+          const colegio = rutaTyped.colegio as Colegio;
           
-          const currentTurno = bus.ruta?.hora_salida_manana ? 'Recogida' : 'Entrega';
-
-          // Determine the order of stops
-          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? bus.ruta.ruta_optimizada_recogida : bus.ruta.ruta_optimizada_entrega;
-          let orderedStops: Parada[] = bus.ruta.paradas || [];
+          const currentTurno = rutaTyped.hora_salida_manana ? 'Recogida' : 'Entrega';
+          const optimizedRoute: OptimizedRouteResult | null = currentTurno === 'Recogida' ? rutaTyped.ruta_optimizada_recogida : rutaTyped.ruta_optimizada_entrega;
+          
+          let orderedStops: Parada[] = (rutaTyped.paradas || []).filter(p => p.tipo === currentTurno && p.activo);
+          
           if(optimizedRoute?.routeOrder) {
-            const stopsMap = new Map((bus.ruta.paradas || []).map((p: Parada) => [p.id, p]));
-            // The optimized route order is by student ID, but we need the parada ID
-            // This is a simplification; we assume one stop per student for this logic
-            const studentToStopMap = new Map((bus.ruta.paradas || []).map((p: Parada) => [p.estudiante_id, p]));
+            const stopsMap = new Map(orderedStops.map((p: Parada) => [p.estudiante_id, p]));
             orderedStops = optimizedRoute.routeOrder
-                .map(studentId => studentToStopMap.get(studentId))
+                .map(studentId => stopsMap.get(studentId))
                 .filter((p): p is Parada => !!p);
           }
           
@@ -94,7 +93,8 @@ export default function TrackingPage() {
             matricula: bus.matricula,
             conductor: bus.conductor as Conductor,
             ruta: {
-              ...(bus.ruta as Ruta),
+              ...rutaTyped,
+              colegio,
               paradas: orderedStops,
             },
           };
@@ -196,6 +196,31 @@ export default function TrackingPage() {
     }
   }
 
+  const activeBus = useMemo(() => buses.find(b => b.id === activeBusId), [buses, activeBusId]);
+
+  const decodedPolylinePath = useMemo(() => {
+    if (!isLoaded || !activeBus) return [];
+    
+    const sim = simulations[activeBus.id];
+    if (!sim) return [];
+
+    const optimizedRoute = sim.currentTurno === 'Recogida'
+      ? activeBus.ruta.ruta_optimizada_recogida
+      : activeBus.ruta.ruta_optimizada_entrega;
+
+    if (optimizedRoute?.polyline) {
+      return google.maps.geometry.encoding.decodePath(optimizedRoute.polyline);
+    }
+    
+    // Fallback to straight lines if no polyline
+    if (!activeBus.ruta.colegio?.lat) return [];
+    return [
+      { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng },
+      ...(activeBus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
+      { lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }
+    ];
+  }, [isLoaded, activeBus, simulations]);
+
 
   if (loading) {
     return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando datos de seguimiento...</p></div>;
@@ -224,11 +249,6 @@ export default function TrackingPage() {
             if (!sim || !bus.ruta.colegio?.lat) return null;
             
             const isSelected = activeBusId === bus.id;
-            const routePath = (bus.ruta.paradas || []).length > 0 ? [
-                { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! },
-                ...(bus.ruta.paradas || []).map(s => ({ lat: s.lat, lng: s.lng })),
-                { lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! }
-            ] : [];
 
             return (
                 <React.Fragment key={bus.id}>
@@ -253,23 +273,23 @@ export default function TrackingPage() {
                             </InfoWindowF>
                         )}
                     </MarkerF>
-                    {/* Route and Stops for Selected Bus */}
-                    {isSelected && (
-                      <>
-                        <PolylineF path={routePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
-                        <MarkerF 
-                            position={{ lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng! }}
-                            icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
-                            label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                        />
-                        {(bus.ruta.paradas || []).map((stop, index) => (
-                           <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={sim.currentStopIndex > index ? 0.5 : 1} />
-                        ))}
-                      </>
-                    )}
                 </React.Fragment>
             )
           })}
+            {/* Route and Stops for Selected Bus */}
+            {activeBus && (
+              <>
+                <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#4285F4', strokeWeight: 3, strokeOpacity: 0.8 }}/>
+                <MarkerF 
+                    position={{ lat: activeBus.ruta.colegio!.lat!, lng: activeBus.ruta.colegio!.lng! }}
+                    icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
+                    label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                />
+                {(activeBus.ruta.paradas || []).map((stop, index) => (
+                   <MarkerF key={stop.id} position={{ lat: stop.lat, lng: stop.lng }} label={(index + 1).toString()} opacity={simulations[activeBus.id].currentStopIndex > index ? 0.5 : 1} />
+                ))}
+              </>
+            )}
         </GoogleMap>
       </div>
 
