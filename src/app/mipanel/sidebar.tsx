@@ -6,20 +6,28 @@ import { navItems } from './layout';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Estudiante } from '@/lib/types';
-import { HijoCard } from './hijo-card'; // Asegúrate de que la ruta sea correcta
+import type { Estudiante, TrackedBus } from '@/lib/types';
+import { HijoCard } from './hijo-card';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 type MiPanelSidebarProps = {
   hijos: Estudiante[];
+  buses: TrackedBus[];
 };
 
-export function MiPanelSidebar({ hijos }: MiPanelSidebarProps) {
+export function MiPanelSidebar({ hijos, buses }: MiPanelSidebarProps) {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <div className="hidden md:flex flex-col gap-2 border-r bg-card text-card-foreground p-4">
       <div className="flex h-16 items-center">
-        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+        <Link href="/mipanel" className="flex items-center gap-2 font-semibold">
           <Image src="/logo-main.jpeg" alt="RutaSegura" width={140} height={40} style={{height: "auto"}} />
         </Link>
       </div>
@@ -46,7 +54,12 @@ export function MiPanelSidebar({ hijos }: MiPanelSidebarProps) {
         <ScrollArea className="h-[calc(100vh-20rem)]">
             <div className='space-y-2 pr-3'>
               {hijos.map((hijo) => (
-                <HijoCard key={hijo.id} hijo={hijo} bus={undefined} isActive={false} />
+                 <HijoCard 
+                    key={hijo.id} 
+                    hijo={hijo} 
+                    bus={buses.find(b => b.ruta?.id === (hijo as any).ruta_id)}
+                    isActive={false} // active state is managed in the map page
+                 />
               ))}
             </div>
         </ScrollArea>

@@ -17,6 +17,8 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 import { BottomNavBar } from './bottom-nav-bar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
+import type { Estudiante, Parada, TrackedBus } from '@/lib/types';
+import { getParentDashboardData } from './actions';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -26,9 +28,34 @@ export const navItems = [
   { href: '/mipanel/settings', icon: Settings, label: 'Ajustes' },
 ];
 
+type MappedBus = TrackedBus & {
+  estudiantes_ids: string[];
+};
+
+export type ParentDashboardContextType = {
+  hijos: (Estudiante & { paradas: Parada[], ruta_id?: string })[];
+  buses: MappedBus[];
+  loading: boolean;
+};
+
+// Create a context to hold the dashboard data
+const ParentDashboardContext = React.createContext<ParentDashboardContextType | null>(null);
+
+export const useParentDashboard = () => {
+    const context = React.useContext(ParentDashboardContext);
+    if (!context) {
+        throw new Error("useParentDashboard must be used within a ParentDashboardProvider");
+    }
+    return context;
+};
+
+
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading'>>({ hijos: [], buses: [] });
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
   const router = useRouter(); 
   const isMobile = useIsMobile();
   
@@ -50,15 +77,36 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     } else {
         router.replace('/');
     }
-    setIsLoading(false);
+    setIsLoadingUser(false);
   }, [router]);
   
+  useEffect(() => {
+    if (!user?.id) return;
+    async function fetchData() {
+        setIsLoadingData(true);
+        const data = await getParentDashboardData(user!.id);
+        
+        const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
+        
+        const mappedBuses = data.buses.map(bus => {
+            return {
+                ...bus,
+                estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
+            };
+        });
+
+        setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses });
+        setIsLoadingData(false);
+    }
+    fetchData();
+  }, [user]);
+
   const handleLogout = () => {
     localStorage.removeItem('supabase_session');
     router.replace('/');
   };
 
-  if (isLoading || !user) {
+  if (isLoadingUser || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -78,8 +126,9 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user}>
+      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData }}>
        <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
-        <MiPanelSidebar hijos={[]}/>
+        <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
         <div className="flex flex-col">
             <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
                 <DropdownMenu>
@@ -112,6 +161,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
             {isMobile && <BottomNavBar />}
         </div>
        </div>
+      </ParentDashboardContext.Provider>
     </UserProvider>
   );
 }

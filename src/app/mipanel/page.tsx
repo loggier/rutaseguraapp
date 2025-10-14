@@ -11,7 +11,7 @@ import {
 import { Loader2, LocateFixed } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
-import { getParentDashboardData } from './actions';
+import { useParentDashboard } from './layout';
 import {
   Carousel,
   CarouselContent,
@@ -24,10 +24,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-
-type MappedBus = TrackedBus & {
-  estudiantes_ids: string[];
-};
 
 type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
@@ -51,10 +47,9 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 
 export default function MiPanelPage() {
     const { user } = useUser();
-    const [buses, setBuses] = useState<MappedBus[]>([]);
-    const [hijos, setHijos] = useState<(Estudiante & {paradas: Parada[], ruta_id?: string})[]>([]);
+    const { hijos, buses, loading } = useParentDashboard();
+    
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
-    const [loading, setLoading] = useState(true);
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -103,39 +98,22 @@ export default function MiPanelPage() {
     }, []);
 
     useEffect(() => {
-        if (!user?.id) return;
-        async function fetchData() {
-            setLoading(true);
-            const data = await getParentDashboardData(user!.id);
-            
-            const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
-            setHijos(childrenWithParadas);
-
-            const initialStates: Record<string, StaticState> = {};
-            const mappedBuses = data.buses.map(bus => {
-                if (bus.ruta?.colegio?.lat && bus.ruta?.colegio?.lng) {
-                     const currentTurno = bus.ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
-                     initialStates[bus.id] = {
-                        currentTurno: currentTurno
-                    };
-                }
-                return {
-                    ...bus,
-                    estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
-                };
-            });
-            
-            setBuses(mappedBuses);
-            setStaticStates(initialStates);
-            
-            if (data.hijos.length > 0) {
-              setActiveChildId(data.hijos[0].id);
-            }
-            
-            setLoading(false);
+        if (hijos.length > 0 && !activeChildId) {
+            setActiveChildId(hijos[0].id);
         }
-        fetchData();
-    }, [user]);
+        
+        const initialStates: Record<string, StaticState> = {};
+        buses.forEach(bus => {
+            if (bus.ruta?.colegio?.lat && bus.ruta?.colegio?.lng) {
+                 const currentTurno = bus.ruta.hora_salida_manana ? 'Recogida' : 'Entrega';
+                 initialStates[bus.id] = {
+                    currentTurno: currentTurno
+                };
+            }
+        });
+        setStaticStates(initialStates);
+
+    }, [hijos, buses, activeChildId]);
 
     useEffect(() => {
         if (!carouselApi) return;
@@ -334,7 +312,7 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-             <div className="absolute bottom-40 right-4 z-20 flex flex-col gap-2 md:bottom-4">
+             <div className="absolute bottom-24 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
                     <LocateFixed className="h-6 w-6" />
                 </Button>
