@@ -17,9 +17,9 @@ export function HijoCard({ hijo, bus, isActive }: HijoCardProps) {
     
     const getStatus = () => {
         if (!bus) {
-            return { text: "Esperando ruta", variant: "secondary" as const };
+            return { text: "Esperando ruta", variant: "secondary" as const, className: "" };
         }
-        return { text: "Listo para recogida", variant: "default" as const, className: "bg-blue-600" };
+        return { text: "Listo para recogida", variant: "default" as const, className: "" };
     }
     
     const status = getStatus();
