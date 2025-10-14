@@ -8,7 +8,7 @@ import {
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Layers } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
 import { getParentDashboardData } from './actions';
@@ -19,6 +19,16 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { HijoCard } from './hijo-card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from '@/components/ui/button';
 
 
 type MappedBus = TrackedBus & {
@@ -36,7 +46,7 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
     if (total <= 1) {
         return position;
     }
-    const offset = 0.0001; 
+    const offset = 0.00015; 
     const angle = (index / total) * 2 * Math.PI;
     return {
         lat: position.lat + offset * Math.cos(angle),
@@ -54,11 +64,47 @@ export default function MiPanelPage() {
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+    const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
 
     const { isLoaded, loadError } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
         libraries,
     });
+    
+    const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
+        setMap(mapInstance);
+        
+        const satelliteMapType = new google.maps.ImageMapType({
+            getTileUrl: function(coord, zoom) {
+                if (!coord || zoom === undefined) return null;
+                const tilesPerGlobe = 1 << zoom;
+                let x = coord.x % tilesPerGlobe;
+                if (x < 0) x = tilesPerGlobe + x;
+                const subdomain = ['mt0', 'mt1', 'mt2', 'mt3'][coord.x % 4];
+                return `https://${subdomain}.google.com/vt/lyrs=y&x=${x}&y=${coord.y}&z=${zoom}&s=Ga`;
+            },
+            tileSize: new google.maps.Size(256, 256),
+            name: 'Satélite',
+            maxZoom: 22
+        });
+
+        const trafficMapType = new google.maps.ImageMapType({
+            getTileUrl: function(coord, zoom) {
+                if (!coord || zoom === undefined) return null;
+                const tilesPerGlobe = 1 << zoom;
+                let x = coord.x % tilesPerGlobe;
+                if (x < 0) x = tilesPerGlobe + x;
+                const subdomain = ['mt0', 'mt1', 'mt2', 'mt3'][coord.x % 4];
+                return `https://${subdomain}.google.com/vt/lyrs=m@221097413,traffic&x=${x}&y=${coord.y}&z=${zoom}&s=Ga`;
+            },
+            tileSize: new google.maps.Size(256, 256),
+            name: 'Tráfico',
+            maxZoom: 22
+        });
+        
+        mapInstance.mapTypes.set("SATELLITE", satelliteMapType);
+        mapInstance.mapTypes.set("TRAFFIC", trafficMapType);
+    }, []);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -148,6 +194,7 @@ export default function MiPanelPage() {
         const stopsMap: Map<string, (Estudiante & {paradas: Parada[]})[]> = new Map();
         
         hijos.forEach(hijo => {
+            // Find the active stop for the current turn (assuming Recogida for static view)
             const stop = hijo.paradas.find(p => p.activo);
             if(stop) {
                 const key = `${stop.lat},${stop.lng}`;
@@ -167,11 +214,12 @@ export default function MiPanelPage() {
                 const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                    <svg width="48" height="48" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
                         <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                        <text x="192" y="235" font-family="sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+                        <text x="192" y="245" font-family="sans-serif" font-size="160" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
                     </svg>
                 `.trim();
+
 
                 markers.push({
                     hijo: hijo,
@@ -184,6 +232,12 @@ export default function MiPanelPage() {
         return markers;
 
     }, [hijos, activeChildId]);
+    
+    useEffect(() => {
+        if(map && mapTypeId) {
+            map.setMapTypeId(mapTypeId);
+        }
+    }, [map, mapTypeId]);
 
 
     if (loading || !isLoaded) {
@@ -199,7 +253,7 @@ export default function MiPanelPage() {
                 mapContainerClassName='w-full h-full'
                 center={mapCenter}
                 zoom={12}
-                onLoad={setMap}
+                onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
                 {buses.map(bus => {
@@ -242,8 +296,8 @@ export default function MiPanelPage() {
                             position={position}
                             icon={{
                                 url: icon,
-                                scaledSize: new google.maps.Size(48, 48),
-                                anchor: new google.maps.Point(24, 48),
+                                scaledSize: new google.maps.Size(48, 58),
+                                anchor: new google.maps.Point(24, 58),
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
@@ -255,6 +309,25 @@ export default function MiPanelPage() {
             
             {hijos.length > 0 && (
                 <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
+                     <div className="absolute bottom-24 right-4 z-20">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg'>
+                                    <Layers className="h-6 w-6" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align='end'>
+                                <DropdownMenuLabel>Tipo de Mapa</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuRadioGroup value={mapTypeId} onValueChange={setMapTypeId}>
+                                <DropdownMenuRadioItem value="roadmap">Mapa</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="SATELLITE">Satélite</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="TRAFFIC">Tráfico</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
