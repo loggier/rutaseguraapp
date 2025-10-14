@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -157,3 +158,5 @@ export type Viaje = {
   autobus: string;
   estado: 'activo' | 'suspendido' | 'papelera';
 }
+
+    
