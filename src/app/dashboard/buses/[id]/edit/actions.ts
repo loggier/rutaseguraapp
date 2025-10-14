@@ -137,17 +137,22 @@ export async function updateBus(busId: string, user: User, prevState: State, for
   }
 
   try {
-    const { error } = await supabaseAdmin
-      .from('autobuses')
-      .update({
+    const updateData: Partial<Autobus> = {
         matricula,
         capacidad,
         imei_gps,
-        estado,
         colegio_id,
         conductor_id,
         ruta_id,
-      })
+    };
+
+    if (estado) {
+        updateData.estado = estado;
+    }
+
+    const { error } = await supabaseAdmin
+      .from('autobuses')
+      .update(updateData)
       .eq('id', busId);
 
     if (error) {
