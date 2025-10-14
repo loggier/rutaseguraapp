@@ -155,7 +155,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
             </header>
-            <main className="h-screen w-full md:h-full">
+            <main className="h-screen w-full md:h-full pb-24 md:pb-0">
               {children}
             </main>
             {isMobile && <BottomNavBar />}
