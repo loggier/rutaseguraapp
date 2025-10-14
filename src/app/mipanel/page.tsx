@@ -167,9 +167,9 @@ export default function MiPanelPage() {
                 const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
 
                 const svg = `
-                    <svg width="50" height="50" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="${pinColor}" d="M16 0C8.82 0 3 5.82 3 13c0 7.18 13 19 13 19s13-11.82 13-19C29 5.82 23.18 0 16 0Zm0 18a5 5 0 1 1 0-10a5 5 0 0 1 0 10Z"/>
-                        <text x="16" y="14" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
+                    <svg width="48" height="48" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+                        <text x="192" y="235" font-family="sans-serif" font-size="120" font-weight="bold" text-anchor="middle" fill="white">${initials}</text>
                     </svg>
                 `.trim();
 
@@ -242,8 +242,8 @@ export default function MiPanelPage() {
                             position={position}
                             icon={{
                                 url: icon,
-                                scaledSize: new google.maps.Size(isActive ? 50 : 40, isActive ? 50 : 40),
-                                anchor: new google.maps.Point(isActive ? 25 : 20, isActive ? 50 : 40),
+                                scaledSize: new google.maps.Size(48, 48),
+                                anchor: new google.maps.Point(24, 48),
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
