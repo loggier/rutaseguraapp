@@ -56,7 +56,7 @@ export default function LoginPage() {
     // Si es staff, usamos el primer colegio de la lista como dummy, ya que el backend lo ignorará si el rol es master/manager.
     const finalColegioId = userType === 'parent' ? colegioId : (colegios[0]?.id || '');
 
-    if (!finalColegioId) {
+    if (userType === 'parent' && !finalColegioId) {
         toast({
             variant: "destructive",
             title: "Campo Requerido",
