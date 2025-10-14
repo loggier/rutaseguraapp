@@ -8,7 +8,7 @@ import {
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LocateFixed } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
 import { getParentDashboardData } from './actions';
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/carousel";
 import { HijoCard } from './hijo-card';
 import { MapTypeSelector } from './map-type-selector';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 
 type MappedBus = TrackedBus & {
@@ -56,6 +58,7 @@ export default function MiPanelPage() {
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
+    const { toast } = useToast();
 
     const { isLoaded, loadError } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -206,7 +209,7 @@ export default function MiPanelPage() {
                 const svg = `
                     <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
                         <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                        <text x="192" y="235" font-family="sans-serif" font-size="120" font-weight="bold" fill="white" text-anchor="middle">${initials}</text>
+                        <text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>
                     </svg>
                 `.trim();
 
@@ -227,6 +230,39 @@ export default function MiPanelPage() {
             map.setMapTypeId(mapTypeId);
         }
     }, [map, mapTypeId]);
+
+    const locateUser = () => {
+        if (!map) return;
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    };
+                    map.panTo(pos);
+                    map.setZoom(15);
+                    toast({
+                        title: 'Ubicación Encontrada',
+                        description: 'Mapa centrado en tu ubicación actual.',
+                    });
+                },
+                () => {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error de Ubicación',
+                        description: 'No se pudo acceder a tu ubicación. Asegúrate de tener los permisos activados.',
+                    });
+                }
+            );
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Navegador no compatible',
+                description: 'La geolocalización no es compatible con tu navegador.',
+            });
+        }
+    };
 
 
     if (loading || !isLoaded) {
@@ -296,8 +332,11 @@ export default function MiPanelPage() {
                 })}
             </GoogleMap>
             
-            <div className="absolute bottom-60 right-4 z-20">
-              <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
+             <div className="absolute bottom-[19rem] right-4 z-20 flex flex-col gap-2">
+                <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
+                    <LocateFixed className="h-6 w-6" />
+                </Button>
+                <MapTypeSelector value={mapTypeId} onChange={setMapTypeId} />
             </div>
             
             {hijos.length > 0 && (
