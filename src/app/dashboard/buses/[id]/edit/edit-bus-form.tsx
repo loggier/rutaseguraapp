@@ -71,42 +71,65 @@ export function EditBusForm({ user, bus, colegios, allConductores, allRutas }: E
   const [filteredRutas, setFilteredRutas] = useState<Ruta[]>([]);
 
   useEffect(() => {
-    // Pre-filter lists based on the initial bus data
-    if (bus.colegio_id) {
-      setFilteredConductores(allConductores.filter(c => c.colegio_id === bus.colegio_id));
-      setFilteredRutas(allRutas.filter(r => r.colegio_id === bus.colegio_id));
+    let initialConductores: Conductor[] = [];
+    let initialRutas: Ruta[] = [];
+    const targetColegioId = bus.colegio_id;
+
+    if (user.rol === 'colegio') {
+      initialConductores = allConductores;
+      initialRutas = allRutas;
+    } else if (targetColegioId) {
+      initialConductores = allConductores.filter(c => c.colegio_id === targetColegioId);
+      initialRutas = allRutas.filter(r => r.colegio_id === targetColegioId);
     }
-  }, [bus.colegio_id, allConductores, allRutas]);
+    setFilteredConductores(initialConductores);
+    setFilteredRutas(initialRutas);
+  }, [bus.colegio_id, allConductores, allRutas, user.rol]);
   
   useEffect(() => {
-    // When selected school changes, update the filtered lists
-    if (watchedColegioId) {
-      setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
-      setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
-      
-      // If the currently selected driver/route doesn't belong to the new school, reset them
-      if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
-        form.setValue('conductor_id', null);
+    if (user.rol === 'master' || user.rol === 'manager') {
+      if (watchedColegioId) {
+        setFilteredConductores(allConductores.filter(c => c.colegio_id === watchedColegioId));
+        setFilteredRutas(allRutas.filter(r => r.colegio_id === watchedColegioId));
+        
+        if (!allConductores.some(c => c.id === form.getValues('conductor_id') && c.colegio_id === watchedColegioId)) {
+          form.setValue('conductor_id', null);
+        }
+        if (!allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
+          form.setValue('ruta_id', null);
+        }
+      } else {
+        setFilteredConductores([]);
+        setFilteredRutas([]);
       }
-      if (!allRutas.some(r => r.id === form.getValues('ruta_id') && r.colegio_id === watchedColegioId)) {
-        form.setValue('ruta_id', null);
-      }
-
-    } else if (user.rol !== 'colegio') {
-      setFilteredConductores([]);
-      setFilteredRutas([]);
     }
   }, [watchedColegioId, allConductores, allRutas, form, user.rol]);
 
   useEffect(() => {
-    if (state.message) {
-      toast({
-        variant: state.errors || state.message?.startsWith('Error') ? "destructive" : "default",
-        title: state.errors || state.message?.startsWith('Error') ? "Error al Actualizar" : "Éxito",
-        description: state.message,
-      });
+    if (!state) return;
+    if (state.message && !state.errors) {
+        toast({
+            title: "Éxito",
+            description: state.message,
+        });
     }
-  }, [state, toast]);
+    if (state.message && state.errors) {
+      toast({
+          variant: "destructive",
+          title: "Error al Actualizar",
+          description: state.message,
+      });
+      // Set errors on the form fields
+      for (const [field, messages] of Object.entries(state.errors)) {
+          if (messages) {
+              form.setError(field as keyof FormValues, {
+                  type: 'server',
+                  message: messages.join(', '),
+              });
+          }
+      }
+    }
+  }, [state, toast, form]);
 
   return (
     <Form {...form}>

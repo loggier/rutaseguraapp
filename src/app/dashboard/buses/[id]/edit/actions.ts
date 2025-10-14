@@ -24,6 +24,8 @@ export type State = {
     imei_gps?: string[];
     estado?: string[];
     colegio_id?: string[];
+    conductor_id?: string[];
+    ruta_id?: string[];
     _form?: string[];
   };
 };
@@ -51,7 +53,7 @@ export async function updateBus(busId: string, user: User, prevState: State, for
         }
         colegioIdFromForm = colegioData.id;
     }
-
+   
     const validatedFields = formSchema.safeParse({
         matricula: formData.get('matricula'),
         capacidad: formData.get('capacidad'),
@@ -65,7 +67,7 @@ export async function updateBus(busId: string, user: User, prevState: State, for
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Faltan campos obligatorios. No se pudo actualizar el autobús.',
+      message: 'Faltan campos o tienen errores. Por favor, revisa el formulario.',
     };
   }
 
