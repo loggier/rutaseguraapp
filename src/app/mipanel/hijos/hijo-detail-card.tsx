@@ -12,7 +12,7 @@ type HijoDetailCardProps = {
 }
 
 const TimelineNode = ({ icon: Icon, time, label }: { icon: React.ElementType, time: string, label: string }) => (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1 text-center">
         <Icon className="h-6 w-6 text-primary" />
         <span className="text-xs font-bold">{time}</span>
         <span className="text-xs text-muted-foreground">{label}</span>
@@ -27,25 +27,16 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
     const { buses } = useParentDashboard();
     const bus = buses.find(b => b.ruta?.id === hijo.ruta_id);
 
-    const paradaRecogida = hijo.paradas.find(p => p.activo && p.tipo === 'Recogida');
-    const paradaEntrega = hijo.paradas.find(p => p.activo && p.tipo === 'Entrega');
-    
     const horaSalidaManana = bus?.ruta?.hora_salida_manana;
     const horaSalidaTarde = bus?.ruta?.hora_salida_tarde;
-
-    // Dummy time calculation
-    const formatTime = (timeStr: string | null | undefined, minutes: number) => {
+    
+    // Simple function to format time if needed, or just display.
+    const formatTime = (timeStr: string | null | undefined) => {
         if (!timeStr) return "N/A";
-        const [hours, minutesPart] = timeStr.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours, minutesPart, 0);
-        date.setMinutes(date.getMinutes() + minutes);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        // Assuming time is in HH:mm:ss format, remove seconds.
+        return timeStr.substring(0, 5);
     };
 
-    const horaLlegadaManana = formatTime(horaSalidaManana, 30);
-    const horaLlegadaTarde = formatTime(horaSalidaTarde, 30);
-    
     return (
         <Card className="shadow-md">
             <CardContent className="p-4 space-y-4">
@@ -70,9 +61,9 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     {horaSalidaManana && (
                         <div className="bg-muted/50 p-3 rounded-lg">
                             <div className="flex justify-between items-center">
-                                <TimelineNode icon={Home} time={horaSalidaManana} label="Casa" />
+                                <TimelineNode icon={Home} time={formatTime(horaSalidaManana)} label="Casa" />
                                 <TimelineConnector />
-                                <TimelineNode icon={School} time={horaLlegadaManana} label="Colegio" />
+                                <TimelineNode icon={School} time="Llegada" label="Colegio" />
                             </div>
                             <Button className="w-full mt-3 bg-white text-secondary border-secondary/20 border-2 hover:bg-secondary/10">
                                 Mañana <Bus className="ml-2 h-5 w-5"/>
@@ -83,18 +74,25 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     {horaSalidaTarde && (
                         <div className="bg-muted/50 p-3 rounded-lg">
                            <div className="flex justify-between items-center">
-                                <TimelineNode icon={School} time={horaSalidaTarde} label="Colegio" />
+                                <TimelineNode icon={School} time={formatTime(horaSalidaTarde)} label="Colegio" />
                                 <TimelineConnector />
-                                <TimelineNode icon={Home} time={horaLlegadaTarde} label="Casa" />
+                                <TimelineNode icon={Home} time="Llegada" label="Casa" />
                             </div>
                              <Button className="w-full mt-3 bg-white text-secondary border-secondary/20 border-2 hover:bg-secondary/10">
                                 Tarde <Bus className="ml-2 h-5 w-5"/>
                             </Button>
                         </div>
                     )}
-                     {!horaSalidaManana && !horaSalidaTarde && (
+                     
+                     {!bus && (
                         <div className="text-center py-4 text-muted-foreground text-sm">
-                            Este estudiante no tiene una ruta con horarios asignados.
+                            Este estudiante no tiene una ruta asignada.
+                        </div>
+                     )}
+
+                     {bus && !horaSalidaManana && !horaSalidaTarde && (
+                        <div className="text-center py-4 text-muted-foreground text-sm">
+                            La ruta de este estudiante no tiene horarios definidos.
                         </div>
                      )}
                 </div>
