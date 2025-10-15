@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Estudiante, Parada } from "@/lib/types";
-import { Info, MapPin, School, Home, Edit } from "lucide-react";
+import { Info, MapPin, School, Home, Edit, User, Route } from "lucide-react";
 import { useParentDashboard } from "../layout";
+import { Separator } from "@/components/ui/separator";
 
 type HijoDetailCardProps = {
     hijo: Estudiante & { paradas: Parada[], ruta_id?: string };
@@ -55,8 +56,33 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     </Avatar>
                      <h2 className="text-xl font-bold">{hijo.nombre} {hijo.apellido}</h2>
                 </div>
+
+                {bus ? (
+                    <div className="bg-muted/50 p-3 rounded-lg space-y-3">
+                        <div className="flex items-center gap-3 text-sm">
+                            <Route className="h-5 w-5 text-primary flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-foreground">Ruta Asignada</p>
+                                <p className="text-muted-foreground">{bus.ruta.nombre}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                             <User className="h-5 w-5 text-primary flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-foreground">Conductor</p>
+                                <p className="text-muted-foreground">{bus.conductor.nombre}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                     <div className="bg-muted/50 p-4 rounded-lg text-center">
+                        <p className="text-sm text-muted-foreground">Este estudiante no tiene una ruta asignada.</p>
+                    </div>
+                )}
                 
-                 <div className="bg-muted/50 p-4 rounded-lg space-y-4">
+                <Separator />
+
+                 <div className="p-1 space-y-4">
                     <h3 className="font-semibold text-foreground">Paradas Principales</h3>
                     <AddressRow icon={Home} type="Recogida (Casa)" stop={paradaRecogida} />
                     <AddressRow icon={MapPin} type="Entrega (Casa)" stop={paradaEntrega} />
