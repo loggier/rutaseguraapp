@@ -74,16 +74,17 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return { hijos: childrenWithData, buses: [] };
     }
 
-    // 4. Get all necessary buses and their related info
+    // 4. Get all necessary buses and their related info from the view
     const { data: busesData, error: busesError } = await supabase
         .from('autobuses_view')
         .select('*')
         .in('ruta_id', rutaIds as string[]);
 
     if (busesError) {
-        console.error("Error fetching buses:", busesError);
+        console.error("Error fetching buses from view:", busesError);
         return { hijos: childrenWithData, buses: [] };
     }
+
 
     // 5. Fetch full route data for the buses
     const { data: routesData, error: routesError } = await supabase
@@ -95,7 +96,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         console.error("Error fetching routes:", routesError);
         return { hijos: childrenWithData, buses: busesData as TrackedBus[] || [] };
     }
-
+    
     const routesMap = (routesData || []).reduce((acc, route) => {
         acc[route.id] = route;
         return acc;

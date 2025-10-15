@@ -8,7 +8,7 @@ import { Info, MapPin, School, Home, Bus } from "lucide-react";
 import { useParentDashboard } from "../layout";
 
 type HijoDetailCardProps = {
-    hijo: Estudiante & { paradas: Parada[] };
+    hijo: Estudiante & { paradas: Parada[], ruta_id?: string };
 }
 
 const TimelineNode = ({ icon: Icon, time, label }: { icon: React.ElementType, time: string, label: string }) => (
@@ -30,13 +30,6 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
     const horaSalidaManana = bus?.ruta?.hora_salida_manana;
     const horaSalidaTarde = bus?.ruta?.hora_salida_tarde;
     
-    // Simple function to format time if needed, or just display.
-    const formatTime = (timeStr: string | null | undefined) => {
-        if (!timeStr) return "N/A";
-        // Assuming time is in HH:mm:ss format, remove seconds.
-        return timeStr.substring(0, 5);
-    };
-
     return (
         <Card className="shadow-md">
             <CardContent className="p-4 space-y-4">
@@ -61,7 +54,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     {horaSalidaManana && (
                         <div className="bg-muted/50 p-3 rounded-lg">
                             <div className="flex justify-between items-center">
-                                <TimelineNode icon={Home} time={formatTime(horaSalidaManana)} label="Casa" />
+                                <TimelineNode icon={Home} time={horaSalidaManana.substring(0, 5)} label="Casa" />
                                 <TimelineConnector />
                                 <TimelineNode icon={School} time="Llegada" label="Colegio" />
                             </div>
@@ -74,7 +67,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     {horaSalidaTarde && (
                         <div className="bg-muted/50 p-3 rounded-lg">
                            <div className="flex justify-between items-center">
-                                <TimelineNode icon={School} time={formatTime(horaSalidaTarde)} label="Colegio" />
+                                <TimelineNode icon={School} time={horaSalidaTarde.substring(0, 5)} label="Colegio" />
                                 <TimelineConnector />
                                 <TimelineNode icon={Home} time="Llegada" label="Casa" />
                             </div>
