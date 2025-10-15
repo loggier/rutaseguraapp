@@ -64,7 +64,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                 
                  <Button className="w-full" variant="outline">
                     <Edit className="mr-2 h-4 w-4" />
-                    Gestionar Paradas
+                    Gestionar Direcciones
                  </Button>
 
             </CardContent>
