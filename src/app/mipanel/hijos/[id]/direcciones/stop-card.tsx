@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 type StopCardProps = {
     parada: Parada;
     onEdit: (parada: Parada) => void;
+    onDelete: (stopId: string) => void;
 }
 
-export function StopCard({ parada, onEdit }: StopCardProps) {
+export function StopCard({ parada, onEdit, onDelete }: StopCardProps) {
     const isPrincipal = parada.sub_tipo === 'Principal';
 
     return (
@@ -25,7 +26,7 @@ export function StopCard({ parada, onEdit }: StopCardProps) {
                         <Building className="h-5 w-5 text-muted-foreground" />
                     )}
                     <CardTitle className="text-base font-bold">
-                        {isPrincipal ? 'Principal' : 'Secundaria'}
+                       {isPrincipal ? 'Principal' : 'Secundaria'}
                     </CardTitle>
                 </div>
                 <Badge variant={parada.activo ? "default" : "secondary"} className={cn(!parada.activo && "bg-gray-300 text-gray-700", "min-w-[65px] flex justify-center")}>
@@ -39,7 +40,7 @@ export function StopCard({ parada, onEdit }: StopCardProps) {
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(parada.id)}>
                         <Trash2 className="h-4 w-4 mr-2" />
                         Eliminar
                     </Button>
