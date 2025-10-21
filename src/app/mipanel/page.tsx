@@ -263,9 +263,9 @@ export default function MiPanelPage() {
             >
                 {buses.map(bus => {
                     const state = staticStates[bus.id];
-                    if (!state || !bus.ruta.colegio?.lat) return null;
+                    if (!state || !bus.ruta.colegio?.lat || !bus.ruta.colegio?.lng) return null;
                     const isActive = activeBus?.id === bus.id;
-                    const busPosition = {lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng!}
+                    const busPosition = {lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng}
 
                     return (
                         <MarkerF 
@@ -273,8 +273,8 @@ export default function MiPanelPage() {
                             position={busPosition}
                             icon={{
                                 url: '/bus.png',
-                                scaledSize: new google.maps.Size(isActive ? 33 : 27, isActive ? 40 : 32),
-                                anchor: new google.maps.Point(isActive ? 16 : 13, isActive ? 20 : 16),
+                                scaledSize: isActive ? new google.maps.Size(40, 40) : new google.maps.Size(32, 32),
+                                anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
                             }}
                             zIndex={isActive ? 100 : 50}
                         />
