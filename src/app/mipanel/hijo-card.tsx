@@ -37,7 +37,7 @@ export function HijoCard({ hijo, bus, isActive }: HijoCardProps) {
                     <h3 className="font-bold text-lg truncate">{hijo.nombre} {hijo.apellido}</h3>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                        {bus ? <Bus className="h-4 w-4" /> : <School className="h-4 w-4" />}
-                       <span className="truncate">{bus?.ruta.colegio?.nombre || "Sin colegio asignado"}</span>
+                       <span className="truncate">{hijo.colegio_nombre || "Sin colegio asignado"}</span>
                     </div>
                     <Badge variant={status.variant} className={cn("mt-2", status.className)}>{status.text}</Badge>
                 </div>
