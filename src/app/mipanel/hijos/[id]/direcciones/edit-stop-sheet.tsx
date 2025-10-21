@@ -131,6 +131,16 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
       }
     }
   };
+
+  const onMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const newLat = e.latLng.lat();
+      const newLng = e.latLng.lng();
+      setValue('lat', newLat, { shouldValidate: true });
+      setValue('lng', newLng, { shouldValidate: true });
+      setMapCenter({ lat: newLat, lng: newLng });
+    }
+  };
   
   const onSubmit = async (data: StopFormData) => {
     if (!parada) return;
@@ -195,7 +205,11 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
                     center={mapCenter}
                     zoom={17}
                 >
-                    <MarkerF position={mapCenter} />
+                    <MarkerF 
+                        position={mapCenter} 
+                        draggable={true}
+                        onDragEnd={onMarkerDragEnd}
+                    />
                 </GoogleMap>
             </div>
 

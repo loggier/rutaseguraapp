@@ -142,6 +142,16 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
       }
     }
   };
+
+   const onMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const newLat = e.latLng.lat();
+      const newLng = e.latLng.lng();
+      setValue('lat', newLat, { shouldValidate: true });
+      setValue('lng', newLng, { shouldValidate: true });
+      setMapCenter({ lat: newLat, lng: newLng });
+    }
+  };
   
   const onSubmit = async (data: StopFormData) => {
     try {
@@ -212,7 +222,13 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
                     center={mapCenter}
                     zoom={lat && lng ? 17 : 12}
                 >
-                    {lat && lng && <MarkerF position={{lat, lng}} />}
+                    {lat && lng && (
+                        <MarkerF 
+                            position={{lat, lng}} 
+                            draggable={true}
+                            onDragEnd={onMarkerDragEnd}
+                        />
+                    )}
                 </GoogleMap>
             </div>
              {errors.lat && <p className="text-xs text-destructive">{errors.lat.message}</p>}
