@@ -113,7 +113,7 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
   const onPlaceChanged = () => {
     if (autocompleteRef.current !== null) {
       const place = autocompleteRef.current.getPlace();
-      if (place.geometry?.location) {
+      if (place?.geometry?.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
         setValue('lat', lat, { shouldValidate: true });
