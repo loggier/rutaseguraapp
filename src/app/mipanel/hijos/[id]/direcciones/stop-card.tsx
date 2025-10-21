@@ -25,7 +25,7 @@ export function StopCard({ parada, onEdit }: StopCardProps) {
                         <Building className="h-5 w-5 text-muted-foreground" />
                     )}
                     <CardTitle className="text-base font-bold">
-                        {parada.sub_tipo}
+                        {isPrincipal ? 'Principal' : 'Secundaria'}
                     </CardTitle>
                 </div>
                 <Badge variant={parada.activo ? "default" : "secondary"} className={cn(!parada.activo && "bg-gray-300 text-gray-700", "min-w-[65px] flex justify-center")}>
