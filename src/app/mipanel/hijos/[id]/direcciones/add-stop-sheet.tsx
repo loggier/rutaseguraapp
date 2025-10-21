@@ -257,8 +257,8 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
                             <Label htmlFor="principal-add">Principal</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Secundaria" id="familiar-add" />
-                            <Label htmlFor="familiar-add">Secundaria</Label>
+                            <RadioGroupItem value="Secundaria" id="secundaria-add" />
+                            <Label htmlFor="secundaria-add">Secundaria</Label>
                         </div>
                     </RadioGroup>
                 </div>
@@ -299,3 +299,5 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
     </Sheet>
   );
 }
+
+    

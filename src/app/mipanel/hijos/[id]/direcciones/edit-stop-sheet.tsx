@@ -256,8 +256,8 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
                             <Label htmlFor="principal">Principal</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Secundaria" id="familiar" />
-                            <Label htmlFor="familiar">Secundaria</Label>
+                            <RadioGroupItem value="Secundaria" id="secundaria" />
+                            <Label htmlFor="secundaria">Secundaria</Label>
                         </div>
                     </RadioGroup>
                 </div>
@@ -298,3 +298,5 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
     </Sheet>
   );
 }
+
+    
