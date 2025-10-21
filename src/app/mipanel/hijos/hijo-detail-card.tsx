@@ -57,7 +57,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                      <h2 className="text-xl font-bold">{hijo.nombre} {hijo.apellido}</h2>
                 </div>
 
-                {bus ? (
+                {bus && bus.ruta ? (
                     <div className="bg-muted/50 p-3 rounded-lg space-y-3">
                         <div className="flex items-center gap-3 text-sm">
                             <Route className="h-5 w-5 text-primary flex-shrink-0" />
