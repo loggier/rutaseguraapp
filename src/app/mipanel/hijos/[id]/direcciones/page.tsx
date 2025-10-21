@@ -11,6 +11,7 @@ import { StopCard } from "./stop-card";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { EditStopSheet } from "./edit-stop-sheet";
+import { AddStopSheet } from "./add-stop-sheet";
 import type { Parada } from "@/lib/types";
 
 export default function GestionarDireccionesPage() {
@@ -20,6 +21,8 @@ export default function GestionarDireccionesPage() {
     const studentId = params.id as string;
 
     const [editingStop, setEditingStop] = useState<Parada | null>(null);
+    const [addingStopType, setAddingStopType] = useState<'Recogida' | 'Entrega' | null>(null);
+
 
     const hijo = useMemo(() => {
         if (!loading && studentId) {
@@ -34,14 +37,14 @@ export default function GestionarDireccionesPage() {
 
     const handleCloseSheet = useCallback((updated?: boolean) => {
         setEditingStop(null);
+        setAddingStopType(null);
         if (updated) {
             startTransition(() => {
-                // This will re-trigger the fetch in the layout
-                // We're using the router to refresh server components data as recommended by Next.js
+                refreshData();
                 router.refresh(); 
             });
         }
-    }, [router]);
+    }, [router, refreshData]);
 
     const paradasRecogida = useMemo(() => {
         return hijo?.paradas?.filter(p => p.tipo === 'Recogida').sort((a,b) => (a.sub_tipo === 'Principal' ? -1 : 1)) || [];
@@ -93,7 +96,7 @@ export default function GestionarDireccionesPage() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold">Recogida</h2>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => setAddingStopType('Recogida')}>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Añadir
                                 </Button>
@@ -112,7 +115,7 @@ export default function GestionarDireccionesPage() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                <h2 className="text-xl font-bold">Entrega</h2>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => setAddingStopType('Entrega')}>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Añadir
                                 </Button>
@@ -134,6 +137,15 @@ export default function GestionarDireccionesPage() {
                 <EditStopSheet
                     isOpen={!!editingStop}
                     parada={editingStop}
+                    onClose={handleCloseSheet}
+                />
+            )}
+            {addingStopType && (
+                <AddStopSheet
+                    isOpen={!!addingStopType}
+                    tipo={addingStopType}
+                    studentId={hijo.id}
+                    colegioId={hijo.colegio_id}
                     onClose={handleCloseSheet}
                 />
             )}
