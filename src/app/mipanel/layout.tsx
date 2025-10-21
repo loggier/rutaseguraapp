@@ -5,7 +5,7 @@ import Image from 'next/image';
 import React, { useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Map, Users, Settings, Bell, LogOut, Loader2, Home,
+  Map, Users, Settings, Bell, LogOut, Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -24,8 +24,7 @@ import { cn } from '@/lib/utils';
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
   { href: '/mipanel/hijos', icon: Users, label: 'Mis Hijos' },
-  { href: '/mipanel/home-placeholder', icon: Home, label: 'Inicio' }, // Placeholder
-  { href: '/mipanel/notifications', icon: Bell, label: 'Alertas' }, // Placeholder
+  { href: '/mipanel/notifications', icon: Bell, label: 'Alertas' },
   { href: '/mipanel/settings', icon: Settings, label: 'Ajustes' },
 ];
 
