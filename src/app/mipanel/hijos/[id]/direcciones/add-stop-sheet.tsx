@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 const libraries: ('places')[] = ['places'];
 
 const addStopSchema = z.object({
-  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
+  sub_tipo: z.enum(['Principal', 'Secundaria']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
@@ -257,8 +257,8 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose }: Ad
                             <Label htmlFor="principal-add">Principal</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Familiar/Academia" id="familiar-add" />
-                            <Label htmlFor="familiar-add">Familiar/Academia</Label>
+                            <RadioGroupItem value="Secundaria" id="familiar-add" />
+                            <Label htmlFor="familiar-add">Secundaria</Label>
                         </div>
                     </RadioGroup>
                 </div>

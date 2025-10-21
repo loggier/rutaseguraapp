@@ -31,7 +31,7 @@ const libraries: ('places')[] = ['places'];
 
 const stopSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega']),
-  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
+  sub_tipo: z.enum(['Principal', 'Secundaria']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
@@ -256,8 +256,8 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
                             <Label htmlFor="principal">Principal</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Familiar/Academia" id="familiar" />
-                            <Label htmlFor="familiar">Familiar/Academia</Label>
+                            <RadioGroupItem value="Secundaria" id="familiar" />
+                            <Label htmlFor="familiar">Secundaria</Label>
                         </div>
                     </RadioGroup>
                 </div>

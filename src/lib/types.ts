@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -70,7 +71,7 @@ export type Parada = {
   estudiante_id: string;
   colegio_id: string;
   tipo: 'Recogida' | 'Entrega';
-  sub_tipo: 'Principal' | 'Familiar/Academia';
+  sub_tipo: 'Principal' | 'Secundaria';
   direccion: string;
   calle: string | null;
   numero: string | null;

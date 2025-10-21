@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 const updateStopSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega']),
-  sub_tipo: z.enum(['Principal', 'Familiar/Academia']),
+  sub_tipo: z.enum(['Principal', 'Secundaria']),
   direccion: z.string().min(5, 'La dirección es requerida.'),
   calle: z.string().optional().nullable(),
   numero: z.string().optional().nullable(),
