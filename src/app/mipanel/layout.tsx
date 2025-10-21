@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Map, Users, Settings, Bell, LogOut, Loader2, Home,
@@ -37,6 +37,7 @@ export type ParentDashboardContextType = {
   hijos: (Estudiante & { paradas: Parada[], ruta_id?: string })[];
   buses: MappedBus[];
   loading: boolean;
+  refreshData: () => void;
 };
 
 // Create a context to hold the dashboard data
@@ -54,7 +55,7 @@ export const useParentDashboard = () => {
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading'>>({ hijos: [], buses: [] });
+  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData'>>({ hijos: [], buses: [] });
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const router = useRouter(); 
@@ -82,26 +83,27 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     setIsLoadingUser(false);
   }, [router]);
   
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!user?.id) return;
-    async function fetchData() {
-        setIsLoadingData(true);
-        const data = await getParentDashboardData(user!.id);
-        
-        const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
-        
-        const mappedBuses = data.buses.map(bus => {
-            return {
-                ...bus,
-                estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
-            };
-        });
+    setIsLoadingData(true);
+    const data = await getParentDashboardData(user.id);
+    
+    const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
+    
+    const mappedBuses = data.buses.map(bus => {
+        return {
+            ...bus,
+            estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
+        };
+    });
 
-        setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses });
-        setIsLoadingData(false);
-    }
-    fetchData();
+    setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses });
+    setIsLoadingData(false);
   }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleLogout = () => {
     localStorage.removeItem('supabase_session');
@@ -130,7 +132,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user}>
-      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData }}>
+      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData }}>
        <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
         <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
         <div className="flex flex-col h-screen">
@@ -159,7 +161,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
             </header>
-            <main className={cn("flex-1", {
+            <main className={cn("flex-1 h-full", {
                 'pb-20 md:pb-0': !isMapPage
             })}>
               {children}

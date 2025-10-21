@@ -1,23 +1,24 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Parada } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Home, Building, Star } from "lucide-react";
+import { Edit, Trash2, Home, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StopCardProps = {
     parada: Parada;
+    onEdit: (parada: Parada) => void;
 }
 
-export function StopCard({ parada }: StopCardProps) {
+export function StopCard({ parada, onEdit }: StopCardProps) {
     const isPrincipal = parada.sub_tipo === 'Principal';
 
     return (
         <Card className={cn(isPrincipal && "border-primary bg-primary/5")}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex items-center gap-2">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 pt-4 px-4">
+                <div className="flex items-center gap-3">
                     {isPrincipal ? (
                         <Home className="h-5 w-5 text-primary" />
                     ) : (
@@ -27,14 +28,14 @@ export function StopCard({ parada }: StopCardProps) {
                         {parada.sub_tipo}
                     </CardTitle>
                 </div>
-                <Badge variant={parada.activo ? "default" : "secondary"} className={cn(!parada.activo && "bg-gray-300 text-gray-700", "min-w-[60px] flex justify-center")}>
+                <Badge variant={parada.activo ? "default" : "secondary"} className={cn(!parada.activo && "bg-gray-300 text-gray-700", "min-w-[65px] flex justify-center")}>
                     {parada.activo ? 'Activa' : 'Inactiva'}
                 </Badge>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">{parada.direccion}</p>
+            <CardContent className="px-4 pb-4">
+                <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">{parada.direccion}</p>
                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(parada)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                     </Button>

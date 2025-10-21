@@ -4,18 +4,22 @@ import { PageHeader } from "@/components/page-header";
 import { useParentDashboard } from "@/app/mipanel/layout";
 import { Loader2, PlusCircle, ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, startTransition } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { StopCard } from "./stop-card";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import { EditStopSheet } from "./edit-stop-sheet";
+import type { Parada } from "@/lib/types";
 
 export default function GestionarDireccionesPage() {
-    const { hijos, loading } = useParentDashboard();
+    const { hijos, loading, refreshData } = useParentDashboard();
     const params = useParams();
     const router = useRouter();
     const studentId = params.id as string;
+
+    const [editingStop, setEditingStop] = useState<Parada | null>(null);
 
     const hijo = useMemo(() => {
         if (!loading && studentId) {
@@ -23,6 +27,21 @@ export default function GestionarDireccionesPage() {
         }
         return null;
     }, [hijos, loading, studentId]);
+
+    const handleEdit = useCallback((parada: Parada) => {
+        setEditingStop(parada);
+    }, []);
+
+    const handleCloseSheet = useCallback((updated?: boolean) => {
+        setEditingStop(null);
+        if (updated) {
+            startTransition(() => {
+                // This will re-trigger the fetch in the layout
+                // We're using the router to refresh server components data as recommended by Next.js
+                router.refresh(); 
+            });
+        }
+    }, [router]);
 
     const paradasRecogida = useMemo(() => {
         return hijo?.paradas?.filter(p => p.tipo === 'Recogida').sort((a,b) => (a.sub_tipo === 'Principal' ? -1 : 1)) || [];
@@ -43,69 +62,81 @@ export default function GestionarDireccionesPage() {
     
     if (!hijo) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                 <p className="text-destructive font-semibold">Estudiante no encontrado.</p>
-                 <Button onClick={() => router.back()} variant="link">Volver</Button>
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                 <p className="text-destructive font-semibold mb-4">Estudiante no encontrado.</p>
+                 <Button onClick={() => router.back()} variant="link">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver
+                </Button>
             </div>
         )
     }
 
     return (
-        <ScrollArea className="h-full">
-            <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader
-                    title={`Direcciones de ${hijo.nombre}`}
-                    description="Gestiona las paradas de recogida y entrega."
-                >
-                     <Button asChild variant="outline">
-                        <Link href="/mipanel/hijos">
-                            <ArrowLeft className="mr-2" />
-                            Volver
-                        </Link>
-                    </Button>
-                </PageHeader>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Columna de Recogida */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold">Recogida</h2>
-                            <Button variant="ghost" size="sm">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Añadir
-                            </Button>
-                        </div>
-                        <Separator />
-                        {paradasRecogida.length > 0 ? (
-                           <div className="space-y-4">
-                             {paradasRecogida.map(parada => <StopCard key={parada.id} parada={parada} />)}
-                           </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de recogida configuradas.</p>
-                        )}
-                    </div>
+        <>
+            <ScrollArea className="h-full">
+                <div className="flex flex-col gap-6 p-4 md:p-6">
+                    <PageHeader
+                        title={`Direcciones de ${hijo.nombre}`}
+                        description="Gestiona las paradas de recogida y entrega."
+                    >
+                         <Button asChild variant="outline" size="sm">
+                            <Link href="/mipanel/hijos">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Volver
+                            </Link>
+                        </Button>
+                    </PageHeader>
                     
-                    {/* Columna de Entrega */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                           <h2 className="text-xl font-bold">Entrega</h2>
-                            <Button variant="ghost" size="sm">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Añadir
-                            </Button>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Columna de Recogida */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold">Recogida</h2>
+                                <Button variant="ghost" size="sm">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Añadir
+                                </Button>
+                            </div>
+                            <Separator />
+                            {paradasRecogida.length > 0 ? (
+                               <div className="space-y-4">
+                                 {paradasRecogida.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} />)}
+                               </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de recogida configuradas.</p>
+                            )}
                         </div>
-                         <Separator />
-                         {paradasEntrega.length > 0 ? (
-                           <div className="space-y-4">
-                             {paradasEntrega.map(parada => <StopCard key={parada.id} parada={parada} />)}
-                           </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de entrega configuradas.</p>
-                        )}
+                        
+                        {/* Columna de Entrega */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                               <h2 className="text-xl font-bold">Entrega</h2>
+                                <Button variant="ghost" size="sm">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Añadir
+                                </Button>
+                            </div>
+                             <Separator />
+                             {paradasEntrega.length > 0 ? (
+                               <div className="space-y-4">
+                                 {paradasEntrega.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} />)}
+                               </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de entrega configuradas.</p>
+                            )}
+                        </div>
                     </div>
-                </div>
 
-            </div>
-        </ScrollArea>
+                </div>
+            </ScrollArea>
+            {editingStop && (
+                <EditStopSheet
+                    isOpen={!!editingStop}
+                    parada={editingStop}
+                    onClose={handleCloseSheet}
+                />
+            )}
+        </>
     );
 }
