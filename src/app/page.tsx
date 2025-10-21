@@ -18,13 +18,11 @@ import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import type { Colegio } from '@/lib/types';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export default function LoginPage() {
-  const [userType, setUserType] = useState<'parent' | 'staff'>('staff');
   const [colegioId, setColegioId] = useState<string>('');
-  const [email, setEmail] = useState('master@rutasegura.com');
-  const [password, setPassword] = useState('Martes13');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [colegios, setColegios] = useState<Colegio[]>([]);
   const { toast } = useToast();
@@ -52,9 +50,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    const finalColegioId = userType === 'parent' ? colegioId : (colegios[0]?.id || '');
-
-    if (userType === 'parent' && !finalColegioId) {
+    if (!colegioId) {
         toast({
             variant: "destructive",
             title: "Campo Requerido",
@@ -71,7 +67,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, colegioId: finalColegioId }),
+        body: JSON.stringify({ email, password, colegioId: colegioId }),
       });
 
       const data = await response.json();
@@ -90,7 +86,14 @@ export default function LoginPage() {
       if (data.user.rol === 'padre') {
         router.push('/mipanel');
       } else {
-        router.push('/dashboard');
+        // Fallback en caso de que un usuario no-padre intente entrar
+        toast({
+            variant: 'destructive',
+            title: 'Acceso Denegado',
+            description: 'Esta aplicación es solo para padres/tutores.'
+        });
+        localStorage.removeItem('supabase_session');
+        setIsPending(false);
       }
 
     } catch (error: any) {
@@ -115,33 +118,14 @@ export default function LoginPage() {
               Bienvenido a RutaSegura
             </CardTitle>
             <CardDescription className="text-center">
-              Selecciona tu rol e inicia sesión para acceder.
+              Inicia sesión para acceder a tu cuenta.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="grid gap-4">
-               <div className="grid gap-2">
-                <Label>Tipo de Usuario</Label>
-                <RadioGroup defaultValue="staff" onValueChange={(value: 'parent' | 'staff') => setUserType(value)} className="grid grid-cols-2 gap-4">
-                    <div>
-                        <RadioGroupItem value="staff" id="staff" className="peer sr-only" />
-                        <Label htmlFor="staff" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                        Personal/Admin
-                        </Label>
-                    </div>
-                    <div>
-                        <RadioGroupItem value="parent" id="parent" className="peer sr-only" />
-                        <Label htmlFor="parent" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                        Padre/Tutor
-                        </Label>
-                    </div>
-                </RadioGroup>
-              </div>
-
-              {userType === 'parent' && (
                 <div className="grid gap-2">
                     <Label htmlFor="colegio">Colegio</Label>
-                    <Select onValueChange={setColegioId} value={colegioId}>
+                    <Select onValueChange={setColegioId} value={colegioId} required>
                         <SelectTrigger id="colegio">
                             <SelectValue placeholder="Selecciona tu colegio" />
                         </SelectTrigger>
@@ -154,7 +138,6 @@ export default function LoginPage() {
                         </SelectContent>
                     </Select>
                 </div>
-              )}
 
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
@@ -187,7 +170,7 @@ export default function LoginPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isPending || (userType === 'parent' && colegios.length === 0)}>
+              <Button type="submit" className="w-full" disabled={isPending || colegios.length === 0}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
