@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Map, Users, Settings, Bell, LogOut, Loader2, Home,
 } from 'lucide-react';
@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
 import type { Estudiante, Parada, TrackedBus } from '@/lib/types';
 import { getParentDashboardData } from './actions';
+import { cn } from '@/lib/utils';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -57,6 +58,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const router = useRouter(); 
+  const pathname = usePathname();
   const isMobile = useIsMobile();
   
   useEffect(() => {
@@ -123,13 +125,15 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     }
     return (user.email || '').substring(0, 2).toUpperCase();
   }
+  
+  const isMapPage = pathname === '/mipanel';
 
   return (
     <UserProvider user={user}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData }}>
        <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
         <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
-        <div className="flex flex-col">
+        <div className="flex flex-col h-screen md:h-auto">
             <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -155,7 +159,9 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
             </header>
-            <main className="h-full w-full pb-24 md:pb-0">
+            <main className={cn("h-full w-full", {
+                'pb-20 md:pb-0': !isMapPage
+            })}>
               {children}
             </main>
             {isMobile && <BottomNavBar />}
