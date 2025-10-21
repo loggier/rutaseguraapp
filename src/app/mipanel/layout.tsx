@@ -133,7 +133,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData }}>
        <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
         <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
-        <div className="flex flex-col h-screen md:h-auto">
+        <div className="flex flex-col h-screen">
             <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -159,7 +159,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
             </header>
-            <main className={cn("h-full w-full", {
+            <main className={cn("flex-1", {
                 'pb-20 md:pb-0': !isMapPage
             })}>
               {children}
