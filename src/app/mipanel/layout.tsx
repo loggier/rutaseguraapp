@@ -175,7 +175,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                             <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild><Link href="/mipanel/hijos">Mis Hijos</Link></DropdownMenuItem>
-                            <DropdownMenuItem asChild><Link href="/mipanel/settings">Configuración</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href="/mipanel/settings">Ajustes</Link></DropdownMenuItem>
                             <DropdownMenuItem>Soporte</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
