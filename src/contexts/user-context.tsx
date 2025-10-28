@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, Dispatch, SetStateAction } from 'react';
 import type { Profile } from '@/lib/types';
 
 // Let's use our own Profile type, which we can control.
@@ -13,13 +13,14 @@ export type User = Profile & {
 
 interface UserContextType {
   user: User | null;
+  setUser: Dispatch<SetStateAction<User | null>>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export function UserProvider({ children, user }: { children: ReactNode; user: User | null }) {
+export function UserProvider({ children, user: initialUser, setUser: setInitialUser }: { children: ReactNode; user: User | null, setUser: Dispatch<SetStateAction<User | null>> }) {
   return (
-    <UserContext.Provider value={{ user }}>
+    <UserContext.Provider value={{ user: initialUser, setUser: setInitialUser }}>
       {children}
     </UserContext.Provider>
   );

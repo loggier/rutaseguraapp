@@ -22,8 +22,7 @@ import { Loader2 } from 'lucide-react';
 
 function getCroppedImg(
   image: HTMLImageElement,
-  crop: PixelCrop,
-  fileName: string
+  crop: PixelCrop
 ): Promise<Blob | null> {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
@@ -62,8 +61,6 @@ function getCroppedImg(
           resolve(null);
           return;
         }
-        // You can remove the file name logic if you don't need it
-        // (blob as any).name = fileName;
         resolve(blob);
       },
       'image/jpeg',
@@ -111,8 +108,7 @@ export function ImageCropper({ imageSrc, onCropComplete, onClose }: ImageCropper
     setIsProcessing(true);
     const croppedImageBlob = await getCroppedImg(
       imgRef.current,
-      completedCrop,
-      'new-avatar.jpg'
+      completedCrop
     );
     setIsProcessing(false);
     onCropComplete(croppedImageBlob);

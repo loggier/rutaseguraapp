@@ -106,6 +106,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     localStorage.removeItem('supabase_session');
+    setUser(null);
     router.replace('/');
   };
 
@@ -130,7 +131,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const isMapPage = pathname === '/mipanel';
 
   return (
-    <UserProvider user={user}>
+    <UserProvider user={user} setUser={setUser}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData }}>
        <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
         <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
@@ -140,7 +141,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
                         <Avatar className='h-9 w-9 border-2 border-background shadow-md'>
-                            <AvatarImage src={user?.avatar_url || "https://picsum.photos/seed/user-avatar-1/64/64"} data-ai-hint="person face" />
+                            <AvatarImage src={user?.avatar_url || ""} data-ai-hint="person face" />
                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                         </Avatar>
                         <span className="sr-only">Menú de usuario</span>
