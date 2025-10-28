@@ -223,7 +223,7 @@ export default function MiPanelPage() {
 
                     markers.push(
                         <React.Fragment key={`${hijo.id}-marker`}>
-                            <MarkerF
+                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
@@ -233,15 +233,13 @@ export default function MiPanelPage() {
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
+                            {/* Avatar del marcador */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(
-                                        avatarSize / 2,
-                                        avatarSize / 2 + bubbleSize / 4.5
-                                    ),
+                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize / 2 - bubbleSize / 10),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
