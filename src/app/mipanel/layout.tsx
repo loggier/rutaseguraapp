@@ -185,12 +185,12 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                         </DropdownMenu>
                     </header>
                 )}
-                <main className={cn("flex-1 h-full", {
+                <main className={cn("flex-1 h-full overflow-hidden", {
                     'pb-20 md:pb-0': !isMapPage
                 })}>
                   {children}
                 </main>
-                {isMobile && <BottomNavBar />}
+                {isMobile && !isMapPage && <BottomNavBar />}
             </div>
           </div>
         </GoogleMapsContext.Provider>

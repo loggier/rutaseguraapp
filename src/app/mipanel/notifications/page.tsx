@@ -87,17 +87,17 @@ export default function NotificationsPage() {
                     description="Aquí verás las notificaciones y consejos importantes."
                 />
             </div>
-            <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6">
-                <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden">
+                <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
                     <TabsTrigger value="alertas">Alertas</TabsTrigger>
                     <TabsTrigger value="consejos">Consejos</TabsTrigger>
                 </TabsList>
-                <TabsContent value="alertas" className="pt-4 flex-grow">
+                <TabsContent value="alertas" className="pt-4 flex-grow overflow-hidden">
                     <ScrollArea className="h-full pr-2">
                         {renderAlerts()}
                     </ScrollArea>
                 </TabsContent>
-                <TabsContent value="consejos" className="pt-4 flex-grow">
+                <TabsContent value="consejos" className="pt-4 flex-grow overflow-hidden">
                     <ScrollArea className="h-full">
                         <div className="text-center pt-12">
                             <EmptyMailbox className="mx-auto" />
