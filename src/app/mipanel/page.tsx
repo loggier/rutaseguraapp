@@ -342,36 +342,31 @@ export default function MiPanelPage() {
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
-                {buses.map(bus => {
-                    const state = staticStates[bus.id];
-                    if (!state || !bus.ruta.colegio?.lat || !bus.ruta.colegio?.lng) return null;
-                    const isActive = activeBus?.id === bus.id;
-                    const busPosition = {lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng}
-
-                    return (
-                        <MarkerF 
-                            key={bus.id}
-                            position={busPosition}
-                            icon={{
-                                url: '/bus.png',
-                                scaledSize: isActive ? new google.maps.Size(40, 40) : new google.maps.Size(32, 32),
-                                anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
-                            }}
-                            zIndex={isActive ? 100 : 50}
-                        />
-                    );
-                })}
-
                 {activeBus && (
                     <>
                         <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
-                        {activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && <MarkerF 
-                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
-                            icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
-                            label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                            title={activeBus.ruta.colegio?.nombre}
-                            zIndex={99}
-                        />}
+                        
+                        {activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && (
+                          <>
+                            <MarkerF 
+                                position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
+                                icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
+                                label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                                title={activeBus.ruta.colegio?.nombre}
+                                zIndex={99}
+                            />
+                            <MarkerF 
+                                position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
+                                icon={{
+                                    url: '/bus.png',
+                                    scaledSize: new google.maps.Size(40, 40),
+                                    anchor: new google.maps.Point(20, 20),
+                                }}
+                                zIndex={100}
+                                title={`Bus: ${activeBus.matricula}`}
+                            />
+                          </>
+                        )}
                     </>
                 )}
                 
