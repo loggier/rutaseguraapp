@@ -185,51 +185,62 @@ export default function MiPanelPage() {
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
                 const position = getOffsetPosition({ lat, lng }, index, hijosAtStop.length);
-                const baseSize = 40;
-                const activeSize = 48;
-                const borderSize = 3;
-
+                
                 if (hijo.avatar_url) {
+                    const bubbleSize = isActive ? 56 : 48;
+                    const avatarSize = bubbleSize - 8;
+                    const borderColor = isActive ? '#01C998' : '#A1A1AA';
+
                     const bubbleSvg = `
-                        <svg width="56" height="66" viewBox="0 0 56 66" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="${bubbleSize + 4}" height="${bubbleSize + 10}" viewBox="0 0 ${bubbleSize + 4} ${bubbleSize + 10}" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
-                                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+                                <filter id="shadow" x="0" y="0" width="${bubbleSize + 4}" height="${bubbleSize + 10}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                    <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                    <feOffset dy="2"/>
+                                    <feGaussianBlur stdDeviation="2"/>
+                                    <feComposite in2="hardAlpha" operator="out"/>
+                                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_2_18"/>
+                                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_2_18" result="shape"/>
                                 </filter>
                             </defs>
-                            <path d="M28 65.5C29.2361 63.4167 33.5 57.5 33.5 57.5C45.3333 46.8333 55.5 35.8 55.5 24C55.5 11.0213 43.4787 1 28.5 1C13.5213 1 1.5 11.0213 1.5 24C1.5 35.8 11.6667 46.8333 23.5 57.5C23.5 57.5 26.7639 63.4167 28 65.5Z" fill="white" stroke="${isActive ? '#01C998' : '#A1A1AA'}" stroke-width="2" filter="url(#shadow)"/>
+                            <g filter="url(#shadow)">
+                                <path d="M${(bubbleSize + 4)/2} ${bubbleSize + 5}L${(bubbleSize + 4)/2 - 5} ${bubbleSize}H${(bubbleSize + 4)/2 + 5}L${(bubbleSize + 4)/2} ${bubbleSize + 5}Z" fill="white"/>
+                                <circle cx="${(bubbleSize + 4)/2}" cy="${bubbleSize/2 + 2}" r="${bubbleSize/2}" fill="white" stroke="${borderColor}" stroke-width="2"/>
+                            </g>
                         </svg>
                     `.trim();
 
                     markers.push(
-                        <React.Fragment key={hijo.id}>
+                        <React.Fragment key={`${hijo.id}-marker`}>
+                             {/* Marcador de la burbuja/pin */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
-                                    scaledSize: new google.maps.Size(isActive ? 60: 56, isActive ? 70: 66),
-                                    anchor: new google.maps.Point(isActive ? 30: 28, isActive ? 70: 66),
+                                    scaledSize: new google.maps.Size(bubbleSize + 4, bubbleSize + 10),
+                                    anchor: new google.maps.Point((bubbleSize + 4) / 2, bubbleSize + 10),
                                 }}
                                 zIndex={isActive ? 94 : 89}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
+                             {/* Marcador del avatar */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
-                                    scaledSize: new google.maps.Size(baseSize, baseSize),
-                                    anchor: new google.maps.Point(baseSize / 2, baseSize / 2 + 10),
+                                    scaledSize: new google.maps.Size(avatarSize, avatarSize),
+                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize / 2 + (bubbleSize/2) -2),
                                 }}
-                                shape={{
-                                    coords: [20, 20, 20], // Make the image clickable as a circle
-                                    type: 'circle'
-                                }}
+                                shape={{ coords: [avatarSize/2, avatarSize/2, avatarSize/2], type: 'circle' }}
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
                         </React.Fragment>
                     );
                 } else {
+                    // Fallback para cuando no hay avatar
                     const pinColor = isActive ? '#01C998' : '#0D2C5B';
                     const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
                     const svgContent = `<text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>`;
