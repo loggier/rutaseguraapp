@@ -165,6 +165,7 @@ export default function MiPanelPage() {
     }, [isLoaded, activeBus, staticStates]);
 
     const hijoStopMarkers = useMemo(() => {
+        if (!isLoaded) return [];
         const stopsMap: Map<string, (Estudiante & {paradas: Parada[], ruta_id?:string})[]> = new Map();
         
         hijos.forEach(hijo => {
@@ -219,7 +220,6 @@ export default function MiPanelPage() {
                                         isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2,
                                         isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2
                                     ),
-                                    path: google.maps.SymbolPath.CIRCLE, // Esto no hace el clip, pero la imagen es circular.
                                 }}
                                 shape={{
                                     coords: [18, 18, 18],
@@ -263,7 +263,7 @@ export default function MiPanelPage() {
 
         return markers;
 
-    }, [hijos, activeChildId]);
+    }, [hijos, activeChildId, isLoaded]);
     
     useEffect(() => {
         if(map && mapTypeId) {
