@@ -189,17 +189,18 @@ export default function MiPanelPage() {
                 if (hijo.avatar_url) {
                     const baseSize = 48;
                     const activeSize = 56;
-                    const borderSize = isActive ? 3 : 2;
-                    const pinHeight = 8;
-                    const shadowOffset = 2;
+                    const borderWidth = 3;
 
                     const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - borderSize * 2;
+                    const avatarSize = bubbleSize - borderWidth * 2;
+                    
+                    const pinHeight = 8;
+                    const shadowOffset = 2;
                     const bubbleWidth = bubbleSize + shadowOffset * 2;
                     const bubbleHeight = bubbleSize + pinHeight + shadowOffset * 2;
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
 
-                    const bubbleSvg = `
+                     const bubbleSvg = `
                         <svg width="${bubbleWidth}" height="${bubbleHeight}" viewBox="0 0 ${bubbleWidth} ${bubbleHeight}" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <filter id="shadow" x="0" y="0" width="${bubbleWidth}" height="${bubbleHeight}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
@@ -214,14 +215,14 @@ export default function MiPanelPage() {
                                 </filter>
                             </defs>
                             <g filter="url(#shadow)">
-                                <path d="M ${bubbleWidth / 2} ${bubbleSize + pinHeight} L ${bubbleWidth / 2 - pinHeight / 2} ${bubbleSize} H ${bubbleWidth / 2 + pinHeight / 2} L ${bubbleWidth / 2} ${bubbleSize + pinHeight} Z" fill="${borderColor}" />
-                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2}" fill="white" stroke="${borderColor}" stroke-width="${borderSize}"/>
+                                <path d="M ${bubbleWidth / 2} ${bubbleSize + pinHeight} L ${bubbleWidth / 2 - pinHeight / 1.5} ${bubbleSize} H ${bubbleWidth / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2}" fill="${borderColor}"/>
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2 - borderWidth}" fill="white"/>
                             </g>
                         </svg>`.trim();
 
                     markers.push(
                         <React.Fragment key={`${hijo.id}-marker`}>
-                             {/* Marcador de Fondo (Burbuja) */}
                             <MarkerF
                                 position={position}
                                 icon={{
@@ -232,7 +233,6 @@ export default function MiPanelPage() {
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
-                             {/* Avatar del marcador */}
                             <MarkerF
                                 position={position}
                                 icon={{
@@ -240,7 +240,7 @@ export default function MiPanelPage() {
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
                                     anchor: new google.maps.Point(
                                         avatarSize / 2,
-                                        avatarSize / 2 + bubbleSize / 10
+                                        avatarSize / 2 + bubbleSize / 4.5
                                     ),
                                 }}
                                 zIndex={isActive ? 96 : 91}
