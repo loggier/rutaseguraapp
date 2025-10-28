@@ -49,6 +49,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
         if (!file) return;
 
         setIsUploading(true);
+        // Instancia el cliente aquí para asegurar que tiene el contexto de autenticación correcto
         const supabase = createClient();
 
         try {
@@ -171,5 +172,3 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
         </Card>
     )
 }
-
-    
