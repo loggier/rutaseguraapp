@@ -139,7 +139,8 @@ export default function MiPanelPage() {
           map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
         }
       }
-    }, [activeChild, map, activeBus]);
+    }, [activeChildId, map]);
+
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
@@ -342,31 +343,30 @@ export default function MiPanelPage() {
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
-                {activeBus && (
+                {activeBus && activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && (
                     <>
                         <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                         
-                        {activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && (
-                          <>
-                            <MarkerF 
-                                position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
-                                icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
-                                label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                                title={activeBus.ruta.colegio?.nombre}
-                                zIndex={99}
-                            />
-                            <MarkerF 
-                                position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
-                                icon={{
-                                    url: '/bus.png',
-                                    scaledSize: new google.maps.Size(40, 40),
-                                    anchor: new google.maps.Point(20, 20),
-                                }}
-                                zIndex={100}
-                                title={`Bus: ${activeBus.matricula}`}
-                            />
-                          </>
-                        )}
+                        <MarkerF 
+                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
+                            icon={{
+                                url: '/school-icon.png',
+                                scaledSize: new google.maps.Size(40, 40),
+                                anchor: new google.maps.Point(20, 40),
+                            }}
+                            title={activeBus.ruta.colegio?.nombre}
+                            zIndex={99}
+                        />
+                        <MarkerF 
+                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
+                            icon={{
+                                url: '/bus.png',
+                                scaledSize: new google.maps.Size(40, 40),
+                                anchor: new google.maps.Point(20, 20),
+                            }}
+                            zIndex={100}
+                            title={`Bus: ${activeBus.matricula}`}
+                        />
                     </>
                 )}
                 

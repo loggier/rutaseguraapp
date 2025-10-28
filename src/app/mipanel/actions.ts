@@ -103,27 +103,33 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     }, {} as Record<string, any>);
 
 
-    const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => ({
-        id: bus.id,
-        matricula: bus.matricula,
-        conductor: { 
-            id: bus.conductor_id,
-            nombre: bus.conductor_nombre,
-            apellido: '',
-            licencia: '',
-            telefono: null,
-            activo: true,
-            avatar_url: null,
-            colegio_id: bus.colegio_id,
-            creado_por: '',
-            fecha_creacion: ''
-        },
-        ruta: routesMap[bus.ruta_id] ? {
-            ...routesMap[bus.ruta_id],
-            ruta_recogida: routesMap[bus.ruta_id].ruta_optimizada_recogida,
-            ruta_entrega: routesMap[bus.ruta_id].ruta_optimizada_entrega,
-        } : null
-    })).filter((bus): bus is TrackedBus => !!bus.ruta);
+    const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => {
+        const fullRouteData = routesMap[bus.ruta_id];
+        if (!fullRouteData) return null;
+
+        return {
+            id: bus.id,
+            matricula: bus.matricula,
+            conductor: { 
+                id: bus.conductor_id,
+                nombre: bus.conductor_nombre,
+                apellido: '',
+                licencia: '',
+                telefono: null,
+                activo: true,
+                avatar_url: null,
+                colegio_id: bus.colegio_id,
+                creado_por: '',
+                fecha_creacion: ''
+            },
+            ruta: {
+                ...fullRouteData,
+                // These fields were being lost, now correctly mapped
+                ruta_recogida: fullRouteData.ruta_optimizada_recogida,
+                ruta_entrega: fullRouteData.ruta_optimizada_entrega,
+            }
+        };
+    }).filter((bus): bus is TrackedBus => bus !== null && !!bus.ruta);
 
 
     return {
