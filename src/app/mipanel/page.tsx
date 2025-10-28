@@ -192,8 +192,8 @@ export default function MiPanelPage() {
                     const borderWidth = isActive ? 3 : 2;
 
                     const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - (borderWidth * 2);
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
+                    const avatarSize = bubbleSize - (borderWidth * 2);
 
                     const bubbleSvg = `
                         <svg width="${bubbleSize + 4}" height="${bubbleSize + 10}" viewBox="0 0 ${bubbleSize + 4} ${bubbleSize + 10}" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,7 +235,7 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize + borderWidth),
+                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
