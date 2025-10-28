@@ -15,7 +15,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     // 1. Get children of the parent
     const { data: hijos, error: hijosError } = await supabase
         .from('estudiantes')
-        .select(`id, student_id, nombre, apellido, avatar_url, colegio_id, activo, colegio:colegios(nombre)`)
+        .select(`id, student_id, nombre, apellido, avatar_url, colegio_id, activo, padre_id, email, telefono, colegio:colegios(nombre)`)
         .eq('padre_id', parentId);
 
     if (hijosError) {
