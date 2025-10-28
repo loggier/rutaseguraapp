@@ -176,7 +176,6 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild><Link href="/mipanel/hijos">Mis Hijos</Link></DropdownMenuItem>
                             <DropdownMenuItem asChild><Link href="/mipanel/settings">Ajustes</Link></DropdownMenuItem>
-                            <DropdownMenuItem>Soporte</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
                                 <LogOut className="mr-2 h-4 w-4" />
