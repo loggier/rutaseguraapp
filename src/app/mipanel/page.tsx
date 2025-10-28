@@ -2,16 +2,14 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  useLoadScript,
   GoogleMap,
   MarkerF,
   PolylineF,
-  InfoWindowF,
 } from '@react-google-maps/api';
 import { Loader2, LocateFixed } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
-import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
-import { useParentDashboard } from './layout';
+import type { Estudiante, Parada } from '@/lib/types';
+import { useParentDashboard, useGoogleMaps } from './layout';
 import {
   Carousel,
   CarouselContent,
@@ -29,7 +27,6 @@ type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
 
-const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
 
 const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
@@ -48,6 +45,7 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 export default function MiPanelPage() {
     const { user } = useUser();
     const { hijos, buses, loading } = useParentDashboard();
+    const { isLoaded, loadError } = useGoogleMaps();
     
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -57,10 +55,6 @@ export default function MiPanelPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
 
-    const { isLoaded, loadError } = useLoadScript({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-        libraries,
-    });
     
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
@@ -395,8 +389,8 @@ export default function MiPanelPage() {
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
-                            <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">
-                               <div onClick={() => handleCardClick(hijo.id, index)}>
+                            <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4" onClick={() => handleCardClick(hijo.id, index)}>
+                               <div >
                                     <HijoCard 
                                         hijo={hijo} 
                                         bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}

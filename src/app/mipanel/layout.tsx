@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useLoadScript } from '@react-google-maps/api';
 import {
   Map, Users, Settings, Bell, LogOut, Loader2,
 } from 'lucide-react';
@@ -50,6 +51,22 @@ export const useParentDashboard = () => {
     return context;
 };
 
+const libraries: ('geometry' | 'places')[] = ['geometry', 'places'];
+type GoogleMapsContextType = {
+  isLoaded: boolean;
+  loadError?: Error;
+};
+
+const GoogleMapsContext = createContext<GoogleMapsContextType | null>(null);
+
+export const useGoogleMaps = () => {
+    const context = useContext(GoogleMapsContext);
+    if (!context) {
+        throw new Error("useGoogleMaps must be used within a GoogleMapsProvider");
+    }
+    return context;
+};
+
 
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -60,6 +77,11 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   const pathname = usePathname();
   const isMobile = useIsMobile();
+  
+  const { isLoaded, loadError } = useLoadScript({
+      googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      libraries,
+  });
   
   useEffect(() => {
     const sessionUserString = localStorage.getItem('supabase_session');
@@ -133,42 +155,44 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider user={user} setUser={setUser}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData }}>
-       <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
-        <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
-        <div className="flex flex-col h-screen">
-            <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <Avatar className='h-9 w-9 border-2 border-background shadow-md'>
-                            <AvatarImage src={user?.avatar_url || ""} data-ai-hint="person face" />
-                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                        </Avatar>
-                        <span className="sr-only">Menú de usuario</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild><Link href="/mipanel/hijos">Mis Hijos</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/mipanel/settings">Configuración</Link></DropdownMenuItem>
-                    <DropdownMenuItem>Soporte</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Cerrar Sesión</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </header>
-            <main className={cn("flex-1 h-full", {
-                'pb-20 md:pb-0': !isMapPage
-            })}>
-              {children}
-            </main>
-            {isMobile && <BottomNavBar />}
-        </div>
-       </div>
+        <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
+          <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
+            <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
+            <div className="flex flex-col h-screen">
+                <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                            <Avatar className='h-9 w-9 border-2 border-background shadow-md'>
+                                <AvatarImage src={user?.avatar_url || ""} data-ai-hint="person face" />
+                                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                            </Avatar>
+                            <span className="sr-only">Menú de usuario</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{user?.nombre ? `${user.nombre} ${user.apellido}`: (user?.email || 'Cargando...')}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild><Link href="/mipanel/hijos">Mis Hijos</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/mipanel/settings">Configuración</Link></DropdownMenuItem>
+                        <DropdownMenuItem>Soporte</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Cerrar Sesión</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                </header>
+                <main className={cn("flex-1 h-full", {
+                    'pb-20 md:pb-0': !isMapPage
+                })}>
+                  {children}
+                </main>
+                {isMobile && <BottomNavBar />}
+            </div>
+          </div>
+        </GoogleMapsContext.Provider>
       </ParentDashboardContext.Provider>
     </UserProvider>
   );
