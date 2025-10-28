@@ -186,71 +186,47 @@ export default function MiPanelPage() {
                     const baseSize = 40;
                     const activeSize = 48;
                     const borderWidth = 3;
-                    const pinHeight = 8;
-                    const shadowOffset = 2;
-
-                    const bubbleSize = isActive ? activeSize : baseSize;
-                    const totalWidth = bubbleSize + (borderWidth * 2) + (shadowOffset * 2);
-                    const totalHeight = bubbleSize + (borderWidth * 2) + pinHeight + (shadowOffset * 2);
-                    const centerX = totalWidth / 2;
-                    const centerY = (bubbleSize + (borderWidth * 2)) / 2;
-
+                    const pinHeight = 10;
+                    
+                    const avatarSize = isActive ? activeSize : baseSize;
+                    const totalSize = avatarSize + (borderWidth * 2);
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
 
-                    const bubbleSvg = `
-                      <svg width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <filter id="shadow" x="0" y="0" width="${totalWidth}" height="${totalHeight}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-                            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
-                            <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-                            <feOffset dy="1"/>
-                            <feGaussianBlur stdDeviation="1.5"/>
-                            <feComposite in2="hardAlpha" operator="out"/>
-                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
-                            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
-                            <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
-                          </filter>
-                        </defs>
-                        <g filter="url(#shadow)">
-                          <path d="M ${centerX} ${centerY + (bubbleSize / 2) + pinHeight} L ${centerX - (pinHeight / 1.35)} ${centerY + (bubbleSize / 2)} H ${centerX + (pinHeight / 1.35)} Z" fill="${borderColor}" />
-                          <circle cx="${centerX}" cy="${centerY}" r="${bubbleSize / 2 + borderWidth}" fill="${borderColor}"/>
-                          <circle cx="${centerX}" cy="${centerY}" r="${bubbleSize / 2}" fill="white"/>
-                        </g>
-                      </svg>`.trim();
-
-                    const avatarSize = bubbleSize;
-                    
                     markers.push(
-                        <React.Fragment key={`${hijo.id}-marker-group`}>
-                            <MarkerF
-                                position={position}
-                                icon={{
-                                    url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
-                                    scaledSize: new google.maps.Size(totalWidth, totalHeight),
-                                    anchor: new google.maps.Point(centerX, totalHeight - shadowOffset),
-                                }}
-                                zIndex={isActive ? 95 : 90}
-                                onClick={() => {
-                                    if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
-                                }}
-                            />
-                            <MarkerF
-                                position={position}
-                                icon={{
-                                    url: hijo.avatar_url,
-                                    scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(centerX, centerY),
-                                }}
-                                shape={{
-                                    coords: [centerX, centerY, avatarSize/2],
-                                    type: 'circle'
-                                }}
-                                zIndex={isActive ? 96 : 91}
-                                onClick={() => {
-                                   if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
-                                }}
-                            />
-                        </React.Fragment>
+                        <MarkerF
+                            key={`${hijo.id}-marker-group`}
+                            position={position}
+                            icon={{
+                                url: hijo.avatar_url,
+                                scaledSize: new google.maps.Size(avatarSize, avatarSize),
+                                anchor: new google.maps.Point(totalSize / 2, totalSize + pinHeight - borderWidth),
+                            }}
+                            label={{
+                                text: ' ', // Necesario para que el label se renderice
+                                className: `
+                                    marker-label 
+                                    before:content-[''] 
+                                    before:absolute 
+                                    before:left-1/2 
+                                    before:-translate-x-1/2 
+                                    before:top-[${avatarSize}px]
+                                    before:w-0 before:h-0 
+                                    before:border-l-[6px] before:border-l-transparent 
+                                    before:border-t-[${pinHeight}px] before:border-t-[${borderColor}]
+                                    before:border-r-[6px] before:border-r-transparent
+                                `,
+                                color: 'white',
+                                fontSize: '1px',
+                            }}
+                            zIndex={isActive ? 95 : 90}
+                            onClick={() => {
+                                if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
+                            }}
+                            shape={{
+                                coords: [totalSize / 2, totalSize / 2, totalSize / 2],
+                                type: 'circle'
+                            }}
+                        />
                     );
                 } else {
                     const pinColor = isActive ? '#01C998' : '#0D2C5B';
@@ -344,6 +320,25 @@ export default function MiPanelPage() {
     
     return (
         <div className="h-full w-full relative">
+            <style jsx global>{`
+                .marker-label {
+                    border-radius: 9999px;
+                    border: 3px solid #01C998;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                    transform: translate(-50%, -50%);
+                    background-color: white; /* para el borde interior */
+                    padding: 3px; /* Simula el borde */
+                }
+                .marker-label.active {
+                     border-color: #01C998;
+                }
+                .marker-label.inactive {
+                    border: 3px solid #A1A1AA;
+                }
+                 .marker-label.inactive::before {
+                    border-top-color: #A1A1AA !important;
+                }
+            `}</style>
             <GoogleMap
                 mapContainerClassName='w-full h-full'
                 center={mapCenter}
