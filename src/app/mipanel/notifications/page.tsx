@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/page-header";
 import { useParentDashboard } from "../layout";
 import { Loader2, MapPin, School, CheckCircle, AlertTriangle } from "lucide-react";
 import { NotificationCard } from "./notification-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyMailbox } from "./empty-mailbox";
 
 export default function NotificationsPage() {
     const { hijos, loading } = useParentDashboard();
@@ -44,32 +46,61 @@ export default function NotificationsPage() {
         },
     ];
 
+    const renderAlerts = () => {
+      if (loading) {
+        return (
+          <div className="flex flex-1 items-center justify-center pt-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Cargando alertas...</p>
+          </div>
+        );
+      }
+      if (notifications.length === 0) {
+        return (
+            <div className="text-center pt-12">
+                <EmptyMailbox className="mx-auto" />
+                <p className="mt-4 font-semibold">¡Listo! No tienes mensajes nuevos.</p>
+            </div>
+        )
+      }
+      return (
+        <div className="space-y-4">
+            {notifications.map((notification, index) => (
+                <NotificationCard 
+                    key={index}
+                    icon={notification.icon}
+                    title={notification.title}
+                    description={notification.description}
+                    timestamp={notification.timestamp}
+                    variant={notification.variant}
+                />
+            ))}
+        </div>
+      )
+    }
+
     return (
         <ScrollArea className="h-full">
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <PageHeader
-                    title="Centro de Alertas"
-                    description="Aquí verás las notificaciones importantes sobre las rutas."
+                    title="Mi bandeja de entrada"
+                    description="Aquí verás las notificaciones y consejos importantes."
                 />
-                 {loading ? (
-                    <div className="flex flex-1 items-center justify-center pt-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="ml-4 text-muted-foreground">Cargando alertas...</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {notifications.map((notification, index) => (
-                            <NotificationCard 
-                                key={index}
-                                icon={notification.icon}
-                                title={notification.title}
-                                description={notification.description}
-                                timestamp={notification.timestamp}
-                                variant={notification.variant}
-                            />
-                        ))}
-                    </div>
-                )}
+                <Tabs defaultValue="alertas" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="alertas">Alertas</TabsTrigger>
+                        <TabsTrigger value="consejos">Consejos</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="alertas" className="pt-4">
+                        {renderAlerts()}
+                    </TabsContent>
+                    <TabsContent value="consejos" className="pt-4">
+                        <div className="text-center pt-12">
+                            <EmptyMailbox className="mx-auto" />
+                            <p className="mt-4 font-semibold">¡Listo! No tienes consejos nuevos.</p>
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </ScrollArea>
     );
