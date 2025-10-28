@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('nombre, apellido, rol, colegio_id')
+      .select('nombre, apellido, rol, colegio_id, avatar_url, telefono')
       .eq('id', user.id)
       .single();
 
@@ -91,6 +91,8 @@ export async function POST(request: Request) {
       email: email,
       nombre: profile.nombre,
       apellido: profile.apellido,
+      avatar_url: profile.avatar_url,
+      telefono: profile.telefono,
       rol: profile.rol,
       activo: user.activo,
       colegio_id: colegioId,
