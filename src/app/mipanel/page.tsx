@@ -364,6 +364,18 @@ export default function MiPanelPage() {
                             title={activeBus.ruta.colegio?.nombre}
                             zIndex={99}
                         />
+
+                        {/* Marcador del Bus */}
+                         <MarkerF
+                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
+                            icon={{
+                                url: '/bus.png',
+                                scaledSize: new google.maps.Size(48, 48),
+                                anchor: new google.maps.Point(24, 24),
+                            }}
+                            title={`Bus: ${activeBus.matricula}`}
+                            zIndex={100}
+                        />
                     </>
                 )}
                 
@@ -399,5 +411,7 @@ export default function MiPanelPage() {
         </div>
     );
 }
+
+    
 
     
