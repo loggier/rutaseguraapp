@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Estudiante, Parada } from "@/lib/types";
-import { Info, MapPin, School, Home, Edit, Camera, Loader2 } from "lucide-react";
+import { MapPin, School, Home, Edit, Camera, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { useParentDashboard } from "../layout";
@@ -132,9 +132,6 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                             <School className="h-4 w-4 text-muted-foreground" />
                             <p className="text-sm font-semibold text-muted-foreground">{hijo.colegio_nombre || "Colegio No Asignado"}</p>
                         </div>
-                        <Button variant="ghost" size="icon">
-                            <Info className="h-5 w-5 text-muted-foreground" />
-                        </Button>
                     </div>
                     
                     <div className="flex items-center gap-4">
