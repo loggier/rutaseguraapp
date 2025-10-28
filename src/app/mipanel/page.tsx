@@ -412,3 +412,5 @@ export default function MiPanelPage() {
         </div>
     );
 }
+
+    
