@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
-  useLoadScript,
   GoogleMap,
   MarkerF,
   Autocomplete,
@@ -26,8 +25,6 @@ import { z } from 'zod';
 import type { Parada } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const libraries: ('places')[] = ['places'];
 
 const stopSchema = z.object({
   tipo: z.enum(['Recogida', 'Entrega']),
@@ -46,6 +43,8 @@ type EditStopSheetProps = {
   isOpen: boolean;
   parada: Parada | null;
   onClose: (updated?: boolean) => void;
+  isLoaded: boolean;
+  loadError?: Error;
 };
 
 const mapContainerStyle = {
@@ -54,12 +53,7 @@ const mapContainerStyle = {
   borderRadius: '0.5rem',
 };
 
-export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    libraries,
-  });
-
+export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: EditStopSheetProps) {
   const {
     register,
     handleSubmit,
@@ -170,19 +164,12 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
         });
     }
   };
+  
+  const renderContent = () => {
+    if (loadError) return <div className="p-4 text-center text-destructive">Error al cargar el mapa. Revisa la configuración.</div>;
+    if (!isLoaded) return <div className="flex items-center justify-center p-10"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-  if (loadError) return <div>Error al cargar el mapa. Revisa la configuración.</div>;
-  if (!isLoaded) return <div className="flex items-center justify-center fixed inset-0 bg-background/80 z-50"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-
-  return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-lg w-full flex flex-col" side={ 'bottom' }>
-        <SheetHeader className="px-1">
-          <SheetTitle>Editar Dirección</SheetTitle>
-          <SheetDescription>
-            Actualiza los detalles de la parada. Haz clic en guardar cuando termines.
-          </SheetDescription>
-        </SheetHeader>
+    return (
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-auto">
           <div className="flex-1 space-y-4 px-1 py-4 overflow-y-auto">
             
@@ -294,9 +281,20 @@ export function EditStopSheet({ isOpen, parada, onClose }: EditStopSheetProps) {
             </Button>
           </SheetFooter>
         </form>
+    );
+  }
+
+  return (
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="sm:max-w-lg w-full flex flex-col" side={ 'bottom' }>
+        <SheetHeader className="px-1">
+          <SheetTitle>Editar Dirección</SheetTitle>
+          <SheetDescription>
+            Actualiza los detalles de la parada. Haz clic en guardar cuando termines.
+          </SheetDescription>
+        </SheetHeader>
+        {renderContent()}
       </SheetContent>
     </Sheet>
   );
 }
-
-    

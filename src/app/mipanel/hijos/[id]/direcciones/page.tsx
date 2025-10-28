@@ -5,6 +5,7 @@ import { useParentDashboard } from "@/app/mipanel/layout";
 import { Loader2, PlusCircle, ArrowLeft } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useCallback, startTransition } from "react";
+import { useLoadScript } from "@react-google-maps/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { StopCard } from "./stop-card";
@@ -16,12 +17,19 @@ import type { Parada } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+const libraries: ('places')[] = ['places'];
+
 export default function GestionarDireccionesPage() {
     const { hijos, loading, refreshData } = useParentDashboard();
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
     const studentId = params.id as string;
+
+    const { isLoaded, loadError } = useLoadScript({
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+        libraries,
+    });
 
     const [editingStop, setEditingStop] = useState<Parada | null>(null);
     const [addingStopType, setAddingStopType] = useState<'Recogida' | 'Entrega' | null>(null);
@@ -184,6 +192,8 @@ export default function GestionarDireccionesPage() {
                     isOpen={!!editingStop}
                     parada={editingStop}
                     onClose={handleCloseSheet}
+                    isLoaded={isLoaded}
+                    loadError={loadError}
                 />
             )}
             {addingStopType && (
@@ -193,6 +203,8 @@ export default function GestionarDireccionesPage() {
                     studentId={hijo.id}
                     colegioId={hijo.colegio_id}
                     onClose={handleCloseSheet}
+                    isLoaded={isLoaded}
+                    loadError={loadError}
                 />
             )}
              <AlertDialog open={!!deletingStopId} onOpenChange={(open) => !open && setDeletingStopId(null)}>
