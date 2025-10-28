@@ -15,50 +15,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
-import type { Colegio } from '@/lib/types';
 
 export default function LoginPage() {
-  const [colegioId, setColegioId] = useState<string>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPending, setIsPending] = useState(false);
-  const [colegios, setColegios] = useState<Colegio[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    async function fetchColegios() {
-      const supabase = createClient();
-      const { data, error } = await supabase.from('colegios').select('id, nombre').eq('activo', true).order('nombre');
-      if (error) {
-        console.error("Error fetching colegios", error);
-        toast({
-            variant: "destructive",
-            title: "Error de Carga",
-            description: "No se pudieron cargar los colegios.",
-        });
-      } else {
-        setColegios(data || []);
-      }
-    }
-    fetchColegios();
-  }, [toast]);
-
-
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    if (!colegioId) {
-        toast({
-            variant: "destructive",
-            title: "Campo Requerido",
-            description: "Por favor, selecciona un colegio.",
-        });
-        return;
-    }
-
     setIsPending(true);
 
     try {
@@ -67,7 +34,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, colegioId: colegioId }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -86,7 +53,9 @@ export default function LoginPage() {
       if (data.user.rol === 'padre') {
         router.push('/mipanel');
       } else {
-        // Fallback en caso de que un usuario no-padre intente entrar
+        // Redirigir a los otros roles a su dashboard correspondiente
+        // Ejemplo: router.push('/admin-dashboard');
+        // Por ahora, solo los padres tienen acceso a esta app.
         toast({
             variant: 'destructive',
             title: 'Acceso Denegado',
@@ -123,22 +92,6 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="px-0 lg:px-6">
             <form onSubmit={handleLogin} className="grid gap-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="colegio">Colegio</Label>
-                    <Select onValueChange={setColegioId} value={colegioId} required>
-                        <SelectTrigger id="colegio">
-                            <SelectValue placeholder="Selecciona tu colegio" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {colegios.map(colegio => (
-                                <SelectItem key={colegio.id} value={colegio.id}>
-                                    {colegio.nombre}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -170,7 +123,7 @@ export default function LoginPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full mt-4" disabled={isPending || colegios.length === 0}>
+              <Button type="submit" className="w-full mt-4" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>

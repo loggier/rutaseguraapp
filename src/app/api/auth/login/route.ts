@@ -13,10 +13,10 @@ type UserData = {
 
 export async function POST(request: Request) {
   try {
-    const { email, password, colegioId } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!email || !password || !colegioId) {
-      return NextResponse.json({ message: 'Colegio, correo electrónico y contraseña son requeridos.' }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ message: 'Correo electrónico y contraseña son requeridos.' }, { status: 400 });
     }
     
     const supabaseAdmin = createServerClient(
@@ -57,25 +57,34 @@ export async function POST(request: Request) {
     if (profileError || !profile) {
       return NextResponse.json({ message: 'Error interno: no se pudo encontrar el perfil del usuario.' }, { status: 500 });
     }
-
-    // For Master and Manager, colegio_id check is not needed
-    // For 'padre' and 'colegio', they must belong to the selected colegio
-    if (profile.rol === 'padre' && profile.colegio_id !== colegioId) {
-        return NextResponse.json({ message: 'Este usuario no pertenece al colegio seleccionado.' }, { status: 403 });
-    }
     
-    if (profile.rol === 'colegio') {
+    let colegioId: string | null = null;
+    let colegioNombre: string | null = 'Administrador';
+
+    if (profile.rol === 'padre') {
+        if (!profile.colegio_id) {
+            return NextResponse.json({ message: 'Este usuario no está asignado a ningún colegio.' }, { status: 403 });
+        }
+        colegioId = profile.colegio_id;
+    } else if (profile.rol === 'colegio') {
          const { data: schoolData, error: schoolError } = await supabaseAdmin
             .from('colegios')
             .select('id')
             .eq('usuario_id', user.id)
             .single();
-        if(schoolError || !schoolData || schoolData.id !== colegioId) {
-             return NextResponse.json({ message: 'La cuenta de este colegio no coincide con la selección.' }, { status: 403 });
+        if(schoolError || !schoolData) {
+             return NextResponse.json({ message: 'No se pudo verificar la información del colegio para este usuario.' }, { status: 403 });
         }
+        colegioId = schoolData.id;
     }
 
-    const { data: colegioData } = await supabaseAdmin.from('colegios').select('nombre').eq('id', colegioId).single();
+    if(colegioId) {
+        const { data: colegioData } = await supabaseAdmin.from('colegios').select('nombre').eq('id', colegioId).single();
+        if (colegioData) {
+            colegioNombre = colegioData.nombre;
+        }
+    }
+    
 
     const sessionData = {
       id: user.id,
@@ -84,8 +93,8 @@ export async function POST(request: Request) {
       apellido: profile.apellido,
       rol: profile.rol,
       activo: user.activo,
-      colegio_id: profile.rol === 'master' || profile.rol === 'manager' ? null : colegioId,
-      colegio_nombre: colegioData?.nombre || 'Administrador',
+      colegio_id: colegioId,
+      colegio_nombre: colegioNombre,
     };
 
     return NextResponse.json({ message: 'Inicio de sesión exitoso', user: sessionData }, { status: 200 });
