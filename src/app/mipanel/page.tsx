@@ -365,11 +365,12 @@ export default function MiPanelPage() {
                 {activeBus && (
                     <>
                         <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
-                        {activeBus.ruta.colegio?.lat && <MarkerF 
+                        {activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && <MarkerF 
                             position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
                             icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
                             label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
                             title={activeBus.ruta.colegio?.nombre}
+                            zIndex={99}
                         />}
                     </>
                 )}
@@ -385,12 +386,12 @@ export default function MiPanelPage() {
             </div>
             
             {hijos.length > 0 && isMobile && (
-                <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
+                 <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
-                            <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4" onClick={() => handleCardClick(hijo.id, index)}>
-                               <div >
+                            <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">
+                               <div onClick={() => handleCardClick(hijo.id, index)}>
                                     <HijoCard 
                                         hijo={hijo} 
                                         bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
