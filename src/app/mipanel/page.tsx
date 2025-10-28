@@ -208,6 +208,47 @@ export default function MiPanelPage() {
             map.setMapTypeId(mapTypeId);
         }
     }, [map, mapTypeId]);
+    
+    const colegioMarkerIcon = useMemo(() => {
+        if (!isLoaded) return null;
+
+        const size = 48;
+        const borderWidth = 3;
+        const pinHeight = 8;
+        const shadowOffset = 2;
+        const width = size + shadowOffset * 2;
+        const height = size + pinHeight + shadowOffset * 2;
+        const borderColor = '#f44336';
+
+        const svg = `
+            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <filter id="shadow-colegio" x="0" y="0" width="${width}" height="${height}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                        <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                        <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                        <feOffset dy="1"/>
+                        <feGaussianBlur stdDeviation="1.5"/>
+                        <feComposite in2="hardAlpha" operator="out"/>
+                        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+                        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+                        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+                    </filter>
+                </defs>
+                <g filter="url(#shadow-colegio)">
+                    <path d="M ${width / 2} ${size + pinHeight} L ${width / 2 - pinHeight / 1.5} ${size} H ${width / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
+                    <circle cx="${width / 2}" cy="${size / 2}" r="${size / 2}" fill="${borderColor}"/>
+                    <circle cx="${width / 2}" cy="${size / 2}" r="${(size - borderWidth) / 2}" fill="white"/>
+                    <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="${size * 0.5}" font-weight="bold" fill="${borderColor}" dy=".1em">C</text>
+                </g>
+            </svg>`.trim();
+
+        return {
+            url: `data:image/svg+xml;base64,${btoa(svg)}`,
+            scaledSize: new google.maps.Size(width, height),
+            anchor: new google.maps.Point(width / 2, height - shadowOffset),
+        };
+    }, [isLoaded]);
+
 
     const locateUser = () => {
         if (!map) return;
@@ -279,13 +320,14 @@ export default function MiPanelPage() {
                     );
                 })}
 
-                {colegio?.lat && colegio.lng && <MarkerF 
-                    position={{ lat: colegio.lat, lng: colegio.lng }}
-                    icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
-                    label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                    title={colegio.nombre}
-                    zIndex={1}
-                />}
+                {colegio?.lat && colegio.lng && colegioMarkerIcon && (
+                    <MarkerF 
+                        position={{ lat: colegio.lat, lng: colegio.lng }}
+                        icon={colegioMarkerIcon}
+                        title={colegio.nombre}
+                        zIndex={1}
+                    />
+                )}
                 
                 {activeBus && (
                     <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
