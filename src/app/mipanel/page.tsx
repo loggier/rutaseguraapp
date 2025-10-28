@@ -187,15 +187,15 @@ export default function MiPanelPage() {
                 const position = getOffsetPosition({ lat, lng }, index, hijosAtStop.length);
                 
                 if (hijo.avatar_url) {
-                    const baseSize = 48;
-                    const activeSize = 56;
-                    const borderWidth = 3;
-
-                    const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - borderWidth * 2;
-                    
+                    const baseSize = 40;
+                    const activeSize = 48;
+                    const borderSize = 3;
                     const pinHeight = 8;
                     const shadowOffset = 2;
+
+                    const bubbleSize = isActive ? activeSize : baseSize;
+                    const avatarSize = bubbleSize - (borderSize * 2);
+                    
                     const bubbleWidth = bubbleSize + shadowOffset * 2;
                     const bubbleHeight = bubbleSize + pinHeight + shadowOffset * 2;
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
@@ -217,12 +217,13 @@ export default function MiPanelPage() {
                             <g filter="url(#shadow)">
                                 <path d="M ${bubbleWidth / 2} ${bubbleSize + pinHeight} L ${bubbleWidth / 2 - pinHeight / 1.5} ${bubbleSize} H ${bubbleWidth / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
                                 <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2}" fill="${borderColor}"/>
-                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2 - borderWidth}" fill="white"/>
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${avatarSize / 2}" fill="white"/>
                             </g>
                         </svg>`.trim();
 
                     markers.push(
                         <React.Fragment key={`${hijo.id}-marker`}>
+                             {/* Burbuja de fondo */}
                              <MarkerF
                                 position={position}
                                 icon={{
@@ -239,7 +240,7 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize / 2 - bubbleSize / 10),
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 2)
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
@@ -264,8 +265,8 @@ export default function MiPanelPage() {
                             position={position}
                             icon={{
                                 url: markerIcon,
-                                scaledSize: new google.maps.Size(isActive ? 54 : 48, isActive ? 65 : 58),
-                                anchor: new google.maps.Point(isActive ? 27 : 24, isActive ? 65 : 58),
+                                scaledSize: new google.maps.Size(isActive ? 42 : 36, isActive ? 54 : 48),
+                                anchor: new google.maps.Point(isActive ? 21 : 18, isActive ? 54 : 48),
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
