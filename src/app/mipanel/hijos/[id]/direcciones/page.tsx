@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { EditStopSheet } from "./edit-stop-sheet";
 import { AddStopSheet } from "./add-stop-sheet";
 import type { Parada } from "@/lib/types";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GestionarDireccionesPage() {
@@ -27,8 +26,6 @@ export default function GestionarDireccionesPage() {
 
     const [editingStop, setEditingStop] = useState<Parada | null>(null);
     const [addingStopType, setAddingStopType] = useState<'Recogida' | 'Entrega' | null>(null);
-    const [deletingStopId, setDeletingStopId] = useState<string | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
 
 
@@ -43,47 +40,6 @@ export default function GestionarDireccionesPage() {
         setEditingStop(parada);
     }, []);
 
-    const handleDeleteRequest = useCallback((stopId: string) => {
-        setDeletingStopId(stopId);
-    }, []);
-
-    const handleConfirmDelete = async () => {
-        if (!deletingStopId) return;
-
-        setIsDeleting(true);
-        try {
-            const response = await fetch(`/api/stops/${deletingStopId}`, {
-                method: 'DELETE',
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Ocurrió un error al eliminar la parada.');
-            }
-
-            toast({
-                title: "Éxito",
-                description: "La parada se ha eliminado correctamente.",
-            });
-            
-            startTransition(() => {
-                refreshData();
-                router.refresh(); 
-            });
-
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "Error al Eliminar",
-                description: error.message,
-            });
-        } finally {
-            setIsDeleting(false);
-            setDeletingStopId(null);
-        }
-    };
-    
     const handleCloneStop = async () => {
         const pickupStop = paradasRecogida.find(p => p.sub_tipo === 'Principal');
         if (!pickupStop || !hijo) return;
@@ -207,7 +163,7 @@ export default function GestionarDireccionesPage() {
                             <Separator />
                             {paradasRecogida.length > 0 ? (
                                <div className="space-y-4">
-                                 {paradasRecogida.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} onDelete={handleDeleteRequest} />)}
+                                 {paradasRecogida.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} />)}
                                </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de recogida configuradas.</p>
@@ -226,7 +182,7 @@ export default function GestionarDireccionesPage() {
                              <Separator />
                              {paradasEntrega.length > 0 ? (
                                <div className="space-y-4">
-                                 {paradasEntrega.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} onDelete={handleDeleteRequest} />)}
+                                 {paradasEntrega.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} />)}
                                </div>
                             ) : (
                                 <div className="text-center pt-4 space-y-4">
@@ -272,23 +228,6 @@ export default function GestionarDireccionesPage() {
                     loadError={loadError}
                 />
             )}
-             <AlertDialog open={!!deletingStopId} onOpenChange={(open) => !open && setDeletingStopId(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Esto eliminará permanentemente la parada de los registros.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting}>
-                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Confirmar
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </>
     );
 }

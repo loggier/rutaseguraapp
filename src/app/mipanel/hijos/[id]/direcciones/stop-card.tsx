@@ -4,16 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Parada } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Home, Building } from "lucide-react";
+import { Edit, Home, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StopCardProps = {
     parada: Parada;
     onEdit: (parada: Parada) => void;
-    onDelete: (stopId: string) => void;
 }
 
-export function StopCard({ parada, onEdit, onDelete }: StopCardProps) {
+export function StopCard({ parada, onEdit }: StopCardProps) {
     const isPrincipal = parada.sub_tipo === 'Principal';
 
     return (
@@ -39,10 +38,6 @@ export function StopCard({ parada, onEdit, onDelete }: StopCardProps) {
                     <Button variant="ghost" size="sm" onClick={() => onEdit(parada)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => onDelete(parada.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar
                     </Button>
                 </div>
             </CardContent>
