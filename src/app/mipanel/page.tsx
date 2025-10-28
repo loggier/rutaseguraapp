@@ -189,10 +189,11 @@ export default function MiPanelPage() {
                 if (hijo.avatar_url) {
                     const baseSize = 48;
                     const activeSize = 56;
-                    const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - 8;
-                    const borderColor = isActive ? '#01C998' : '#A1A1AA';
                     const borderWidth = isActive ? 3 : 2;
+
+                    const bubbleSize = isActive ? activeSize : baseSize;
+                    const avatarSize = bubbleSize - (borderWidth * 2);
+                    const borderColor = isActive ? '#01C998' : '#A1A1AA';
 
                     const bubbleSvg = `
                         <svg width="${bubbleSize + 4}" height="${bubbleSize + 10}" viewBox="0 0 ${bubbleSize + 4} ${bubbleSize + 10}" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -209,7 +210,7 @@ export default function MiPanelPage() {
                                 </filter>
                             </defs>
                             <g filter="url(#shadow)">
-                                <path d="M${(bubbleSize + 4)/2} ${bubbleSize + 5}L${(bubbleSize + 4)/2 - 6} ${bubbleSize}H${(bubbleSize + 4)/2 + 6}L${(bubbleSize + 4)/2} ${bubbleSize + 5}Z" fill="white"/>
+                                <path d="M${(bubbleSize + 4)/2} ${bubbleSize + 5}L${(bubbleSize + 4)/2 - 6} ${bubbleSize}H${(bubbleSize + 4)/2 + 6}L${(bubbleSize + 4)/2} ${bubbleSize + 5}Z" fill="${borderColor}"/>
                                 <circle cx="${(bubbleSize + 4)/2}" cy="${bubbleSize/2 + 2}" r="${bubbleSize/2}" fill="white" stroke="${borderColor}" stroke-width="${borderWidth}"/>
                             </g>
                         </svg>
@@ -223,19 +224,18 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
                                     scaledSize: new google.maps.Size(bubbleSize + 4, bubbleSize + 10),
-                                    anchor: new google.maps.Point((bubbleSize + 4) / 2, bubbleSize + 10),
+                                    anchor: new google.maps.Point((bubbleSize + 4) / 2, bubbleSize + 5),
                                 }}
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
                             {/* Avatar del marcador */}
                             <MarkerF
-                                key={`${hijo.id}-avatar`}
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, (avatarSize / 2) + (bubbleSize / 8)),
+                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize + borderWidth),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
