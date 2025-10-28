@@ -18,7 +18,7 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 import { BottomNavBar } from './bottom-nav-bar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
-import type { Estudiante, Parada, TrackedBus } from '@/lib/types';
+import type { Estudiante, Parada, TrackedBus, Colegio } from '@/lib/types';
 import { getParentDashboardData } from './actions';
 import { cn } from '@/lib/utils';
 
@@ -36,11 +36,11 @@ type MappedBus = TrackedBus & {
 export type ParentDashboardContextType = {
   hijos: (Estudiante & { paradas: Parada[], ruta_id?: string })[];
   buses: MappedBus[];
+  colegio: Colegio | null;
   loading: boolean;
   refreshData: () => void;
 };
 
-// Create a context to hold the dashboard data
 const ParentDashboardContext = React.createContext<ParentDashboardContextType | null>(null);
 
 export const useParentDashboard = () => {
@@ -71,7 +71,7 @@ export const useGoogleMaps = () => {
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData'>>({ hijos: [], buses: [] });
+  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData'>>({ hijos: [], buses: [], colegio: null });
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const router = useRouter(); 
@@ -118,7 +118,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
         };
     });
 
-    setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses });
+    setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses, colegio: data.colegio });
     setIsLoadingData(false);
   }, [user]);
 

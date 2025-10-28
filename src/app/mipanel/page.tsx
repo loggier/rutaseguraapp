@@ -30,8 +30,6 @@ type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
 
-const mapCenter = { lat: -0.180653, lng: -78.467834 };
-
 const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
     if (total <= 1) {
         return position;
@@ -47,7 +45,7 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 
 export default function MiPanelPage() {
     const { user } = useUser();
-    const { hijos, buses, loading } = useParentDashboard();
+    const { hijos, buses, colegio, loading } = useParentDashboard();
     
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -59,6 +57,13 @@ export default function MiPanelPage() {
 
     const { isLoaded, loadError } = useGoogleMaps();
     
+    const mapCenter = useMemo(() => {
+        if (colegio?.lat && colegio?.lng) {
+            return { lat: colegio.lat, lng: colegio.lng };
+        }
+        return { lat: -0.180653, lng: -78.467834 }; // Fallback
+    }, [colegio]);
+
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
         
@@ -141,8 +146,10 @@ export default function MiPanelPage() {
           if (stop) {
             map.panTo({ lat: stop.lat, lng: stop.lng });
           }
+      } else if (map && colegio?.lat && colegio?.lng) {
+          map.panTo({ lat: colegio.lat, lng: colegio.lng });
       }
-    }, [activeBus, activeChild, map]);
+    }, [activeBus, activeChild, map, colegio]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
@@ -248,7 +255,7 @@ export default function MiPanelPage() {
             <GoogleMap
                 mapContainerClassName='w-full h-full'
                 center={mapCenter}
-                zoom={12}
+                zoom={14}
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
@@ -272,16 +279,16 @@ export default function MiPanelPage() {
                     );
                 })}
 
+                {colegio?.lat && colegio.lng && <MarkerF 
+                    position={{ lat: colegio.lat, lng: colegio.lng }}
+                    icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
+                    label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                    title={colegio.nombre}
+                    zIndex={1}
+                />}
+                
                 {activeBus && (
-                    <>
-                        <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
-                        {activeBus.ruta.colegio?.lat && <MarkerF 
-                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
-                            icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
-                            label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
-                            title={activeBus.ruta.colegio?.nombre}
-                        />}
-                    </>
+                    <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                 )}
                 
                  {hijoStopMarkers}
