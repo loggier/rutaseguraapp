@@ -1,16 +1,17 @@
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
+  useLoadScript,
   GoogleMap,
   MarkerF,
   PolylineF,
+  InfoWindowF,
 } from '@react-google-maps/api';
 import { Loader2, LocateFixed } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
-import type { Estudiante, Parada } from '@/lib/types';
-import { useParentDashboard, useGoogleMaps } from './layout';
+import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
+import { useParentDashboard } from './layout';
 import {
   Carousel,
   CarouselContent,
@@ -28,6 +29,7 @@ type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
 
+const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
 
 const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
@@ -46,7 +48,6 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 export default function MiPanelPage() {
     const { user } = useUser();
     const { hijos, buses, loading } = useParentDashboard();
-    const { isLoaded, loadError } = useGoogleMaps();
     
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -56,6 +57,10 @@ export default function MiPanelPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
 
+    const { isLoaded, loadError } = useLoadScript({
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+        libraries,
+    });
     
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
@@ -115,11 +120,11 @@ export default function MiPanelPage() {
         
         carouselApi.on("select", () => {
             const selectedSlide = carouselApi.selectedScrollSnap();
-            if(hijos[selectedSlide] && hijos[selectedSlide].id !== activeChildId) {
+            if(hijos[selectedSlide]) {
                 setActiveChildId(hijos[selectedSlide].id);
             }
         });
-    }, [carouselApi, hijos, activeChildId]);
+    }, [carouselApi, hijos]);
     
     const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
     
@@ -132,23 +137,22 @@ export default function MiPanelPage() {
 
 
     useEffect(() => {
-      if (map && activeChild) {
-        const stop = activeChild.paradas.find(p => p.activo);
-        if (stop) {
-          map.panTo({ lat: stop.lat, lng: stop.lng });
-        } else if (activeBus && activeBus.ruta.colegio) {
+      if (activeBus && map && activeBus.ruta.colegio) {
           map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
-        }
+      } else if (activeChild && map) {
+          const stop = activeChild.paradas.find(p => p.activo);
+          if (stop) {
+            map.panTo({ lat: stop.lat, lng: stop.lng });
+          }
       }
-    }, [activeChildId, map, activeBus, activeChild]);
-
+    }, [activeBus, activeChild, map]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
         const state = staticStates[activeBus.id];
         if (!state) return [];
 
-        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_recogida : activeBus.ruta.ruta_entrega;
+        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_optimizada_recogida : activeBus.ruta.ruta_optimizada_entrega;
         
         if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
             try {
@@ -186,47 +190,60 @@ export default function MiPanelPage() {
                     const baseSize = 40;
                     const activeSize = 48;
                     const borderWidth = 3;
-                    const pinHeight = 10;
+                    const pinHeight = 8;
+                    const shadowOffset = 2;
+
+                    const bubbleSize = isActive ? activeSize : baseSize;
+                    const avatarSize = bubbleSize - (borderWidth * 2);
                     
-                    const avatarSize = isActive ? activeSize : baseSize;
-                    const totalSize = avatarSize + (borderWidth * 2);
+                    const bubbleWidth = bubbleSize + shadowOffset * 2;
+                    const bubbleHeight = bubbleSize + pinHeight + shadowOffset * 2;
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
 
+                     const bubbleSvg = `
+                        <svg width="${bubbleWidth}" height="${bubbleHeight}" viewBox="0 0 ${bubbleWidth} ${bubbleHeight}" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <defs>
+                                <filter id="shadow" x="0" y="0" width="${bubbleWidth}" height="${bubbleHeight}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                    <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                                    <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                                    <feOffset dy="1"/>
+                                    <feGaussianBlur stdDeviation="1.5"/>
+                                    <feComposite in2="hardAlpha" operator="out"/>
+                                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+                                    <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+                                    <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+                                </filter>
+                            </defs>
+                            <g filter="url(#shadow)">
+                                <path d="M ${bubbleWidth / 2} ${bubbleSize + pinHeight} L ${bubbleWidth / 2 - pinHeight / 1.5} ${bubbleSize} H ${bubbleWidth / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2}" fill="${borderColor}"/>
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${(bubbleSize - borderWidth) / 2}" fill="white"/>
+                            </g>
+                        </svg>`.trim();
+
                     markers.push(
-                        <MarkerF
-                            key={`${hijo.id}-marker-group`}
-                            position={position}
-                            icon={{
-                                url: hijo.avatar_url,
-                                scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                anchor: new google.maps.Point(totalSize / 2, totalSize + pinHeight - borderWidth),
-                            }}
-                            label={{
-                                text: ' ', // Necesario para que el label se renderice
-                                className: `
-                                    marker-label 
-                                    before:content-[''] 
-                                    before:absolute 
-                                    before:left-1/2 
-                                    before:-translate-x-1/2 
-                                    before:top-[${avatarSize}px]
-                                    before:w-0 before:h-0 
-                                    before:border-l-[6px] before:border-l-transparent 
-                                    before:border-t-[${pinHeight}px] before:border-t-[${borderColor}]
-                                    before:border-r-[6px] before:border-r-transparent
-                                `,
-                                color: 'white',
-                                fontSize: '1px',
-                            }}
-                            zIndex={isActive ? 95 : 90}
-                            onClick={() => {
-                                if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
-                            }}
-                            shape={{
-                                coords: [totalSize / 2, totalSize / 2, totalSize / 2],
-                                type: 'circle'
-                            }}
-                        />
+                        <React.Fragment key={`${hijo.id}-marker`}>
+                             <MarkerF
+                                position={position}
+                                icon={{
+                                    url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
+                                    scaledSize: new google.maps.Size(bubbleWidth, bubbleHeight),
+                                    anchor: new google.maps.Point(bubbleWidth / 2, bubbleHeight - shadowOffset),
+                                }}
+                                zIndex={isActive ? 95 : 90}
+                                onClick={() => setActiveChildId(hijo.id)}
+                            />
+                            <MarkerF
+                                position={position}
+                                icon={{
+                                    url: hijo.avatar_url,
+                                    scaledSize: new google.maps.Size(avatarSize, avatarSize),
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.35),
+                                }}
+                                zIndex={isActive ? 96 : 91}
+                                onClick={() => setActiveChildId(hijo.id)}
+                            />
+                        </React.Fragment>
                     );
                 } else {
                     const pinColor = isActive ? '#01C998' : '#0D2C5B';
@@ -251,9 +268,7 @@ export default function MiPanelPage() {
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
-                            onClick={() => {
-                                if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
-                            }}
+                            onClick={() => setActiveChildId(hijo.id)}
                         />
                     );
                 }
@@ -302,13 +317,6 @@ export default function MiPanelPage() {
             });
         }
     };
-    
-    const handleCardClick = (childId: string, index: number) => {
-        setActiveChildId(childId);
-        if (carouselApi && carouselApi.selectedScrollSnap() !== index) {
-            carouselApi.scrollTo(index);
-        }
-    };
 
 
     if (loading || !isLoaded) {
@@ -320,25 +328,6 @@ export default function MiPanelPage() {
     
     return (
         <div className="h-full w-full relative">
-            <style jsx global>{`
-                .marker-label {
-                    border-radius: 9999px;
-                    border: 3px solid #01C998;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                    transform: translate(-50%, -50%);
-                    background-color: white; /* para el borde interior */
-                    padding: 3px; /* Simula el borde */
-                }
-                .marker-label.active {
-                     border-color: #01C998;
-                }
-                .marker-label.inactive {
-                    border: 3px solid #A1A1AA;
-                }
-                 .marker-label.inactive::before {
-                    border-top-color: #A1A1AA !important;
-                }
-            `}</style>
             <GoogleMap
                 mapContainerClassName='w-full h-full'
                 center={mapCenter}
@@ -346,32 +335,35 @@ export default function MiPanelPage() {
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
-                {activeBus && activeBus.ruta.colegio?.lat && activeBus.ruta.colegio?.lng && (
-                    <>
-                        <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
-                        
-                        <MarkerF 
-                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
-                            icon={{
-                                url: '/school-icon.png',
-                                scaledSize: new google.maps.Size(40, 40),
-                                anchor: new google.maps.Point(20, 40),
-                            }}
-                            title={activeBus.ruta.colegio?.nombre}
-                            zIndex={99}
-                        />
+                {buses.map(bus => {
+                    const state = staticStates[bus.id];
+                    if (!state || !bus.ruta.colegio?.lat || !bus.ruta.colegio?.lng) return null;
+                    const isActive = activeBus?.id === bus.id;
+                    const busPosition = {lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng}
 
-                        {/* Marcador del Bus */}
-                         <MarkerF
-                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
+                    return (
+                        <MarkerF 
+                            key={bus.id}
+                            position={busPosition}
                             icon={{
                                 url: '/bus.png',
-                                scaledSize: new google.maps.Size(48, 48),
-                                anchor: new google.maps.Point(24, 24),
+                                scaledSize: isActive ? new google.maps.Size(40, 40) : new google.maps.Size(32, 32),
+                                anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
                             }}
-                            title={`Bus: ${activeBus.matricula}`}
-                            zIndex={100}
+                            zIndex={isActive ? 100 : 50}
                         />
+                    );
+                })}
+
+                {activeBus && (
+                    <>
+                        <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
+                        {activeBus.ruta.colegio?.lat && <MarkerF 
+                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng }}
+                            icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#f44336', fillOpacity: 1, strokeWeight: 0 }}
+                            label={{ text: 'C', color: 'white', fontWeight: 'bold' }}
+                            title={activeBus.ruta.colegio?.nombre}
+                        />}
                     </>
                 )}
                 
@@ -386,18 +378,16 @@ export default function MiPanelPage() {
             </div>
             
             {hijos.length > 0 && isMobile && (
-                 <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
+                <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
                     <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
                             <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">
-                               <div onClick={() => handleCardClick(hijo.id, index)}>
-                                    <HijoCard 
-                                        hijo={hijo} 
-                                        bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
-                                        isActive={activeChildId === hijo.id}
-                                    />
-                                </div>
+                                <HijoCard 
+                                    hijo={hijo} 
+                                    bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
+                                    isActive={activeChildId === hijo.id}
+                                />
                             </CarouselItem>
                         ))}
                         </CarouselContent>
@@ -407,5 +397,3 @@ export default function MiPanelPage() {
         </div>
     );
 }
-
-    
