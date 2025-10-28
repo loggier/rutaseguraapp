@@ -217,7 +217,7 @@ export default function MiPanelPage() {
                             <g filter="url(#shadow)">
                                 <path d="M ${bubbleWidth / 2} ${bubbleSize + pinHeight} L ${bubbleWidth / 2 - pinHeight / 1.5} ${bubbleSize} H ${bubbleWidth / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
                                 <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${bubbleSize / 2}" fill="${borderColor}"/>
-                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${avatarSize / 2}" fill="white"/>
+                                <circle cx="${bubbleWidth / 2}" cy="${bubbleSize / 2}" r="${(bubbleSize - borderWidth) / 2}" fill="white"/>
                             </g>
                         </svg>`.trim();
 
@@ -238,7 +238,7 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.5),
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.4),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
