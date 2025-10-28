@@ -49,7 +49,6 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
         if (!file) return;
 
         setIsUploading(true);
-        // Instancia el cliente aquí para asegurar que tiene el contexto de autenticación correcto
         const supabase = createClient();
 
         try {
@@ -70,14 +69,14 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                 throw new Error("No se pudo obtener la URL pública de la imagen.");
             }
             
-            // 3. Actualizar la URL del avatar en la base de datos
+            // 3. Construir el payload completo para la API de actualización
             const studentUpdatePayload = {
                 nombre: hijo.nombre,
                 apellido: hijo.apellido,
-                email: hijo.email,
-                telefono: hijo.telefono,
+                email: hijo.email || null,
+                telefono: hijo.telefono || null,
                 padre_id: hijo.padre_id,
-                avatar_url: publicUrl
+                avatar_url: publicUrl,
             };
 
             const response = await fetch(`/api/students/${hijo.id}`, {
@@ -87,7 +86,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
             });
 
             const result = await response.json();
-            if(!response.ok) throw new Error(result.message || "Error al actualizar el perfil.");
+            if(!response.ok) throw new Error(result.message || "Error al actualizar el perfil del estudiante.");
 
             toast({
                 title: "Éxito",
