@@ -148,7 +148,7 @@ export default function MiPanelPage() {
         const state = staticStates[activeBus.id];
         if (!state) return [];
 
-        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_optimizada_recogida : activeBus.ruta.ruta_optimizada_entrega;
+        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_recogida : activeBus.ruta.ruta_entrega;
         
         if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
             try {
@@ -212,7 +212,7 @@ export default function MiPanelPage() {
                           </filter>
                         </defs>
                         <g filter="url(#shadow)">
-                          <path d="M ${centerX} ${centerY + (bubbleSize / 2) + pinHeight} L ${centerX - (pinHeight / 1.5)} ${centerY + (bubbleSize / 2)} H ${centerX + (pinHeight / 1.5)} Z" fill="${borderColor}" />
+                          <path d="M ${centerX} ${centerY + (bubbleSize / 2) + pinHeight} L ${centerX - (pinHeight / 1.35)} ${centerY + (bubbleSize / 2)} H ${centerX + (pinHeight / 1.35)} Z" fill="${borderColor}" />
                           <circle cx="${centerX}" cy="${centerY}" r="${bubbleSize / 2 + borderWidth}" fill="${borderColor}"/>
                           <circle cx="${centerX}" cy="${centerY}" r="${bubbleSize / 2}" fill="white"/>
                         </g>
@@ -412,3 +412,5 @@ export default function MiPanelPage() {
         </div>
     );
 }
+
+    
