@@ -189,19 +189,19 @@ export default function MiPanelPage() {
                 if (hijo.avatar_url) {
                     const baseSize = 40;
                     const activeSize = 48;
-                    const borderSize = 3;
+                    const borderWidth = 3;
                     const pinHeight = 8;
                     const shadowOffset = 2;
 
                     const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - (borderSize * 2);
+                    const avatarSize = bubbleSize - (borderWidth * 2);
                     
                     const bubbleWidth = bubbleSize + shadowOffset * 2;
                     const bubbleHeight = bubbleSize + pinHeight + shadowOffset * 2;
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
 
                      const bubbleSvg = `
-                        <svg width="${bubbleWidth}" height="${bubbleHeight}" viewBox="0 0 ${bubbleWidth} ${bubbleHeight}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="${bubbleWidth}" height="${bubbleHeight}" viewBox="0 0 ${bubbleWidth} ${bubbleHeight}" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                             <defs>
                                 <filter id="shadow" x="0" y="0" width="${bubbleWidth}" height="${bubbleHeight}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
                                     <feFlood flood-opacity="0" result="BackgroundImageFix"/>
@@ -223,7 +223,6 @@ export default function MiPanelPage() {
 
                     markers.push(
                         <React.Fragment key={`${hijo.id}-marker`}>
-                             {/* Burbuja de fondo */}
                              <MarkerF
                                 position={position}
                                 icon={{
@@ -234,13 +233,12 @@ export default function MiPanelPage() {
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
-                            {/* Avatar del marcador */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 2)
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.5),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
