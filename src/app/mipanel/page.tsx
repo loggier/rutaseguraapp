@@ -178,20 +178,59 @@ export default function MiPanelPage() {
             }
         });
 
-        const markers: {hijo: Estudiante & {paradas: Parada[], ruta_id?:string}, position: {lat: number, lng: number}, icon: google.maps.Icon | string }[] = [];
+        const markers: JSX.Element[] = [];
         stopsMap.forEach((hijosAtStop, key) => {
             const [lat, lng] = key.split(',').map(Number);
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
-                
-                let markerIcon: google.maps.Icon | string;
+                const position = getOffsetPosition({ lat, lng }, index, hijosAtStop.length);
+                const baseSize = 40;
+                const activeSize = 48;
+                const borderSize = 4;
 
                 if (hijo.avatar_url) {
-                    markerIcon = {
-                        url: hijo.avatar_url,
-                        scaledSize: new google.maps.Size(isActive ? 44 : 36, isActive ? 44 : 36),
-                        anchor: new google.maps.Point(isActive ? 22 : 18, isActive ? 22 : 18),
-                    };
+                    markers.push(
+                        <React.Fragment key={hijo.id}>
+                            {/* Borde del marcador */}
+                            <MarkerF
+                                position={position}
+                                icon={{
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: isActive ? (activeSize / 2.5) : (baseSize / 2.5),
+                                    fillColor: isActive ? '#01C998' : '#FFFFFF',
+                                    fillOpacity: 1,
+                                    strokeColor: isActive ? '#FFFFFF' : '#01C998',
+                                    strokeWeight: 2,
+                                }}
+                                zIndex={isActive ? 94 : 89}
+                                title={`Parada de ${hijo.nombre}`}
+                                onClick={() => setActiveChildId(hijo.id)}
+                            />
+                            {/* Avatar del marcador */}
+                            <MarkerF
+                                position={position}
+                                icon={{
+                                    url: hijo.avatar_url,
+                                    scaledSize: new google.maps.Size(
+                                        isActive ? activeSize - (borderSize * 2) : baseSize - (borderSize * 2),
+                                        isActive ? activeSize - (borderSize * 2) : baseSize - (borderSize * 2)
+                                    ),
+                                    anchor: new google.maps.Point(
+                                        isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2,
+                                        isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2
+                                    ),
+                                    path: google.maps.SymbolPath.CIRCLE, // Esto no hace el clip, pero la imagen es circular.
+                                }}
+                                shape={{
+                                    coords: [18, 18, 18],
+                                    type: 'circle'
+                                }}
+                                zIndex={isActive ? 95 : 90}
+                                title={`Parada de ${hijo.nombre}`}
+                                onClick={() => setActiveChildId(hijo.id)}
+                            />
+                        </React.Fragment>
+                    );
                 } else {
                     const pinColor = isActive ? '#01C998' : '#0D2C5B';
                     const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
@@ -202,14 +241,23 @@ export default function MiPanelPage() {
                             ${svgContent}
                         </svg>
                     `.trim();
-                    markerIcon = `data:image/svg+xml;base64,${btoa(svg)}`;
+                    const markerIcon = `data:image/svg+xml;base64,${btoa(svg)}`;
+                    
+                    markers.push(
+                         <MarkerF
+                            key={hijo.id}
+                            position={position}
+                            icon={{
+                                url: markerIcon,
+                                scaledSize: new google.maps.Size(isActive ? 54 : 48, isActive ? 65 : 58),
+                                anchor: new google.maps.Point(isActive ? 27 : 24, isActive ? 65 : 58),
+                            }}
+                            title={`Parada de ${hijo.nombre}`}
+                            zIndex={isActive ? 95 : 90}
+                            onClick={() => setActiveChildId(hijo.id)}
+                        />
+                    );
                 }
-
-                markers.push({
-                    hijo: hijo,
-                    position: getOffsetPosition({ lat, lng }, index, hijosAtStop.length),
-                    icon: markerIcon
-                });
             });
         });
 
@@ -305,52 +353,7 @@ export default function MiPanelPage() {
                     </>
                 )}
                 
-                 {hijoStopMarkers.map(({hijo, position, icon}) => {
-                    const isActive = activeChildId === hijo.id;
-                    const isAvatar = 'url' in icon;
-                    
-                    // Logic to add border for avatar markers
-                    if (isAvatar) {
-                        return (
-                            <React.Fragment key={hijo.id + '_stop'}>
-                                {isActive && <MarkerF
-                                    position={position}
-                                    icon={{
-                                        path: google.maps.SymbolPath.CIRCLE,
-                                        scale: 32,
-                                        fillColor: '#01C998',
-                                        fillOpacity: 1,
-                                        strokeWeight: 0,
-                                    }}
-                                    zIndex={94}
-                                />}
-                                <MarkerF
-                                    position={position}
-                                    icon={icon}
-                                    title={`Parada de ${hijo.nombre}`}
-                                    zIndex={isActive ? 95 : 90}
-                                    onClick={() => setActiveChildId(hijo.id)}
-                                />
-                            </React.Fragment>
-                        );
-                    }
-
-                    // Default SVG marker for initials
-                    return (
-                        <MarkerF
-                            key={hijo.id + '_stop'}
-                            position={position}
-                            icon={{
-                                url: icon as string,
-                                scaledSize: new google.maps.Size(48, 58),
-                                anchor: new google.maps.Point(24, 58),
-                            }}
-                            title={`Parada de ${hijo.nombre}`}
-                            zIndex={isActive ? 95 : 90}
-                            onClick={() => setActiveChildId(hijo.id)}
-                        />
-                    );
-                })}
+                 {hijoStopMarkers}
             </GoogleMap>
             
              <div className="absolute bottom-56 right-4 z-20 flex flex-col gap-2 md:bottom-4">
