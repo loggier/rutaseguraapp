@@ -22,7 +22,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LocateFixed } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const addStopSchema = z.object({
@@ -50,7 +50,6 @@ type AddStopSheetProps = {
 const mapContainerStyle = {
   height: '200px',
   width: '100%',
-  borderRadius: '0.5rem',
 };
 
 // Default center (Quito, Ecuador)
@@ -125,8 +124,8 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose, isLo
             number = component.long_name;
           }
         });
-        setValue('calle', street, { shouldValidate: true });
-        setValue('numero', number, { shouldValidate: true });
+        setValue('calle', street);
+        setValue('numero', number);
       } else {
         toast({
             variant: "destructive",
@@ -147,6 +146,29 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose, isLo
     }
   };
   
+  const locateUser = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const newPos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    };
+                    setValue('lat', newPos.lat, { shouldValidate: true });
+                    setValue('lng', newPos.lng, { shouldValidate: true });
+                    setMapCenter(newPos);
+                    toast({ title: 'Ubicación encontrada', description: 'El marcador se ha movido a tu ubicación actual.' });
+                },
+                () => {
+                    toast({ variant: 'destructive', title: 'Error de Ubicación', description: 'No se pudo acceder a tu ubicación. Asegúrate de tener los permisos activados.' });
+                }
+            );
+        } else {
+             toast({ variant: 'destructive', title: 'Error', description: 'La geolocalización no es compatible con tu navegador.' });
+        }
+    };
+
+
   const onSubmit = async (data: StopFormData) => {
     try {
         const payload = {
@@ -203,11 +225,12 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose, isLo
               {errors.direccion && <p className="text-xs text-destructive">{errors.direccion.message}</p>}
             </div>
 
-             <div className="h-[200px] w-full rounded-lg overflow-hidden">
+             <div className="relative h-[200px] w-full rounded-lg overflow-hidden">
                 <GoogleMap
                     mapContainerStyle={mapContainerStyle}
                     center={mapCenter}
                     zoom={lat && lng ? 17 : 12}
+                    options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
                 >
                     {lat && lng && (
                         <MarkerF 
@@ -217,6 +240,9 @@ export function AddStopSheet({ isOpen, tipo, studentId, colegioId, onClose, isLo
                         />
                     )}
                 </GoogleMap>
+                 <Button type="button" size="icon" className="absolute bottom-2 right-2 rounded-full h-10 w-10 shadow-lg" onClick={locateUser}>
+                    <LocateFixed className="h-5 w-5" />
+                </Button>
             </div>
              {errors.lat && <p className="text-xs text-destructive">{errors.lat.message}</p>}
 

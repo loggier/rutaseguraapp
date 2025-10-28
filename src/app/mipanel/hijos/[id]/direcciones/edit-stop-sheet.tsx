@@ -23,7 +23,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Parada } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LocateFixed } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const stopSchema = z.object({
@@ -50,7 +50,6 @@ type EditStopSheetProps = {
 const mapContainerStyle = {
   height: '200px',
   width: '100%',
-  borderRadius: '0.5rem',
 };
 
 export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: EditStopSheetProps) {
@@ -114,8 +113,8 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
             number = component.long_name;
           }
         });
-        setValue('calle', street, { shouldValidate: true });
-        setValue('numero', number, { shouldValidate: true });
+        setValue('calle', street);
+        setValue('numero', number);
       } else {
         toast({
             variant: "destructive",
@@ -136,6 +135,28 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
     }
   };
   
+  const locateUser = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const newPos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                    };
+                    setValue('lat', newPos.lat, { shouldValidate: true });
+                    setValue('lng', newPos.lng, { shouldValidate: true });
+                    setMapCenter(newPos);
+                    toast({ title: 'Ubicación encontrada', description: 'El marcador se ha movido a tu ubicación actual.' });
+                },
+                () => {
+                    toast({ variant: 'destructive', title: 'Error de Ubicación', description: 'No se pudo acceder a tu ubicación. Asegúrate de tener los permisos activados.' });
+                }
+            );
+        } else {
+             toast({ variant: 'destructive', title: 'Error', description: 'La geolocalización no es compatible con tu navegador.' });
+        }
+    };
+
   const onSubmit = async (data: StopFormData) => {
     if (!parada) return;
     try {
@@ -186,11 +207,12 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
               {errors.direccion && <p className="text-xs text-destructive">{errors.direccion.message}</p>}
             </div>
 
-             <div className="h-[200px] w-full rounded-lg overflow-hidden">
+             <div className="relative h-[200px] w-full rounded-lg overflow-hidden">
                 <GoogleMap
                     mapContainerStyle={mapContainerStyle}
                     center={mapCenter}
                     zoom={17}
+                    options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
                 >
                     <MarkerF 
                         position={mapCenter} 
@@ -198,6 +220,9 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
                         onDragEnd={onMarkerDragEnd}
                     />
                 </GoogleMap>
+                 <Button type="button" size="icon" className="absolute bottom-2 right-2 rounded-full h-10 w-10 shadow-lg" onClick={locateUser}>
+                    <LocateFixed className="h-5 w-5" />
+                </Button>
             </div>
 
              <div className="grid grid-cols-2 gap-4">
@@ -239,12 +264,12 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
                    <Label>Sub-tipo de Parada</Label>
                     <RadioGroup {...field} onValueChange={field.onChange} className="flex gap-4">
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Principal" id="principal"/>
-                            <Label htmlFor="principal">Principal</Label>
+                            <RadioGroupItem value="Principal" id="principal-edit"/>
+                            <Label htmlFor="principal-edit">Principal</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Secundaria" id="secundaria" />
-                            <Label htmlFor="secundaria">Secundaria</Label>
+                            <RadioGroupItem value="Secundaria" id="secundaria-edit" />
+                            <Label htmlFor="secundaria-edit">Secundaria</Label>
                         </div>
                     </RadioGroup>
                 </div>
