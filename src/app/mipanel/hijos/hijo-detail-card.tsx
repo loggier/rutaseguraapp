@@ -1,13 +1,16 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Estudiante, Parada } from "@/lib/types";
-import { Info, MapPin, School, Home, Edit, Route, User } from "lucide-react";
+import { Info, MapPin, School, Home, Edit, Route, User, Camera, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { useParentDashboard } from "../layout";
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type HijoDetailCardProps = {
     hijo: Estudiante & { paradas: Parada[], ruta_id?: string };
@@ -31,6 +34,80 @@ const AddressRow = ({ icon: Icon, type, stop }: { icon: React.ElementType, type:
 export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
     const paradaRecogida = hijo.paradas.find(p => p.tipo === 'Recogida' && p.sub_tipo === 'Principal');
     const paradaEntrega = hijo.paradas.find(p => p.tipo === 'Entrega' && p.sub_tipo === 'Principal');
+    const { refreshData } = useParentDashboard();
+    const { toast } = useToast();
+    
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const supabase = createClient();
+
+        try {
+            // 1. Subir la imagen a Supabase Storage
+            const filePath = `avatars/student-${hijo.id}-${Date.now()}`;
+            const { error: uploadError } = await supabase.storage
+                .from('rutasegura')
+                .upload(filePath, file);
+            
+            if (uploadError) throw uploadError;
+
+            // 2. Obtener la URL pública de la imagen
+            const { data: { publicUrl } } = supabase.storage
+                .from('rutasegura')
+                .getPublicUrl(filePath);
+
+            if (!publicUrl) {
+                throw new Error("No se pudo obtener la URL pública de la imagen.");
+            }
+            
+            // 3. Actualizar la URL del avatar en la base de datos
+            const studentUpdatePayload = {
+                nombre: hijo.nombre,
+                apellido: hijo.apellido,
+                email: hijo.email,
+                telefono: hijo.telefono,
+                padre_id: hijo.padre_id,
+                avatar_url: publicUrl
+            };
+
+            const response = await fetch(`/api/students/${hijo.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentUpdatePayload)
+            });
+
+            const result = await response.json();
+            if(!response.ok) throw new Error(result.message || "Error al actualizar el perfil.");
+
+            toast({
+                title: "Éxito",
+                description: "La foto de perfil se ha actualizado correctamente.",
+            });
+
+            refreshData(); // Actualiza los datos de todo el dashboard
+
+        } catch (error: any) {
+            console.error("Error al actualizar el avatar:", error);
+            toast({
+                variant: "destructive",
+                title: "Error al Subir Imagen",
+                description: error.message || "No se pudo actualizar la foto de perfil.",
+            });
+        } finally {
+            setIsUploading(false);
+             // Reset input para permitir la subida del mismo archivo otra vez
+            if(fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
     
     return (
         <Card className="shadow-md">
@@ -46,12 +123,32 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                     <Avatar className="h-16 w-16 border">
-                        <AvatarImage src={hijo.avatar_url || ''} data-ai-hint="child face" />
-                        <AvatarFallback className="text-xl">
-                            {(hijo.nombre?.[0] || '')}{(hijo.apellido?.[0] || '')}
-                        </AvatarFallback>
-                    </Avatar>
+                     <div className="relative group">
+                        <Avatar className="h-16 w-16 border">
+                            <AvatarImage src={hijo.avatar_url || ''} data-ai-hint="child face" />
+                            <AvatarFallback className="text-xl">
+                                {(hijo.nombre?.[0] || '')}{(hijo.apellido?.[0] || '')}
+                            </AvatarFallback>
+                        </Avatar>
+                        <button
+                            onClick={handleAvatarClick}
+                            disabled={isUploading}
+                            className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isUploading ? (
+                                <Loader2 className="h-6 w-6 text-white animate-spin" />
+                            ) : (
+                                <Camera className="h-6 w-6 text-white" />
+                            )}
+                        </button>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleAvatarChange}
+                            className="hidden" 
+                            accept="image/png, image/jpeg, image/gif"
+                        />
+                     </div>
                      <h2 className="text-xl font-bold">{hijo.nombre} {hijo.apellido}</h2>
                 </div>
                 
@@ -74,3 +171,5 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
         </Card>
     )
 }
+
+    
