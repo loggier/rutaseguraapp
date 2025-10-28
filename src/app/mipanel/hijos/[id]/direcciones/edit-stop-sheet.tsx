@@ -254,7 +254,7 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
                         onDragEnd={handleMapInteraction}
                     />
                 </GoogleMap>
-                 <Button type="button" size="icon" className="absolute bottom-2 right-2 rounded-full h-10 w-10 shadow-lg" onClick={locateUser}>
+                 <Button type="button" size="icon" className="absolute top-2 right-2 rounded-full h-10 w-10 shadow-lg" onClick={locateUser}>
                     <LocateFixed className="h-5 w-5" />
                 </Button>
             </div>
