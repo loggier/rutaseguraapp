@@ -187,46 +187,44 @@ export default function MiPanelPage() {
                 const position = getOffsetPosition({ lat, lng }, index, hijosAtStop.length);
                 const baseSize = 40;
                 const activeSize = 48;
-                const borderSize = 4;
+                const borderSize = 3;
 
                 if (hijo.avatar_url) {
+                    const bubbleSvg = `
+                        <svg width="56" height="66" viewBox="0 0 56 66" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+                                </filter>
+                            </defs>
+                            <path d="M28 65.5C29.2361 63.4167 33.5 57.5 33.5 57.5C45.3333 46.8333 55.5 35.8 55.5 24C55.5 11.0213 43.4787 1 28.5 1C13.5213 1 1.5 11.0213 1.5 24C1.5 35.8 11.6667 46.8333 23.5 57.5C23.5 57.5 26.7639 63.4167 28 65.5Z" fill="white" stroke="${isActive ? '#01C998' : '#A1A1AA'}" stroke-width="2" filter="url(#shadow)"/>
+                        </svg>
+                    `.trim();
+
                     markers.push(
                         <React.Fragment key={hijo.id}>
-                            {/* Borde del marcador */}
                             <MarkerF
                                 position={position}
                                 icon={{
-                                    path: google.maps.SymbolPath.CIRCLE,
-                                    scale: isActive ? (activeSize / 2.5) : (baseSize / 2.5),
-                                    fillColor: isActive ? '#01C998' : '#FFFFFF',
-                                    fillOpacity: 1,
-                                    strokeColor: isActive ? '#FFFFFF' : '#01C998',
-                                    strokeWeight: 2,
+                                    url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
+                                    scaledSize: new google.maps.Size(isActive ? 60: 56, isActive ? 70: 66),
+                                    anchor: new google.maps.Point(isActive ? 30: 28, isActive ? 70: 66),
                                 }}
                                 zIndex={isActive ? 94 : 89}
-                                title={`Parada de ${hijo.nombre}`}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
-                            {/* Avatar del marcador */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
-                                    scaledSize: new google.maps.Size(
-                                        isActive ? activeSize - (borderSize * 2) : baseSize - (borderSize * 2),
-                                        isActive ? activeSize - (borderSize * 2) : baseSize - (borderSize * 2)
-                                    ),
-                                    anchor: new google.maps.Point(
-                                        isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2,
-                                        isActive ? (activeSize - (borderSize * 2)) / 2 : (baseSize - (borderSize * 2)) / 2
-                                    ),
+                                    scaledSize: new google.maps.Size(baseSize, baseSize),
+                                    anchor: new google.maps.Point(baseSize / 2, baseSize / 2 + 10),
                                 }}
                                 shape={{
-                                    coords: [18, 18, 18],
+                                    coords: [20, 20, 20], // Make the image clickable as a circle
                                     type: 'circle'
                                 }}
                                 zIndex={isActive ? 95 : 90}
-                                title={`Parada de ${hijo.nombre}`}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
                         </React.Fragment>
