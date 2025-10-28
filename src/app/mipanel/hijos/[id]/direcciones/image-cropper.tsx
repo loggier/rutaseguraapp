@@ -24,13 +24,14 @@ function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
 ): Promise<Blob | null> {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
+
   canvas.width = crop.width;
   canvas.height = crop.height;
-  const ctx = canvas.getContext('2d');
 
+  const ctx = canvas.getContext("2d");
   if (!ctx) {
     return Promise.resolve(null);
   }
@@ -39,7 +40,13 @@ function getCroppedImg(
   canvas.width = crop.width * pixelRatio;
   canvas.height = crop.height * pixelRatio;
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-  ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingQuality = "high";
+
+  // Create a circular clipping path
+  ctx.beginPath();
+  ctx.arc(crop.width / 2, crop.height / 2, crop.width / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
 
   ctx.drawImage(
     image,
@@ -57,14 +64,13 @@ function getCroppedImg(
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          console.error('Canvas is empty');
+          console.error("Canvas is empty");
           resolve(null);
           return;
         }
         resolve(blob);
       },
-      'image/jpeg',
-      0.95 // quality
+      "image/png" // Use PNG to support transparency
     );
   });
 }
