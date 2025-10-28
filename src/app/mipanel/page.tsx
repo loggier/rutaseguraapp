@@ -190,15 +190,19 @@ export default function MiPanelPage() {
                     const baseSize = 48;
                     const activeSize = 56;
                     const borderWidth = isActive ? 3 : 2;
+                    const pinHeight = 8;
+                    const shadowOffset = 2;
 
-                    const bubbleSize = isActive ? activeSize : baseSize;
+                    const size = isActive ? activeSize : baseSize;
+                    const bubbleWidth = size + shadowOffset * 2;
+                    const bubbleHeight = size + pinHeight + shadowOffset * 2;
+                    const avatarSize = size - borderWidth * 2;
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
-                    const avatarSize = bubbleSize - (borderWidth * 2);
 
                     const bubbleSvg = `
-                        <svg width="${bubbleSize + 4}" height="${bubbleSize + 10}" viewBox="0 0 ${bubbleSize + 4} ${bubbleSize + 10}" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="${bubbleWidth}" height="${bubbleHeight}" viewBox="0 0 ${bubbleWidth} ${bubbleHeight}" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
-                                <filter id="shadow" x="0" y="0" width="${bubbleSize + 4}" height="${bubbleSize + 10}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                                <filter id="shadow" x="0" y="0" width="${bubbleWidth}" height="${bubbleHeight}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
                                     <feFlood flood-opacity="0" result="BackgroundImageFix"/>
                                     <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
                                     <feOffset dy="1"/>
@@ -210,21 +214,20 @@ export default function MiPanelPage() {
                                 </filter>
                             </defs>
                             <g filter="url(#shadow)">
-                                <path d="M${(bubbleSize + 4)/2} ${bubbleSize + 5}L${(bubbleSize + 4)/2 - 6} ${bubbleSize}H${(bubbleSize + 4)/2 + 6}L${(bubbleSize + 4)/2} ${bubbleSize + 5}Z" fill="${borderColor}"/>
-                                <circle cx="${(bubbleSize + 4)/2}" cy="${bubbleSize/2 + 2}" r="${bubbleSize/2}" fill="white" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                                <path d="M ${bubbleWidth / 2} ${size + pinHeight} L ${bubbleWidth / 2 - pinHeight / 2} ${size} H ${bubbleWidth / 2 + pinHeight / 2} L ${bubbleWidth / 2} ${size + pinHeight} Z" fill="${borderColor}" />
+                                <circle cx="${bubbleWidth / 2}" cy="${size / 2}" r="${size / 2}" fill="white" stroke="${borderColor}" stroke-width="${borderWidth}"/>
                             </g>
-                        </svg>
-                    `.trim();
+                        </svg>`.trim();
 
                     markers.push(
-                        <React.Fragment key={hijo.id}>
-                            {/* Pin/Burbuja de fondo */}
+                        <React.Fragment key={`${hijo.id}-marker`}>
+                            {/* Marcador de Fondo (Burbuja) */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
-                                    scaledSize: new google.maps.Size(bubbleSize + 4, bubbleSize + 10),
-                                    anchor: new google.maps.Point((bubbleSize + 4) / 2, bubbleSize + 5),
+                                    scaledSize: new google.maps.Size(bubbleWidth, bubbleHeight),
+                                    anchor: new google.maps.Point(bubbleWidth / 2, bubbleHeight - shadowOffset),
                                 }}
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
