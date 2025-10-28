@@ -178,41 +178,37 @@ export default function MiPanelPage() {
             }
         });
 
-        const markers: {hijo: Estudiante & {paradas: Parada[], ruta_id?:string}, position: {lat: number, lng: number}, icon: string}[] = [];
+        const markers: {hijo: Estudiante & {paradas: Parada[], ruta_id?:string}, position: {lat: number, lng: number}, icon: google.maps.Icon | string }[] = [];
         stopsMap.forEach((hijosAtStop, key) => {
             const [lat, lng] = key.split(',').map(Number);
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
-                const pinColor = isActive ? '#01C998' : '#0D2C5B';
                 
-                let svgContent;
-                if (hijo.avatar_url) {
-                    const avatarId = `avatar-${hijo.id}`;
-                    svgContent = `
-                        <defs>
-                            <clipPath id="${avatarId}">
-                                <circle cx="192" cy="192" r="140" />
-                            </clipPath>
-                        </defs>
-                        <circle cx="192" cy="192" r="150" fill="white" />
-                        <image href="${hijo.avatar_url}" x="52" y="52" height="280" width="280" clip-path="url(#${avatarId})" />
-                    `;
-                } else {
-                    const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
-                    svgContent = `<text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>`;
-                }
+                let markerIcon: google.maps.Icon | string;
 
-                const svg = `
-                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                        <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                        ${svgContent}
-                    </svg>
-                `.trim();
+                if (hijo.avatar_url) {
+                    markerIcon = {
+                        url: hijo.avatar_url,
+                        scaledSize: new google.maps.Size(isActive ? 44 : 36, isActive ? 44 : 36),
+                        anchor: new google.maps.Point(isActive ? 22 : 18, isActive ? 22 : 18),
+                    };
+                } else {
+                    const pinColor = isActive ? '#01C998' : '#0D2C5B';
+                    const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
+                    const svgContent = `<text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>`;
+                    const svg = `
+                        <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+                            ${svgContent}
+                        </svg>
+                    `.trim();
+                    markerIcon = `data:image/svg+xml;base64,${btoa(svg)}`;
+                }
 
                 markers.push({
                     hijo: hijo,
                     position: getOffsetPosition({ lat, lng }, index, hijosAtStop.length),
-                    icon: `data:image/svg+xml;base64,${btoa(svg)}`
+                    icon: markerIcon
                 });
             });
         });
@@ -311,12 +307,41 @@ export default function MiPanelPage() {
                 
                  {hijoStopMarkers.map(({hijo, position, icon}) => {
                     const isActive = activeChildId === hijo.id;
+                    const isAvatar = 'url' in icon;
+                    
+                    // Logic to add border for avatar markers
+                    if (isAvatar) {
+                        return (
+                            <React.Fragment key={hijo.id + '_stop'}>
+                                {isActive && <MarkerF
+                                    position={position}
+                                    icon={{
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 32,
+                                        fillColor: '#01C998',
+                                        fillOpacity: 1,
+                                        strokeWeight: 0,
+                                    }}
+                                    zIndex={94}
+                                />}
+                                <MarkerF
+                                    position={position}
+                                    icon={icon}
+                                    title={`Parada de ${hijo.nombre}`}
+                                    zIndex={isActive ? 95 : 90}
+                                    onClick={() => setActiveChildId(hijo.id)}
+                                />
+                            </React.Fragment>
+                        );
+                    }
+
+                    // Default SVG marker for initials
                     return (
                         <MarkerF
                             key={hijo.id + '_stop'}
                             position={position}
                             icon={{
-                                url: icon,
+                                url: icon as string,
                                 scaledSize: new google.maps.Size(48, 58),
                                 anchor: new google.maps.Point(24, 58),
                             }}
