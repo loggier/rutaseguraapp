@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -139,7 +140,7 @@ export default function MiPanelPage() {
           map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
         }
       }
-    }, [activeChildId, map]);
+    }, [activeChildId, map, activeBus, activeChild]);
 
 
     const decodedPolylinePath = useMemo(() => {
@@ -189,7 +190,6 @@ export default function MiPanelPage() {
                     const shadowOffset = 2;
 
                     const bubbleSize = isActive ? activeSize : baseSize;
-                    const avatarSize = bubbleSize - (borderWidth * 2);
                     
                     const bubbleWidth = bubbleSize + shadowOffset * 2;
                     const bubbleHeight = bubbleSize + pinHeight + shadowOffset * 2;
@@ -216,9 +216,12 @@ export default function MiPanelPage() {
                             </g>
                         </svg>`.trim();
 
+                    const avatarSize = bubbleSize - (borderWidth * 2);
+                    const avatarAnchorY = bubbleHeight - shadowOffset - (bubbleSize - avatarSize) / 2 - avatarSize / 2;
+
                     markers.push(
-                        <React.Fragment key={`${hijo.id}-marker`}>
-                             <MarkerF
+                        <React.Fragment key={`${hijo.id}-marker-group`}>
+                            <MarkerF
                                 position={position}
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
@@ -235,7 +238,11 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.35),
+                                    anchor: new google.maps.Point(bubbleWidth / 2, avatarAnchorY),
+                                }}
+                                shape={{
+                                    coords: [bubbleWidth/2, avatarAnchorY, avatarSize/2],
+                                    type: 'circle'
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => {
@@ -356,16 +363,6 @@ export default function MiPanelPage() {
                             }}
                             title={activeBus.ruta.colegio?.nombre}
                             zIndex={99}
-                        />
-                        <MarkerF 
-                            position={{ lat: activeBus.ruta.colegio.lat, lng: activeBus.ruta.colegio.lng + 0.0005 }}
-                            icon={{
-                                url: '/bus.png',
-                                scaledSize: new google.maps.Size(40, 40),
-                                anchor: new google.maps.Point(20, 20),
-                            }}
-                            zIndex={100}
-                            title={`Bus: ${activeBus.matricula}`}
                         />
                     </>
                 )}
