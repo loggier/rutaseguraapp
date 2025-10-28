@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  useLoadScript,
   GoogleMap,
   MarkerF,
   PolylineF,
@@ -11,7 +10,7 @@ import {
 import { Loader2, LocateFixed } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
-import { useParentDashboard } from './layout';
+import { useParentDashboard, useGoogleMaps } from './layout';
 import {
   Carousel,
   CarouselContent,
@@ -29,7 +28,6 @@ type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
 };
 
-const libraries: ('geometry')[] = ['geometry'];
 const mapCenter = { lat: -0.180653, lng: -78.467834 };
 
 const getOffsetPosition = (position: { lat: number; lng: number }, index: number, total: number) => {
@@ -57,10 +55,7 @@ export default function MiPanelPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
 
-    const { isLoaded, loadError } = useLoadScript({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-        libraries,
-    });
+    const { isLoaded, loadError } = useGoogleMaps();
     
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
