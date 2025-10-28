@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { useParentDashboard } from "@/app/mipanel/layout";
-import { Loader2, PlusCircle, ArrowLeft } from "lucide-react";
+import { Loader2, PlusCircle, ArrowLeft, Copy } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState, useCallback, startTransition } from "react";
 import { useLoadScript } from "@react-google-maps/api";
@@ -35,6 +35,7 @@ export default function GestionarDireccionesPage() {
     const [addingStopType, setAddingStopType] = useState<'Recogida' | 'Entrega' | null>(null);
     const [deletingStopId, setDeletingStopId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isCloning, setIsCloning] = useState(false);
 
 
     const hijo = useMemo(() => {
@@ -88,6 +89,58 @@ export default function GestionarDireccionesPage() {
             setDeletingStopId(null);
         }
     };
+    
+    const handleCloneStop = async () => {
+        const pickupStop = paradasRecogida.find(p => p.sub_tipo === 'Principal');
+        if (!pickupStop || !hijo) return;
+
+        setIsCloning(true);
+        try {
+            const newStopPayload = {
+                estudiante_id: hijo.id,
+                colegio_id: hijo.colegio_id,
+                tipo: 'Entrega' as const,
+                sub_tipo: 'Principal' as const,
+                direccion: pickupStop.direccion,
+                calle: pickupStop.calle,
+                numero: pickupStop.numero,
+                lat: pickupStop.lat,
+                lng: pickupStop.lng,
+                activo: true, // La nueva parada clonada será la activa por defecto
+            };
+
+            const response = await fetch('/api/stops', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newStopPayload),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Error al clonar la parada.');
+            }
+            
+            toast({
+                title: "Éxito",
+                description: "La parada de entrega ha sido creada usando la dirección de recogida.",
+            });
+
+            startTransition(() => {
+                refreshData();
+                router.refresh();
+            });
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Error al Clonar",
+                description: error.message,
+            });
+        } finally {
+            setIsCloning(false);
+        }
+    };
+
 
     const handleCloseSheet = useCallback((updated?: boolean) => {
         setEditingStop(null);
@@ -107,6 +160,8 @@ export default function GestionarDireccionesPage() {
     const paradasEntrega = useMemo(() => {
         return hijo?.paradas?.filter(p => p.tipo === 'Entrega').sort((a,b) => (a.sub_tipo === 'Principal' ? -1 : 1)) || [];
     }, [hijo]);
+    
+    const canClone = paradasRecogida.some(p => p.sub_tipo === 'Principal') && paradasEntrega.length === 0;
 
     if (loading) {
         return (
@@ -180,7 +235,23 @@ export default function GestionarDireccionesPage() {
                                  {paradasEntrega.map(parada => <StopCard key={parada.id} parada={parada} onEdit={handleEdit} onDelete={handleDeleteRequest} />)}
                                </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground pt-4 text-center">No hay paradas de entrega configuradas.</p>
+                                <div className="text-center pt-4 space-y-4">
+                                    <p className="text-sm text-muted-foreground">No hay paradas de entrega configuradas.</p>
+                                    {canClone && (
+                                        <Button 
+                                            variant="outline"
+                                            onClick={handleCloneStop}
+                                            disabled={isCloning}
+                                        >
+                                            {isCloning ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Copy className="mr-2 h-4 w-4" />
+                                            )}
+                                            Usar dirección de recogida principal
+                                        </Button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
