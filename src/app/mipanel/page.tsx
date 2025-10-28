@@ -238,7 +238,7 @@ export default function MiPanelPage() {
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.4),
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.3),
                                 }}
                                 zIndex={isActive ? 96 : 91}
                                 onClick={() => setActiveChildId(hijo.id)}
