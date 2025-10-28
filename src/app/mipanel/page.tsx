@@ -188,8 +188,9 @@ export default function MiPanelPage() {
                 
                 if (hijo.avatar_url) {
                     const bubbleSize = isActive ? 56 : 48;
-                    const avatarSize = bubbleSize - 8;
+                    const avatarSize = bubbleSize - 10; // Make avatar smaller than bubble
                     const borderColor = isActive ? '#01C998' : '#A1A1AA';
+                    const borderWidth = isActive ? 3 : 2;
 
                     const bubbleSvg = `
                         <svg width="${bubbleSize + 4}" height="${bubbleSize + 10}" viewBox="0 0 ${bubbleSize + 4} ${bubbleSize + 10}" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -207,15 +208,14 @@ export default function MiPanelPage() {
                             </defs>
                             <g filter="url(#shadow)">
                                 <path d="M${(bubbleSize + 4)/2} ${bubbleSize + 5}L${(bubbleSize + 4)/2 - 5} ${bubbleSize}H${(bubbleSize + 4)/2 + 5}L${(bubbleSize + 4)/2} ${bubbleSize + 5}Z" fill="white"/>
-                                <circle cx="${(bubbleSize + 4)/2}" cy="${bubbleSize/2 + 2}" r="${bubbleSize/2}" fill="white" stroke="${borderColor}" stroke-width="2"/>
+                                <circle cx="${(bubbleSize + 4)/2}" cy="${bubbleSize/2 + 2}" r="${bubbleSize/2}" fill="white" stroke="${borderColor}" stroke-width="${borderWidth}"/>
                             </g>
                         </svg>
                     `.trim();
 
                     markers.push(
                         <React.Fragment key={`${hijo.id}-marker`}>
-                             {/* Marcador de la burbuja/pin */}
-                            <MarkerF
+                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: `data:image/svg+xml;base64,${btoa(bubbleSvg)}`,
@@ -225,22 +225,19 @@ export default function MiPanelPage() {
                                 zIndex={isActive ? 94 : 89}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
-                             {/* Marcador del avatar */}
                             <MarkerF
                                 position={position}
                                 icon={{
                                     url: hijo.avatar_url,
                                     scaledSize: new google.maps.Size(avatarSize, avatarSize),
-                                    anchor: new google.maps.Point(avatarSize / 2, avatarSize / 2 + (bubbleSize/2) -2),
+                                    anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + 5),
                                 }}
-                                shape={{ coords: [avatarSize/2, avatarSize/2, avatarSize/2], type: 'circle' }}
                                 zIndex={isActive ? 95 : 90}
                                 onClick={() => setActiveChildId(hijo.id)}
                             />
                         </React.Fragment>
                     );
                 } else {
-                    // Fallback para cuando no hay avatar
                     const pinColor = isActive ? '#01C998' : '#0D2C5B';
                     const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
                     const svgContent = `<text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>`;
