@@ -92,6 +92,37 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
     autocompleteRef.current = autocomplete;
   }, []);
 
+  const reverseGeocode = useCallback((lat: number, lng: number) => {
+    if (!window.google || !window.google.maps.Geocoder) {
+      console.error("Google Maps Geocoder not available.");
+      return;
+    }
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        const place = results[0];
+        setValue('direccion', place.formatted_address || '', { shouldValidate: true });
+        
+        let street = '';
+        let number = '';
+        place.address_components?.forEach(component => {
+          if (component.types.includes('route')) {
+            street = component.long_name;
+          }
+          if (component.types.includes('street_number')) {
+            number = component.long_name;
+          }
+        });
+        setValue('calle', street);
+        setValue('numero', number);
+
+      } else {
+        setValue('direccion', 'Ubicación personalizada', { shouldValidate: true });
+        console.warn('Geocode was not successful for the following reason: ' + status);
+      }
+    });
+  }, [setValue]);
+
   const onPlaceChanged = () => {
     if (autocompleteRef.current !== null) {
       const place = autocompleteRef.current.getPlace();
@@ -125,13 +156,14 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
     }
   };
 
-  const onMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
+  const handleMapInteraction = (e: google.maps.MapMouseEvent) => {
     if (e.latLng) {
       const newLat = e.latLng.lat();
       const newLng = e.latLng.lng();
       setValue('lat', newLat, { shouldValidate: true });
       setValue('lng', newLng, { shouldValidate: true });
       setMapCenter({ lat: newLat, lng: newLng });
+      reverseGeocode(newLat, newLng);
     }
   };
   
@@ -146,6 +178,7 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
                     setValue('lat', newPos.lat, { shouldValidate: true });
                     setValue('lng', newPos.lng, { shouldValidate: true });
                     setMapCenter(newPos);
+                    reverseGeocode(newPos.lat, newPos.lng);
                     toast({ title: 'Ubicación encontrada', description: 'El marcador se ha movido a tu ubicación actual.' });
                 },
                 () => {
@@ -213,11 +246,12 @@ export function EditStopSheet({ isOpen, parada, onClose, isLoaded, loadError }: 
                     center={mapCenter}
                     zoom={17}
                     options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+                    onClick={handleMapInteraction}
                 >
                     <MarkerF 
                         position={mapCenter} 
                         draggable={true}
-                        onDragEnd={onMarkerDragEnd}
+                        onDragEnd={handleMapInteraction}
                     />
                 </GoogleMap>
                  <Button type="button" size="icon" className="absolute bottom-2 right-2 rounded-full h-10 w-10 shadow-lg" onClick={locateUser}>
