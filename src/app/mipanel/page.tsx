@@ -184,12 +184,28 @@ export default function MiPanelPage() {
             hijosAtStop.forEach((hijo, index) => {
                 const isActive = activeChildId === hijo.id;
                 const pinColor = isActive ? '#01C998' : '#0D2C5B';
-                const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
+                
+                let svgContent;
+                if (hijo.avatar_url) {
+                    const avatarId = `avatar-${hijo.id}`;
+                    svgContent = `
+                        <defs>
+                            <clipPath id="${avatarId}">
+                                <circle cx="192" cy="192" r="140" />
+                            </clipPath>
+                        </defs>
+                        <circle cx="192" cy="192" r="150" fill="white" />
+                        <image href="${hijo.avatar_url}" x="52" y="52" height="280" width="280" clip-path="url(#${avatarId})" />
+                    `;
+                } else {
+                    const initials = ((hijo.nombre?.[0] || '') + (hijo.apellido?.[0] || '')).toUpperCase();
+                    svgContent = `<text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>`;
+                }
 
                 const svg = `
-                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="48" height="58" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
                         <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-                        <text x="192" y="230" font-family="sans-serif" font-size="160" font-weight="bold" fill="white" text-anchor="middle" dy=".1em">${initials}</text>
+                        ${svgContent}
                     </svg>
                 `.trim();
 
