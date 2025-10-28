@@ -108,9 +108,9 @@ export default function LoginPage() {
   
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
-        <Card className="mx-auto max-w-sm w-full">
-          <CardHeader>
+      <div className="flex items-center justify-center p-6 lg:p-12">
+        <Card className="mx-auto max-w-sm w-full lg:border lg:shadow-sm border-none shadow-none">
+          <CardHeader className="px-0 lg:px-6">
             <div className="flex justify-center mb-4">
               <Image src="/logo.jpeg" alt="RutaSegura Logo" width={120} height={120} />
             </div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
               Inicia sesión para acceder a tu cuenta.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 lg:px-6">
             <form onSubmit={handleLogin} className="grid gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="colegio">Colegio</Label>
@@ -170,7 +170,7 @@ export default function LoginPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isPending || colegios.length === 0}>
+              <Button type="submit" className="w-full mt-4" disabled={isPending || colegios.length === 0}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
