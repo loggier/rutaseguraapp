@@ -120,11 +120,11 @@ export default function MiPanelPage() {
         
         carouselApi.on("select", () => {
             const selectedSlide = carouselApi.selectedScrollSnap();
-            if(hijos[selectedSlide]) {
+            if(hijos[selectedSlide] && hijos[selectedSlide].id !== activeChildId) {
                 setActiveChildId(hijos[selectedSlide].id);
             }
         });
-    }, [carouselApi, hijos]);
+    }, [carouselApi, hijos, activeChildId]);
     
     const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
     
@@ -137,15 +137,15 @@ export default function MiPanelPage() {
 
 
     useEffect(() => {
-      if (activeBus && map && activeBus.ruta.colegio) {
+      if (map && activeChild) {
+        const stop = activeChild.paradas.find(p => p.activo);
+        if (stop) {
+          map.panTo({ lat: stop.lat, lng: stop.lng });
+        } else if (activeBus && activeBus.ruta.colegio) {
           map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
-      } else if (activeChild && map) {
-          const stop = activeChild.paradas.find(p => p.activo);
-          if (stop) {
-            map.panTo({ lat: stop.lat, lng: stop.lng });
-          }
+        }
       }
-    }, [activeBus, activeChild, map]);
+    }, [activeChild, map, activeBus]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !activeBus) return [];
@@ -231,7 +231,9 @@ export default function MiPanelPage() {
                                     anchor: new google.maps.Point(bubbleWidth / 2, bubbleHeight - shadowOffset),
                                 }}
                                 zIndex={isActive ? 95 : 90}
-                                onClick={() => setActiveChildId(hijo.id)}
+                                onClick={() => {
+                                    if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
+                                }}
                             />
                             <MarkerF
                                 position={position}
@@ -241,7 +243,9 @@ export default function MiPanelPage() {
                                     anchor: new google.maps.Point(avatarSize / 2, bubbleSize / 2 + avatarSize / 1.35),
                                 }}
                                 zIndex={isActive ? 96 : 91}
-                                onClick={() => setActiveChildId(hijo.id)}
+                                onClick={() => {
+                                   if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
+                                }}
                             />
                         </React.Fragment>
                     );
@@ -268,7 +272,9 @@ export default function MiPanelPage() {
                             }}
                             title={`Parada de ${hijo.nombre}`}
                             zIndex={isActive ? 95 : 90}
-                            onClick={() => setActiveChildId(hijo.id)}
+                            onClick={() => {
+                                if (activeChildId !== hijo.id) setActiveChildId(hijo.id);
+                            }}
                         />
                     );
                 }
@@ -315,6 +321,13 @@ export default function MiPanelPage() {
                 title: 'Navegador no compatible',
                 description: 'La geolocalización no es compatible con tu navegador.',
             });
+        }
+    };
+    
+    const handleCardClick = (childId: string, index: number) => {
+        setActiveChildId(childId);
+        if (carouselApi && carouselApi.selectedScrollSnap() !== index) {
+            carouselApi.scrollTo(index);
         }
     };
 
@@ -383,11 +396,13 @@ export default function MiPanelPage() {
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
                             <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">
-                                <HijoCard 
-                                    hijo={hijo} 
-                                    bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
-                                    isActive={activeChildId === hijo.id}
-                                />
+                               <div onClick={() => handleCardClick(hijo.id, index)}>
+                                    <HijoCard 
+                                        hijo={hijo} 
+                                        bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
+                                        isActive={activeChildId === hijo.id}
+                                    />
+                                </div>
                             </CarouselItem>
                         ))}
                         </CarouselContent>
