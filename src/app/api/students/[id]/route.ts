@@ -17,6 +17,10 @@ const updateStatusSchema = z.object({
     activo: z.boolean(),
 });
 
+const updateAvatarSchema = z.object({
+    avatar_url: z.string().url("URL de avatar inválida."),
+});
+
 
 // Helper to create a Supabase admin client
 const createSupabaseAdminClient = () => {
@@ -77,32 +81,53 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-// --- PATCH para cambiar estado (activo/inactivo) ---
+// --- PATCH para cambios parciales ---
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const studentId = params.id;
   try {
     const body = await request.json();
-    const validation = updateStatusSchema.safeParse(body);
-
-    if(!validation.success) {
-      return NextResponse.json({ message: "Datos inválidos (se esperaba 'activo').", errors: validation.error.flatten().fieldErrors }, { status: 400 });
+    
+    // Check if it's a status update
+    const statusValidation = updateStatusSchema.safeParse(body);
+    if (statusValidation.success) {
+        const { activo } = statusValidation.data;
+        const supabaseAdmin = createSupabaseAdminClient();
+        const { error: updateError } = await supabaseAdmin
+            .from('estudiantes')
+            .update({ activo })
+            .eq('id', studentId);
+        
+        if (updateError) {
+            console.error("Error al actualizar el estado del estudiante:", updateError);
+            return NextResponse.json({ message: 'Error interno al cambiar el estado del estudiante.' }, { status: 500 });
+        }
+        const message = `Estudiante ${activo ? 'activado' : 'desactivado'} con éxito.`;
+        return NextResponse.json({ message, newStatus: activo }, { status: 200 });
     }
 
-    const { activo } = validation.data;
-    const supabaseAdmin = createSupabaseAdminClient();
-
-    const { error: updateError } = await supabaseAdmin
-      .from('estudiantes')
-      .update({ activo })
-      .eq('id', studentId);
-      
-    if (updateError) {
-      console.error("Error al actualizar el estado del estudiante:", updateError);
-      return NextResponse.json({ message: 'Error interno al cambiar el estado del estudiante.' }, { status: 500 });
+    // Check if it's an avatar update
+    const avatarValidation = updateAvatarSchema.safeParse(body);
+    if(avatarValidation.success) {
+        const { avatar_url } = avatarValidation.data;
+        const supabaseAdmin = createSupabaseAdminClient();
+        const { error: updateError } = await supabaseAdmin
+            .from('estudiantes')
+            .update({ avatar_url })
+            .eq('id', studentId);
+        
+        if (updateError) {
+            console.error("Error al actualizar el avatar del estudiante:", updateError);
+            return NextResponse.json({ message: 'Error interno al actualizar el avatar.' }, { status: 500 });
+        }
+        return NextResponse.json({ message: 'Avatar actualizado con éxito.', avatar_url }, { status: 200 });
     }
 
-    const message = `Estudiante ${activo ? 'activado' : 'desactivado'} con éxito.`;
-    return NextResponse.json({ message, newStatus: activo }, { status: 200 });
+    // If no validation matches
+    return NextResponse.json({ 
+        message: "Datos inválidos para la operación PATCH.", 
+        errors: { ...statusValidation.error?.flatten().fieldErrors, ...avatarValidation.error?.flatten().fieldErrors }
+    }, { status: 400 });
+
 
   } catch (error: any) {
     console.error('Error inesperado en PATCH /api/students/[id]:', error);
