@@ -19,6 +19,10 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Generate a unique ID for each player instance
+  const playerId = React.useMemo(() => `player-${Math.random().toString(36).substr(2, 9)}`, []);
+
+
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
       try {
@@ -35,14 +39,14 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     let isMounted = true;
 
     const initializePlayer = () => {
-      if (!isMounted || !videoNodeRef.current || playerInstanceRef.current) return;
+      if (!isMounted || !videoNodeRef.current || !document.getElementById(playerId)) return;
       
       cleanupPlayer();
       setIsLoading(true);
       setError(null);
 
       try {
-        const player = new Cmsv6Player(videoNodeRef.current, {
+        const player = new Cmsv6Player(playerId, {
           videoUrl: src,
           autoplay: true,
           live: true,
@@ -74,25 +78,23 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     
     // Esperar a que la librería Cmsv6Player esté disponible en window
     if (typeof window !== 'undefined') {
-        if ((window as any).Cmsv6Player) {
-            initializePlayer();
-        } else {
-            let attempts = 0;
-            checkInterval = setInterval(() => {
-                attempts++;
-                if ((window as any).Cmsv6Player) {
-                    clearInterval(checkInterval);
-                    initializePlayer();
-                } else if (attempts > 50) { // Esperar hasta 5 segundos
-                    clearInterval(checkInterval);
-                     if (isMounted) {
-                        // No setear error aquí, simplemente se quedará en loading.
-                        // setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
-                        setIsLoading(false);
-                    }
-                }
-            }, 100);
-        }
+      if ((window as any).Cmsv6Player) {
+          initializePlayer();
+      } else {
+          let attempts = 0;
+          checkInterval = setInterval(() => {
+              attempts++;
+              if ((window as any).Cmsv6Player) {
+                  clearInterval(checkInterval);
+                  initializePlayer();
+              } else if (attempts > 50) { // Esperar hasta 5 segundos
+                  clearInterval(checkInterval);
+                   if (isMounted) {
+                      setIsLoading(false);
+                  }
+              }
+          }, 100);
+      }
     }
 
     return () => {
@@ -100,15 +102,16 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       if (checkInterval) clearInterval(checkInterval);
       cleanupPlayer();
     };
-  }, [src, retryCount, cleanupPlayer]);
+  }, [src, retryCount, cleanupPlayer, playerId]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
   };
 
   return (
-    <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden", className)}>
-      <div ref={videoNodeRef} className="w-full h-full" />
+    <div ref={videoNodeRef} className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden", className)}>
+       {/* Cmsv6Player expects a child div with an ID */}
+      <div id={playerId} className="w-full h-full" />
 
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center">
