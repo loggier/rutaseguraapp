@@ -86,7 +86,8 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
                 } else if (attempts > 50) { // Esperar hasta 5 segundos
                     clearInterval(checkInterval);
                      if (isMounted) {
-                        setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
+                        // No setear error aquí, simplemente se quedará en loading.
+                        // setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
                         setIsLoading(false);
                     }
                 }
