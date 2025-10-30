@@ -355,7 +355,7 @@ export default function MiPanelPage() {
                  {hijoStopMarkers}
             </GoogleMap>
             
-             <div className="absolute bottom-56 right-4 z-20 flex flex-col gap-2 md:bottom-4">
+             <div className="absolute bottom-24 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
                     <LocateFixed className="h-6 w-6" />
                 </Button>
@@ -363,8 +363,8 @@ export default function MiPanelPage() {
             </div>
             
             {hijos.length > 0 && isMobile && (
-                <div className="absolute bottom-20 left-0 right-0 p-4 z-10 md:hidden">
-                    <Carousel setApi={setCarouselApi} opts={{ align: "start" }}>
+                <div className="absolute bottom-20 left-0 right-0 z-10 md:hidden">
+                    <Carousel setApi={setCarouselApi} opts={{ align: "start" }} className="w-full px-4">
                         <CarouselContent className="-ml-2">
                         {hijos.map((hijo, index) => (
                             <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">

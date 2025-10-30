@@ -191,7 +191,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                 })}>
                   {children}
                 </main>
-                {isMobile && !isMapPage && <BottomNavBar />}
+                {isMobile && <BottomNavBar />}
             </div>
           </div>
         </GoogleMapsContext.Provider>
