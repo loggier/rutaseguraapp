@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -28,36 +27,6 @@ export default function CamerasPage() {
     const [playerState, setPlayerState] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Initialize player instance once
-    const initializePlayer = useCallback(() => {
-        if (playerInstanceRef.current || !playerNodeRef.current || typeof EasyPlayerPro === 'undefined') {
-            return;
-        }
-
-        try {
-            const player = new EasyPlayerPro(playerNodeRef.current, {
-                stretch: true,
-                hasAudio: true,
-                hasControl: false,
-            });
-            playerInstanceRef.current = player;
-            
-            // Auto-play the first video after 3 seconds
-            const timer = setTimeout(() => {
-                if (videoStreams.length > 0) {
-                    handleStreamChange(videoStreams[0]);
-                }
-            }, 3000);
-
-            return () => clearTimeout(timer);
-
-        } catch (e: any) {
-            console.error("Error al inicializar EasyPlayerPro:", e);
-            setPlayerState('error');
-            setErrorMessage("No se pudo iniciar el reproductor. " + e.message);
-        }
-    }, []);
-
     // Cleanup player on unmount
     useEffect(() => {
         const player = playerInstanceRef.current;
@@ -68,33 +37,47 @@ export default function CamerasPage() {
                 } catch (e) {
                     console.error("Error destroying EasyPlayerPro instance:", e);
                 }
+                playerInstanceRef.current = null;
             }
         };
     }, []);
 
-
     const handleStreamChange = useCallback(async (stream: Stream) => {
-        if (!playerInstanceRef.current) {
+        if (!playerNodeRef.current || typeof EasyPlayerPro === 'undefined') {
             setPlayerState('error');
-            setErrorMessage("El reproductor no está inicializado.");
+            setErrorMessage("La librería del reproductor no está disponible.");
             return;
         }
-        
+
+        // Destroy previous instance if it exists
+        if (playerInstanceRef.current) {
+            try {
+                playerInstanceRef.current.destroy();
+            } catch (e) {
+                console.warn("Could not destroy previous player instance", e);
+            }
+        }
+
         setPlayerState('loading');
         setErrorMessage(null);
         setActiveStream(stream);
 
         try {
-             // pause() is not strictly necessary as play() stops the previous stream, but it's good practice.
-            try { playerInstanceRef.current.pause(); } catch(e) {}
-
-            await playerInstanceRef.current.play(stream.url);
+            // Create a new player instance every time
+            const player = new EasyPlayerPro(playerNodeRef.current, {
+                stretch: true,
+                hasAudio: true,
+                hasControl: false,
+            });
+            playerInstanceRef.current = player;
+            
+            await player.play(stream.url);
             setPlayerState('playing');
 
         } catch(e: any) {
             console.error("Error en el método play:", e);
             setPlayerState('error');
-            setErrorMessage("No se pudo conectar al stream de video.");
+            setErrorMessage("No se pudo conectar al stream de video. " + e.message);
         }
     }, []);
 
@@ -115,7 +98,6 @@ export default function CamerasPage() {
                         playerNodeRef={playerNodeRef}
                         playerState={playerState}
                         errorMessage={errorMessage}
-                        onInit={initializePlayer}
                         onRetry={() => activeStream && handleStreamChange(activeStream)}
                     />
                 </div>
