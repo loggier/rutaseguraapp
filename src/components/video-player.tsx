@@ -100,7 +100,8 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       clearTimeout(timer);
       cleanupPlayer();
     };
-  }, [retryCount, initializePlayer, cleanupPlayer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryCount]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
