@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
@@ -15,11 +15,7 @@ interface VideoPlayerProps {
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
-
-  // Generate a unique ID for each player instance
-  const playerId = React.useMemo(() => `player-${Math.random().toString(36).substr(2, 9)}`, []);
+  const [isLoading, setIsLoading] = useState(true); // Start in loading state
 
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
@@ -32,72 +28,67 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     }
   }, []);
 
-  const initializePlayer = useCallback(() => {
-    if (typeof window === 'undefined' || !document.getElementById(playerId)) {
-      setError("El entorno de renderizado no es válido.");
-      return;
-    }
-    
-    if (typeof Cmsv6Player === 'undefined') {
-        setError("La librería del reproductor (Cmsv6) no se cargó correctamente.");
+  // Callback ref will be called by React when the div is mounted to the DOM
+  const playerNodeRef = useCallback((node: HTMLDivElement | null) => {
+    // If the node is not null, the div has been mounted
+    if (node) {
+      if (typeof Cmsv6Player === 'undefined') {
+        console.error("Cmsv6Player library is not available on window.");
+        setError("La librería del reproductor no se pudo cargar.");
         setIsLoading(false);
         return;
-    }
-
-    cleanupPlayer();
-    setIsLoading(true);
-    setError(null);
-    setHasStarted(true);
-
-    try {
-      const player = new Cmsv6Player(playerId, {
-        videoUrl: src,
-        autoplay: true,
-        live: true,
-      });
-      playerInstanceRef.current = player;
-
-      player.on('error', (e: any) => {
-        console.error('Cmsv6Player Error:', e);
-        setError('Error en la reproducción. Intente recargar.');
-        setIsLoading(false);
-        cleanupPlayer();
-      });
+      }
       
-      player.on('play', () => {
+      cleanupPlayer();
+      setError(null);
+      setIsLoading(true);
+
+      try {
+        const player = new Cmsv6Player(node, {
+          videoUrl: src,
+          autoplay: true,
+          live: true,
+        });
+        playerInstanceRef.current = player;
+
+        player.on('error', (e: any) => {
+          console.error('Cmsv6Player Error:', e);
+          setError('Error en la reproducción. Intente recargar.');
+          setIsLoading(false);
+          cleanupPlayer();
+        });
+        
+        player.on('play', () => {
+          setIsLoading(false);
+          setError(null);
+        });
+
+      } catch (e: any) {
+        console.error("Error al inicializar Cmsv6Player:", e);
+        setError("No se pudo iniciar el reproductor de video.");
         setIsLoading(false);
-        setError(null);
-      });
-
-    } catch (e: any) {
-      console.error("Error al inicializar Cmsv6Player:", e);
-      setError("No se pudo iniciar el reproductor de video.");
-      setIsLoading(false);
+      }
     }
-  }, [src, playerId, cleanupPlayer]);
+  }, [src, cleanupPlayer]);
+  
+  // Ensure we clean up when the component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupPlayer();
+    };
+  }, [cleanupPlayer]);
 
-
-  const handleStartPlayback = () => {
-    initializePlayer();
-  };
 
   const handleRetry = () => {
-    initializePlayer();
+     // The callback ref will re-run when the key changes, re-initializing the player
+     // For now, we just reload the page as a simple retry mechanism
+     window.location.reload();
   };
   
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
-       <div id={playerId} className="w-full h-full" />
+       <div ref={playerNodeRef} className="w-full h-full" />
       
-      {!hasStarted && !isLoading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white z-10">
-           <Button variant="ghost" size="icon" onClick={handleStartPlayback} className="h-20 w-20">
-             <PlayCircle className="h-20 w-20 text-white/80 hover:text-white transition-colors" />
-           </Button>
-           <p className="mt-2 font-semibold">Iniciar Video</p>
-        </div>
-      )}
-
       {isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center z-10">
           <Loader2 className="h-10 w-10 animate-spin mb-4" />
