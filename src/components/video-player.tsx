@@ -31,71 +31,56 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     }
   }, []);
 
-  // Initialize the player instance when the component mounts
-  const initializePlayer = useCallback(() => {
-    if (typeof EasyPlayerPro === 'undefined' || !playerNodeRef.current) {
-      return;
-    }
-    
-    cleanupPlayer(); // Clean up any existing instance before creating a new one
-
-    try {
-      // Create the player instance but don't start playback yet
-      const player = new EasyPlayerPro(playerNodeRef.current, {
-        stretch: true,
-        hasAudio: true,
-        hasControl: false, // Explicitly disable default controls
-      });
-      playerInstanceRef.current = player;
-
-    } catch (e: any) {
-      console.error("Error al inicializar EasyPlayerPro:", e);
-      setError("No se pudo iniciar el reproductor de video. " + e.message);
-      setIsLoading(false);
-    }
-  }, [cleanupPlayer]);
-
-  // Effect to initialize on mount and cleanup on unmount
+  // Effect to clean up the player when the component unmounts
   useEffect(() => {
-    // We only initialize the player structure once the component is mounted.
-    // Playback will be handled by user interaction.
-    initializePlayer();
-
-    // The return function of useEffect serves as the cleanup function
     return () => {
       cleanupPlayer();
     };
-  }, [initializePlayer]);
+  }, [cleanupPlayer]);
 
-
-  const handleStartPlayback = () => {
-    if (!playerInstanceRef.current) {
-      // If for some reason the player isn't initialized, try again.
-      initializePlayer();
-      if (!playerInstanceRef.current) {
-        setError("El reproductor de video no está listo. Inténtalo de nuevo.");
-        return;
-      }
+  const initializeAndPlayPlayer = () => {
+    if (typeof EasyPlayerPro === 'undefined' || !playerNodeRef.current) {
+      setError("La librería del reproductor no se ha cargado correctamente.");
+      return;
     }
     
+    cleanupPlayer(); // Clean up any existing instance
+
+    try {
+      const player = new EasyPlayerPro(playerNodeRef.current, {
+        stretch: true,
+        hasAudio: true,
+        hasControl: false,
+      });
+      playerInstanceRef.current = player;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      player.play(src).then(() => {
+        setIsLoading(false);
+      }).catch((e: any) => {
+        console.error("Error al reproducir el video:", e);
+        setError("No se pudo conectar al stream de video.");
+        setIsLoading(false);
+      });
+
+    } catch (e: any) {
+      console.error("Error al inicializar EasyPlayerPro:", e);
+      setError("No se pudo iniciar el reproductor. " + e.message);
+      setIsLoading(false);
+    }
+  };
+
+  const handleStartPlayback = () => {
     setHasStarted(true);
-    setIsLoading(true);
-    setError(null);
-    
-    playerInstanceRef.current.play(src).then(() => {
-      setIsLoading(false);
-    }).catch((e: any) => {
-      console.error("Error al reproducir el video:", e);
-      setError("No se pudo conectar al stream de video.");
-      setIsLoading(false);
-    });
+    initializeAndPlayPlayer();
   };
   
   const handleRetry = () => {
      setError(null);
      setIsLoading(false);
      setHasStarted(false);
-     // Player is already initialized, no need to call cleanupPlayer here
   };
   
   return (
