@@ -4,35 +4,108 @@
 import { PageHeader } from "@/components/page-header";
 import { VideoPlayer } from "@/components/video-player";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { VideoThumbnail } from "./video-thumbnail";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Bus } from "lucide-react";
 
+declare const EasyPlayerPro: any;
+
 const videoStreams = [
-    { id: 1, title: "Cámara Frontal", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
-    { id: 2, title: "Cámara Pasillo", url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8' },
-    { id: 3, title: "Cámara Trasera", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8' },
-    { id: 4, title: "Cámara Puerta", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
+    { id: 1, title: "Cámara 1", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
+    { id: 2, title: "Cámara 2", url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8' },
+    { id: 3, title: "Cámara 3", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8' },
+    { id: 4, title: "Cámara 4", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
 ];
 
 type Stream = typeof videoStreams[0];
 
 export default function CamerasPage() {
-    const [activeStream, setActiveStream] = useState<Stream>(videoStreams[0]);
-    const [isPlaybackInitiated, setIsPlaybackInitiated] = useState(false);
+    const playerInstanceRef = useRef<any>(null);
+    const playerNodeRef = useRef<HTMLDivElement>(null);
+    
+    const [activeStream, setActiveStream] = useState<Stream | null>(null);
+    const [playerState, setPlayerState] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
 
+    // Initialize player instance once
+    const initializePlayer = useCallback(() => {
+        if (playerInstanceRef.current || !playerNodeRef.current || typeof EasyPlayerPro === 'undefined') {
+            return;
+        }
+
+        try {
+            const player = new EasyPlayerPro(playerNodeRef.current, {
+                stretch: true,
+                hasAudio: true,
+                hasControl: false,
+            });
+            playerInstanceRef.current = player;
+            setIsPlayerInitialized(true);
+        } catch (e: any) {
+            console.error("Error al inicializar EasyPlayerPro:", e);
+            setPlayerState('error');
+            setErrorMessage("No se pudo iniciar el reproductor. " + e.message);
+        }
+    }, []);
+
+    // Cleanup player on unmount
+    useEffect(() => {
+        const player = playerInstanceRef.current;
+        return () => {
+            if (player) {
+                try {
+                    player.destroy();
+                } catch (e) {
+                    console.error("Error destroying EasyPlayerPro instance:", e);
+                }
+            }
+        };
+    }, []);
+    
+    // Auto-play the first video after 3 seconds
     useEffect(() => {
         const timer = setTimeout(() => {
-            setIsPlaybackInitiated(true);
+            if (isPlayerInitialized && !activeStream && videoStreams.length > 0) {
+                handleStreamChange(videoStreams[0]);
+            }
         }, 3000);
 
         return () => clearTimeout(timer);
+    }, [isPlayerInitialized, activeStream]);
+
+
+    const handleStreamChange = useCallback((stream: Stream) => {
+        if (!playerInstanceRef.current) {
+            setPlayerState('error');
+            setErrorMessage("El reproductor no está inicializado.");
+            return;
+        }
+        
+        setPlayerState('loading');
+        setErrorMessage(null);
+        setActiveStream(stream);
+
+        try {
+             // We don't need to call pause(), play() will stop the previous stream and start the new one.
+             playerInstanceRef.current.play(stream.url).then(() => {
+                setPlayerState('playing');
+            }).catch((e: any) => {
+                console.error("Error al reproducir el video:", e);
+                setPlayerState('error');
+                setErrorMessage("No se pudo conectar al stream de video.");
+            });
+        } catch(e: any) {
+            console.error("Error en el método play:", e);
+            setPlayerState('error');
+            setErrorMessage("Ocurrió un error al intentar reproducir el video.");
+        }
     }, []);
 
     return (
         <div className="flex flex-col h-full">
-             <div className="p-4 md:p-6 flex-shrink-0">
+            <div className="p-4 md:p-6 flex-shrink-0">
                 <PageHeader
                     title="Cámaras del Autobús"
                     description="Selecciona una cámara para ver la transmisión en vivo."
@@ -42,19 +115,19 @@ export default function CamerasPage() {
             <div className="flex-grow p-4 md:p-6 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100%-100px)]">
                 {/* Main Player */}
                 <div className="w-full lg:col-span-2 flex flex-col gap-4">
-                    <h2 className="text-xl font-bold tracking-tight">{activeStream.title}</h2>
-                    {activeStream && (
-                        <VideoPlayer 
-                            key={activeStream.id} 
-                            src={activeStream.url} 
-                            isPlaybackInitiated={activeStream.id === videoStreams[0].id ? isPlaybackInitiated : false}
-                        />
-                    )}
+                    <h2 className="text-xl font-bold tracking-tight">{activeStream?.title || 'Selecciona una cámara'}</h2>
+                    <VideoPlayer
+                        playerNodeRef={playerNodeRef}
+                        playerState={playerState}
+                        errorMessage={errorMessage}
+                        onInit={initializePlayer}
+                        onRetry={() => activeStream && handleStreamChange(activeStream)}
+                    />
                 </div>
                 
                 {/* Video List */}
                 <Card className="flex flex-col h-full overflow-hidden">
-                     <CardHeader>
+                    <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Bus className="h-5 w-5" />
                             Cámaras Disponibles
@@ -67,8 +140,8 @@ export default function CamerasPage() {
                                     <VideoThumbnail
                                         key={stream.id}
                                         stream={stream}
-                                        isActive={activeStream.id === stream.id}
-                                        onClick={() => setActiveStream(stream)}
+                                        isActive={activeStream?.id === stream.id}
+                                        onClick={() => handleStreamChange(stream)}
                                     />
                                 ))}
                             </div>
