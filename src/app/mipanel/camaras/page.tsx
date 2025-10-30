@@ -42,44 +42,49 @@ export default function CamerasPage() {
         };
     }, []);
 
-    const handleStreamChange = useCallback(async (stream: Stream) => {
+    const handleStreamChange = useCallback((stream: Stream) => {
         if (!playerNodeRef.current || typeof EasyPlayerPro === 'undefined') {
             setPlayerState('error');
             setErrorMessage("La librería del reproductor no está disponible.");
             return;
         }
 
-        // Destroy previous instance if it exists
-        if (playerInstanceRef.current) {
-            try {
-                playerInstanceRef.current.destroy();
-            } catch (e) {
-                console.warn("Could not destroy previous player instance", e);
-            }
-        }
-
+        // Set loading state immediately
         setPlayerState('loading');
         setErrorMessage(null);
         setActiveStream(stream);
+        
+        // Use setTimeout to allow React to render the loading state before we block the thread
+        setTimeout(async () => {
+            // Destroy previous instance if it exists
+            if (playerInstanceRef.current) {
+                try {
+                    playerInstanceRef.current.destroy();
+                } catch (e) {
+                    console.warn("Could not destroy previous player instance", e);
+                }
+            }
 
-        try {
-            // Create a new player instance every time
-            const player = new EasyPlayerPro(playerNodeRef.current, {
-                stretch: true,
-                hasAudio: true,
-                hasControl: false,
-            });
-            playerInstanceRef.current = player;
-            
-            await player.play(stream.url);
-            setPlayerState('playing');
+            try {
+                // Create a new player instance
+                const player = new EasyPlayerPro(playerNodeRef.current, {
+                    stretch: true,
+                    hasAudio: true,
+                    hasControl: false,
+                });
+                playerInstanceRef.current = player;
+                
+                await player.play(stream.url);
+                setPlayerState('playing');
 
-        } catch(e: any) {
-            console.error("Error en el método play:", e);
-            setPlayerState('error');
-            setErrorMessage("No se pudo conectar al stream de video. " + e.message);
-        }
+            } catch(e: any) {
+                console.error("Error en el método play:", e);
+                setPlayerState('error');
+                setErrorMessage("No se pudo conectar al stream de video. " + e.message);
+            }
+        }, 0);
     }, []);
+
 
     return (
         <div className="flex flex-col h-full">
