@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
-// Declara EasyPlayer en el ámbito global para que TypeScript lo reconozca
 declare const EasyPlayer: any;
 
 interface VideoPlayerProps {
@@ -13,73 +12,73 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Asegúrate de que el script EasyPlayer se haya cargado
+  // This callback ref will be called by React when the div is mounted or unmounted.
+  const videoRef = useCallback((node: HTMLDivElement | null) => {
+    // If the node is null, it means the component is unmounting.
+    if (!node) {
+      if (playerInstanceRef.current) {
+        playerInstanceRef.current.destroy();
+        playerInstanceRef.current = null;
+      }
+      return;
+    }
+
+    // If the node exists, we can initialize the player.
     if (typeof EasyPlayer === 'undefined') {
       setError('La librería EasyPlayer no se ha cargado.');
       setIsLoading(false);
       return;
     }
-
-    if (!videoRef.current) return;
-
-    // Si ya existe una instancia, destrúyela antes de crear una nueva.
+    
+    // Destroy any existing instance before creating a new one
     if (playerInstanceRef.current) {
       playerInstanceRef.current.destroy();
     }
-    
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const player = new EasyPlayer(videoRef.current, {
+      const player = new EasyPlayer(node, {
         videoUrl: src,
         live: true,
         autoplay: true,
         showControls: true,
         decodeType: "auto",
-        // Aquí puedes añadir más opciones de configuración de EasyPlayer si las necesitas
       });
 
       playerInstanceRef.current = player;
       
-      // Simular fin de carga después de un breve período
-      // EasyPlayer no parece tener un evento de "carga completa" claro
       const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 2500); // Ajusta este tiempo si es necesario
+        if (playerInstanceRef.current) { // Check if player still exists
+          setIsLoading(false);
+        }
+      }, 3500);
 
       player.on('error', (e: any) => {
         console.error('EasyPlayer Error:', e);
         setError('Error en la reproducción de video.');
         setIsLoading(false);
+        clearTimeout(timer);
       });
       
       player.on('play', () => {
           setIsLoading(false);
+          clearTimeout(timer);
       });
-
-
+      
+      // The cleanup logic is now handled when the node is null.
     } catch (e: any) {
       console.error("Error al inicializar EasyPlayer:", e);
       setError("No se pudo iniciar el reproductor de video.");
       setIsLoading(false);
     }
-    
-    // Cleanup: se ejecuta cuando el componente se desmonta o el src cambia.
-    return () => {
-      clearTimeout(timer);
-      if (playerInstanceRef.current) {
-        playerInstanceRef.current.destroy();
-        playerInstanceRef.current = null;
-      }
-    };
-  }, [src]);
+
+  }, [src]); // The callback will re-run if the `src` prop changes.
 
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden", className)}>
