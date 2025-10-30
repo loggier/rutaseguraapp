@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -9,13 +8,11 @@ import { cn } from "@/lib/utils";
 import { Expand, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const demoStreamUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8';
-
 const videoStreams = [
-    { id: 1, title: "Cámara 1", url: demoStreamUrl },
-    { id: 2, title: "Cámara 2", url: demoStreamUrl },
-    { id: 3, title: "Cámara 3", url: demoStreamUrl },
-    { id: 4, title: "Cámara 4", url: demoStreamUrl },
+    { id: 1, title: "Cámara 1", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
+    { id: 2, title: "Cámara 2", url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8' },
+    { id: 3, title: "Cámara 3", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8' },
+    { id: 4, title: "Cámara 4", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
 ];
 
 export default function CamerasPage() {
