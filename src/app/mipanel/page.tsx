@@ -135,13 +135,26 @@ export default function MiPanelPage() {
     
     const selectedBusForInfoWindow = useMemo(() => {
         if (!activeBusId) return null;
-        return buses.find(b => b.id === activeBusId);
+        if(activeBusId === 'temp-bus') {
+            return {
+                id: 'temp-bus',
+                matricula: 'DEMO-001',
+                conductor: { nombre: 'Conductor Demo' },
+                position: {lat: -0.157713, lng: -78.454052}
+            }
+        }
+        const bus = buses.find(b => b.id === activeBusId);
+        if(!bus) return null;
+        return {
+            ...bus,
+            position: {lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng!}
+        }
     }, [activeBusId, buses]);
 
 
     useEffect(() => {
-      if (selectedBusForInfoWindow && map && selectedBusForInfoWindow.ruta.colegio) {
-          map.panTo({lat: selectedBusForInfoWindow.ruta.colegio.lat!, lng: selectedBusForInfoWindow.ruta.colegio.lng!});
+      if (selectedBusForInfoWindow && map) {
+          map.panTo(selectedBusForInfoWindow.position);
       } else if (activeChild && map) {
           const stop = activeChild.paradas.find(p => p.activo);
           if (stop) {
@@ -153,7 +166,7 @@ export default function MiPanelPage() {
     }, [selectedBusForInfoWindow, activeChild, map, colegio]);
 
     const decodedPolylinePath = useMemo(() => {
-        if (!isLoaded || !selectedBusForInfoWindow) return [];
+        if (!isLoaded || !selectedBusForInfoWindow || !('ruta' in selectedBusForInfoWindow)) return [];
         const state = staticStates[selectedBusForInfoWindow.id];
         if (!state) return [];
 
@@ -257,24 +270,19 @@ export default function MiPanelPage() {
 
     const busMarkerIcon = useMemo(() => {
         if(!isLoaded) return null;
-        const width = 48;
-        const height = 58;
-        const pinColor = '#0D2C5B'; // Azul marino
-        const iconColor = 'white';
-
-         const svg = `
-            <svg width="${width}" height="${height}" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
-              <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
-              <path fill="${iconColor}" d="M80 176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h16v32a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-32h16a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16H80zm180 96H124a12 12 0 0 1-12-12v-40a12 12 0 0 1 12-12h136a12 12 0 0 1 12 12v40a12 12 0 0 1-12 12zM112 128a16 16 0 0 0-16 16v16a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-16a16 16 0 0 0-16-16H112z"/>
-              <circle fill="${pinColor}" cx="144" cy="320" r="16" />
-              <circle fill="${pinColor}" cx="240" cy="320" r="16" />
-            </svg>
-        `.trim();
-        const markerIcon = `data:image/svg+xml;base64,${btoa(svg)}`;
         return {
-          url: markerIcon,
-          scaledSize: new google.maps.Size(width, height),
-          anchor: new google.maps.Point(width / 2, height),
+          url: '/bus.png',
+          scaledSize: new google.maps.Size(40, 50),
+          anchor: new google.maps.Point(20, 50),
+        };
+    }, [isLoaded]);
+
+    const activeBusMarkerIcon = useMemo(() => {
+        if(!isLoaded) return null;
+        return {
+          url: '/bus.png',
+          scaledSize: new google.maps.Size(48, 60),
+          anchor: new google.maps.Point(24, 60),
         };
     }, [isLoaded]);
 
@@ -312,9 +320,8 @@ export default function MiPanelPage() {
         }
     };
 
-    const handleBusClick = (busId: string, position: {lat: number, lng: number}) => {
-        setActiveBusId(busId);
-        map?.panTo(position);
+    const handleBusClick = (busId: string) => {
+        setActiveBusId(currentId => currentId === busId ? null : busId);
     }
 
     if (loading || !isLoaded) {
@@ -343,26 +350,26 @@ export default function MiPanelPage() {
                         <MarkerF 
                             key={bus.id}
                             position={busPosition}
-                            icon={busMarkerIcon ? {...busMarkerIcon, scaledSize: new google.maps.Size(isActive ? 48 : 40, isActive ? 58 : 50)} : undefined}
+                            icon={isActive ? activeBusMarkerIcon : busMarkerIcon}
                             zIndex={isActive ? 100 : 50}
-                            onClick={() => handleBusClick(bus.id, busPosition)}
+                            onClick={() => handleBusClick(bus.id)}
                         />
                     );
                 })}
 
                 <MarkerF
                     position={{ lat: -0.157713, lng: -78.454052 }}
-                    icon={busMarkerIcon ? {...busMarkerIcon, scaledSize: new google.maps.Size(40, 50)} : undefined}
-                    zIndex={50}
-                    onClick={() => handleBusClick('temp-bus', {lat: -0.157713, lng: -78.454052})}
+                    icon={activeBusId === 'temp-bus' ? activeBusMarkerIcon : busMarkerIcon}
+                    zIndex={activeBusId === 'temp-bus' ? 100 : 50}
+                    onClick={() => handleBusClick('temp-bus')}
                 />
                 
-                {selectedBusForInfoWindow && selectedBusForInfoWindow.ruta.colegio?.lat && selectedBusForInfoWindow.ruta.colegio?.lng && (
+                {selectedBusForInfoWindow && (
                      <InfoWindowF
-                        position={{ lat: selectedBusForInfoWindow.ruta.colegio.lat, lng: selectedBusForInfoWindow.ruta.colegio.lng }}
+                        position={selectedBusForInfoWindow.position}
                         onCloseClick={() => setActiveBusId(null)}
                         options={{
-                            pixelOffset: new google.maps.Size(0, -50),
+                            pixelOffset: new google.maps.Size(0, -60),
                             disableAutoPan: true,
                         }}
                     >
@@ -388,7 +395,7 @@ export default function MiPanelPage() {
                     />
                 )}
                 
-                {selectedBusForInfoWindow && (
+                {selectedBusForInfoWindow && 'ruta' in selectedBusForInfoWindow && (
                     <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                 )}
                 
@@ -422,3 +429,5 @@ export default function MiPanelPage() {
         </div>
     );
 }
+
+    
