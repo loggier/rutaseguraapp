@@ -73,6 +73,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     
     // Cleanup: se ejecuta cuando el componente se desmonta o el src cambia.
     return () => {
+      clearTimeout(timer);
       if (playerInstanceRef.current) {
         playerInstanceRef.current.destroy();
         playerInstanceRef.current = null;
@@ -95,4 +96,9 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4 pointer-events-none">
             <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
             <p className='text-lg font-bold text-center'>No se pudo cargar el video</p>
-            <p className="text
+            <p className="text-sm text-muted-foreground text-center mt-1">{error}</p>
+        </div>
+      )}
+    </div>
+  );
+}

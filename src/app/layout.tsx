@@ -26,4 +26,10 @@ export default function RootLayout({
         <Script src="https://cdn.bootcdn.net/ajax/libs/eventemitter3/3.1.2/index.min.js" strategy="beforeInteractive" />
         <Script src="/js/EasyPlayer-pro.js" strategy="beforeInteractive" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground
+      <body className="font-body antialiased bg-background text-foreground">
+        {children}
+        <Toaster />
+      </body>
+    </html>
+  );
+}
