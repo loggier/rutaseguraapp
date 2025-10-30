@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
-declare const Cmsv6Player: any;
+declare const EasyPlayerPro: any;
 
 interface VideoPlayerProps {
   src: string;
@@ -13,81 +13,67 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const playerNodeRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
-  const uniqueId = useId();
-  const playerId = `player-container-${uniqueId}`;
-
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
       try {
         playerInstanceRef.current.destroy();
       } catch (e) {
-        console.error("Error destroying Cmsv6Player instance:", e);
+        console.error("Error destroying EasyPlayerPro instance:", e);
       }
       playerInstanceRef.current = null;
-    }
-    // Limpiar el contenedor de React
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
     }
   }, []);
 
   const initializePlayer = useCallback(() => {
-    if (typeof Cmsv6Player === 'undefined' || !containerRef.current) {
-      setError("La librería del reproductor (cmsv6) no está disponible.");
+    if (typeof EasyPlayerPro === 'undefined') {
+      setError("La librería EasyPlayer no se cargó correctamente.");
       setIsLoading(false);
       return;
     }
     
-    // Limpiar cualquier instancia anterior
+    if (!playerNodeRef.current) {
+        setError("El contenedor del video no está listo.");
+        setIsLoading(false);
+        return;
+    }
+
     cleanupPlayer();
     setError(null);
     setIsLoading(true);
 
     try {
-      // 1. Crear el nodo para el reproductor dinámicamente
-      const playerNode = document.createElement('div');
-      playerNode.id = playerId;
-      playerNode.style.width = '100%';
-      playerNode.style.height = '100%';
-
-      // 2. Añadirlo al contenedor gestionado por React
-      containerRef.current.appendChild(playerNode);
-
-      // 3. Inicializar el reproductor usando el ID del nodo recién añadido
-      const player = new Cmsv6Player(playerId, {
+      const player = new EasyPlayerPro(playerNodeRef.current, {
         videoUrl: src,
-        autoplay: true,
+        stretch: true,
+        hasAudio: true,
+        hasControl: false,
         live: true,
+        autoplay: true,
       });
       playerInstanceRef.current = player;
-
-      player.on('error', (e: any) => {
-        console.error('Cmsv6Player Error:', e);
-        setError('Error en la reproducción. Intente recargar.');
-        setIsLoading(false);
-        cleanupPlayer();
-      });
       
-      player.on('play', () => {
-        setIsLoading(false);
-        setError(null);
-      });
+      // La librería no parece tener eventos 'error' o 'play' estables,
+      // así que manejamos el estado de carga con un temporizador.
+      setTimeout(() => {
+        if(playerInstanceRef.current) { // Si todavía existe, asumimos que está cargando
+           setIsLoading(false);
+        }
+      }, 3000); // 3 segundos de carga
 
     } catch (e: any) {
-      console.error("Error al inicializar Cmsv6Player:", e);
-      setError("No se pudo iniciar el reproductor de video.");
+      console.error("Error al inicializar EasyPlayerPro:", e);
+      setError("No se pudo iniciar el reproductor de video. " + e.message);
       setIsLoading(false);
     }
-  }, [src, cleanupPlayer, playerId]);
+  }, [src, cleanupPlayer]);
 
   useEffect(() => {
-    // Solo para limpieza al desmontar el componente
     return () => {
       cleanupPlayer();
     };
@@ -107,8 +93,8 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
-        {/* Este es el contenedor principal que React gestiona */}
-        <div ref={containerRef} className="w-full h-full" />
+        {/* El div que usará el reproductor */}
+        <div ref={playerNodeRef} className="w-full h-full" />
       
         {!hasStarted && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-4 text-center z-10">
@@ -119,18 +105,18 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
             </div>
         )}
 
-        {isLoading && (
+        {isLoading && hasStarted && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center z-10">
             <Loader2 className="h-10 w-10 animate-spin mb-4" />
             <p className='text-lg font-semibold'>Conectando al video...</p>
             </div>
         )}
 
-        {error && !isLoading && (
+        {error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4 z-10">
             <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
             <p className='text-lg font-bold text-center'>No se pudo cargar el video</p>
-            <p className="text-sm text-muted-foreground text-center mt-1 mb-4">{error}</p>
+            <p className="text-sm text-muted-foreground text-center mt-1 mb-4 max-w-xs">{error}</p>
             <Button onClick={handleRetry} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reintentar

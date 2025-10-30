@@ -9,10 +9,10 @@ import { Expand, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const videoStreams = [
-    { id: 1, title: "Cámara Frontal", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=1&Stream=1&ttxplayer=1&ttxver=1" },
-    { id: 2, title: "Cámara Interior 1", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=2&Stream=1&ttxplayer=1&ttxver=1" },
-    { id: 3, title: "Cámara Interior 2", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=3&Stream=1&ttxplayer=1&ttxver=1" },
-    { id: 4, title: "Cámara Trasera", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=4&Stream=1&ttxplayer=1&ttxver=1" },
+    { id: 1, title: "Cámara Frontal", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=1&Stream=1" },
+    { id: 2, title: "Cámara Interior 1", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=2&Stream=1" },
+    { id: 3, title: "Cámara Interior 2", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=3&Stream=1" },
+    { id: 4, title: "Cámara Trasera", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=4&Stream=1" },
 ];
 
 export default function CamerasPage() {
