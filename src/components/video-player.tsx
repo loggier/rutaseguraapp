@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
-// Hacemos que EasyPlayer sea accesible globalmente en el scope de este componente
 declare const EasyPlayer: any;
 
 interface VideoPlayerProps {
@@ -34,10 +33,12 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   useEffect(() => {
     let checkInterval: NodeJS.Timeout;
     let connectionTimeout: NodeJS.Timeout;
+    let isMounted = true;
 
     const initializePlayer = () => {
-      if (!videoNodeRef.current || playerInstanceRef.current) return;
-
+      if (!isMounted || !videoNodeRef.current || playerInstanceRef.current) return;
+      
+      cleanupPlayer();
       setIsLoading(true);
       setError(null);
 
@@ -47,7 +48,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
           live: true,
           autoplay: true,
           showControls: false,
-          decodeType: "auto",
+          decodeType: 'flv', // Forzar decodificador FLV para streams ws://
           hardDecode: false,
           debug: false,
         });
@@ -55,6 +56,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
         playerInstanceRef.current = player;
         
         player.on('error', (e: any) => {
+          if (!isMounted) return;
           console.error('EasyPlayer Error:', e);
           setError('Error en la reproducción. Intente recargar.');
           setIsLoading(false);
@@ -63,13 +65,14 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
         });
         
         player.on('play', () => {
+          if (!isMounted) return;
           setIsLoading(false);
           setError(null);
           clearTimeout(connectionTimeout);
         });
-        
+
         connectionTimeout = setTimeout(() => {
-          if (isLoading) {
+          if (isLoading && isMounted) {
             setError('La conexión está tardando demasiado.');
             setIsLoading(false);
             cleanupPlayer();
@@ -77,6 +80,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
         }, 15000); // 15 segundos de timeout
 
       } catch (e: any) {
+        if (!isMounted) return;
         console.error("Error al inicializar EasyPlayer:", e);
         setError("No se pudo iniciar el reproductor de video.");
         setIsLoading(false);
@@ -90,19 +94,18 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       }
     };
 
-    // Inicia la comprobación de la librería
     checkInterval = setInterval(checkForLibrary, 100);
 
-    // Timeout por si la librería nunca carga
     const libraryTimeout = setTimeout(() => {
-      if (!playerInstanceRef.current) {
+      if (!playerInstanceRef.current && isMounted) {
         clearInterval(checkInterval);
         setError('La librería EasyPlayer no se cargó correctamente.');
         setIsLoading(false);
       }
-    }, 10000); // 10 segundos de timeout
+    }, 10000); // 10 segundos
 
     return () => {
+      isMounted = false;
       clearInterval(checkInterval);
       clearTimeout(libraryTimeout);
       clearTimeout(connectionTimeout);
