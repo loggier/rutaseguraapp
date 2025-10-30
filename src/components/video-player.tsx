@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Loader2, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
 declare const Cmsv6Player: any;
@@ -14,14 +14,12 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const playerInstanceRef = useRef<any>(null);
-  const videoNodeRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   // Generate a unique ID for each player instance
   const playerId = React.useMemo(() => `player-${Math.random().toString(36).substr(2, 9)}`, []);
-
 
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
@@ -34,94 +32,81 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     }
   }, []);
 
-  useEffect(() => {
-    let checkInterval: NodeJS.Timeout;
-    let isMounted = true;
-
-    const initializePlayer = () => {
-      if (!isMounted || !videoNodeRef.current || !document.getElementById(playerId)) return;
-      
-      cleanupPlayer();
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const player = new Cmsv6Player(playerId, {
-          videoUrl: src,
-          autoplay: true,
-          live: true,
-        });
-
-        playerInstanceRef.current = player;
-        
-        player.on('error', (e: any) => {
-          if (!isMounted) return;
-          console.error('Cmsv6Player Error:', e);
-          setError('Error en la reproducción. Intente recargar.');
-          setIsLoading(false);
-          cleanupPlayer();
-        });
-        
-        player.on('play', () => {
-          if (!isMounted) return;
-          setIsLoading(false);
-          setError(null);
-        });
-
-      } catch (e: any) {
-        if (!isMounted) return;
-        console.error("Error al inicializar Cmsv6Player:", e);
-        setError("No se pudo iniciar el reproductor de video.");
-        setIsLoading(false);
-      }
-    };
+  const initializePlayer = useCallback(() => {
+    if (typeof window === 'undefined' || !document.getElementById(playerId)) {
+      setError("El entorno de renderizado no es válido.");
+      return;
+    }
     
-    // Esperar a que la librería Cmsv6Player esté disponible en window
-    if (typeof window !== 'undefined') {
-      if ((window as any).Cmsv6Player) {
-          initializePlayer();
-      } else {
-          let attempts = 0;
-          checkInterval = setInterval(() => {
-              attempts++;
-              if ((window as any).Cmsv6Player) {
-                  clearInterval(checkInterval);
-                  initializePlayer();
-              } else if (attempts > 50) { // Esperar hasta 5 segundos
-                  clearInterval(checkInterval);
-                   if (isMounted) {
-                      setIsLoading(false);
-                  }
-              }
-          }, 100);
-      }
+    if (typeof Cmsv6Player === 'undefined') {
+        setError("La librería del reproductor (Cmsv6) no se cargó correctamente.");
+        setIsLoading(false);
+        return;
     }
 
-    return () => {
-      isMounted = false;
-      if (checkInterval) clearInterval(checkInterval);
-      cleanupPlayer();
-    };
-  }, [src, retryCount, cleanupPlayer, playerId]);
+    cleanupPlayer();
+    setIsLoading(true);
+    setError(null);
+    setHasStarted(true);
 
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
+    try {
+      const player = new Cmsv6Player(playerId, {
+        videoUrl: src,
+        autoplay: true,
+        live: true,
+      });
+      playerInstanceRef.current = player;
+
+      player.on('error', (e: any) => {
+        console.error('Cmsv6Player Error:', e);
+        setError('Error en la reproducción. Intente recargar.');
+        setIsLoading(false);
+        cleanupPlayer();
+      });
+      
+      player.on('play', () => {
+        setIsLoading(false);
+        setError(null);
+      });
+
+    } catch (e: any) {
+      console.error("Error al inicializar Cmsv6Player:", e);
+      setError("No se pudo iniciar el reproductor de video.");
+      setIsLoading(false);
+    }
+  }, [src, playerId, cleanupPlayer]);
+
+
+  const handleStartPlayback = () => {
+    initializePlayer();
   };
 
+  const handleRetry = () => {
+    initializePlayer();
+  };
+  
   return (
-    <div ref={videoNodeRef} className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden", className)}>
-       {/* Cmsv6Player expects a child div with an ID */}
-      <div id={playerId} className="w-full h-full" />
+    <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
+       <div id={playerId} className="w-full h-full" />
+      
+      {!hasStarted && !isLoading && !error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white z-10">
+           <Button variant="ghost" size="icon" onClick={handleStartPlayback} className="h-20 w-20">
+             <PlayCircle className="h-20 w-20 text-white/80 hover:text-white transition-colors" />
+           </Button>
+           <p className="mt-2 font-semibold">Iniciar Video</p>
+        </div>
+      )}
 
       {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center z-10">
           <Loader2 className="h-10 w-10 animate-spin mb-4" />
           <p className='text-lg font-semibold'>Conectando al video en vivo...</p>
         </div>
       )}
 
       {error && !isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4 z-10">
           <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
           <p className='text-lg font-bold text-center'>No se pudo cargar el video</p>
           <p className="text-sm text-muted-foreground text-center mt-1 mb-4">{error}</p>
