@@ -3,12 +3,10 @@
 import { PageHeader } from "@/components/page-header";
 import { VideoPlayer } from "@/components/video-player";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { VideoThumbnail } from "./video-thumbnail";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Bus } from "lucide-react";
-
-declare const EasyPlayerPro: any;
 
 const videoStreams = [
     { id: 1, title: "Cámara 1", url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8' },
@@ -20,71 +18,21 @@ const videoStreams = [
 type Stream = typeof videoStreams[0];
 
 export default function CamerasPage() {
-    const playerInstanceRef = useRef<any>(null);
-    const playerNodeRef = useRef<HTMLDivElement>(null);
-    
     const [activeStream, setActiveStream] = useState<Stream | null>(null);
-    const [playerState, setPlayerState] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Cleanup player on unmount
+    // Selecciona la primera cámara para que se reproduzca automáticamente al cargar.
     useEffect(() => {
-        const player = playerInstanceRef.current;
-        return () => {
-            if (player) {
-                try {
-                    player.destroy();
-                } catch (e) {
-                    console.error("Error destroying EasyPlayerPro instance:", e);
-                }
-                playerInstanceRef.current = null;
+        const timer = setTimeout(() => {
+            if (!activeStream) {
+                setActiveStream(videoStreams[0]);
             }
-        };
-    }, []);
+        }, 3000); // 3 segundos de retraso
+        return () => clearTimeout(timer);
+    }, [activeStream]);
 
     const handleStreamChange = useCallback((stream: Stream) => {
-        if (!playerNodeRef.current || typeof EasyPlayerPro === 'undefined') {
-            setPlayerState('error');
-            setErrorMessage("La librería del reproductor no está disponible.");
-            return;
-        }
-
-        // Set loading state immediately
-        setPlayerState('loading');
-        setErrorMessage(null);
         setActiveStream(stream);
-        
-        // Use setTimeout to allow React to render the loading state before we block the thread
-        setTimeout(async () => {
-            // Destroy previous instance if it exists
-            if (playerInstanceRef.current) {
-                try {
-                    playerInstanceRef.current.destroy();
-                } catch (e) {
-                    console.warn("Could not destroy previous player instance", e);
-                }
-            }
-
-            try {
-                // Create a new player instance
-                const player = new EasyPlayerPro(playerNodeRef.current, {
-                    stretch: true,
-                    hasAudio: true,
-                    hasControl: false,
-                });
-                playerInstanceRef.current = player;
-                
-                await player.play(stream.url);
-                setPlayerState('playing');
-
-            } catch(e: any) {
-                console.error("Error en el método play:", e);
-                setPlayerState('error');
-                setErrorMessage("No se pudo conectar al stream de video. " + e.message);
-            }
-        }, 0);
     }, []);
-
 
     return (
         <div className="flex flex-col h-full">
@@ -99,11 +47,9 @@ export default function CamerasPage() {
                 {/* Main Player */}
                 <div className="w-full lg:col-span-2 flex flex-col gap-4">
                     <h2 className="text-xl font-bold tracking-tight">{activeStream?.title || 'Selecciona una cámara'}</h2>
-                    <VideoPlayer
-                        playerNodeRef={playerNodeRef}
-                        playerState={playerState}
-                        errorMessage={errorMessage}
-                        onRetry={() => activeStream && handleStreamChange(activeStream)}
+                    <VideoPlayer 
+                        key={activeStream?.id || 'initial'} // key para forzar el reinicio si es necesario
+                        streamUrl={activeStream?.url}
                     />
                 </div>
                 
