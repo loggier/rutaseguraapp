@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { Expand, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Usaremos el mismo stream para los 4 reproductores como ejemplo
 const videoStreams = [
     { id: 1, title: "Cámara Frontal", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=1&Stream=1&ttxplayer=1&ttxver=1" },
     { id: 2, title: "Cámara Interior 1", url: "ws://154.53.38.117:6604/3/3?AVType=1&jsession=FB01412CBF9E4BBFD018B48E118A9F9F&DevIDNO=000000593003&Channel=2&Stream=1&ttxplayer=1&ttxver=1" },

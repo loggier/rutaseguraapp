@@ -22,8 +22,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
           rel="stylesheet"
         />
-        {/* Usamos el script externo para EasyPlayer */}
-        <Script src="https://s1.flizo.app/reproductor/js/EasyPlayer-pro.js" strategy="beforeInteractive" />
+        {/* Usamos el script externo para el nuevo reproductor cmsv6 */}
+        <Script src="http://154.53.38.117/808gps/js/cmsv6player.min.js?tv=7.33.0.7_20240508-1750871237056" strategy="beforeInteractive" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         {children}

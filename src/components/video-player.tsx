@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
-declare const EasyPlayer: any;
+declare const Cmsv6Player: any;
 
 interface VideoPlayerProps {
   src: string;
@@ -24,7 +24,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       try {
         playerInstanceRef.current.destroy();
       } catch (e) {
-        console.error("Error destroying EasyPlayer instance:", e);
+        console.error("Error destroying Cmsv6Player instance:", e);
       }
       playerInstanceRef.current = null;
     }
@@ -32,7 +32,6 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
 
   useEffect(() => {
     let checkInterval: NodeJS.Timeout;
-    let connectionTimeout: NodeJS.Timeout;
     let isMounted = true;
 
     const initializePlayer = () => {
@@ -43,24 +42,19 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       setError(null);
 
       try {
-        const player = new EasyPlayer(videoNodeRef.current, {
+        const player = new Cmsv6Player(videoNodeRef.current, {
           videoUrl: src,
-          live: true,
           autoplay: true,
-          showControls: false,
-          decodeType: 'flv', // Forzar decodificador FLV para streams ws://
-          hardDecode: false,
-          debug: false,
+          live: true,
         });
 
         playerInstanceRef.current = player;
         
         player.on('error', (e: any) => {
           if (!isMounted) return;
-          console.error('EasyPlayer Error:', e);
+          console.error('Cmsv6Player Error:', e);
           setError('Error en la reproducción. Intente recargar.');
           setIsLoading(false);
-          clearTimeout(connectionTimeout);
           cleanupPlayer();
         });
         
@@ -68,27 +62,18 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
           if (!isMounted) return;
           setIsLoading(false);
           setError(null);
-          clearTimeout(connectionTimeout);
         });
-
-        connectionTimeout = setTimeout(() => {
-          if (isLoading && isMounted) {
-            setError('La conexión está tardando demasiado.');
-            setIsLoading(false);
-            cleanupPlayer();
-          }
-        }, 15000); // 15 segundos de timeout
 
       } catch (e: any) {
         if (!isMounted) return;
-        console.error("Error al inicializar EasyPlayer:", e);
+        console.error("Error al inicializar Cmsv6Player:", e);
         setError("No se pudo iniciar el reproductor de video.");
         setIsLoading(false);
       }
     };
     
     const checkForLibrary = () => {
-      if (typeof window !== 'undefined' && (window as any).EasyPlayer) {
+      if (typeof window !== 'undefined' && (window as any).Cmsv6Player) {
         clearInterval(checkInterval);
         initializePlayer();
       }
@@ -99,7 +84,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     const libraryTimeout = setTimeout(() => {
       if (!playerInstanceRef.current && isMounted) {
         clearInterval(checkInterval);
-        setError('La librería EasyPlayer no se cargó correctamente.');
+        setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
         setIsLoading(false);
       }
     }, 10000); // 10 segundos
@@ -108,10 +93,9 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       isMounted = false;
       clearInterval(checkInterval);
       clearTimeout(libraryTimeout);
-      clearTimeout(connectionTimeout);
       cleanupPlayer();
     };
-  }, [src, retryCount, cleanupPlayer, isLoading]);
+  }, [src, retryCount, cleanupPlayer]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
