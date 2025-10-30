@@ -14,75 +14,89 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const playerInstanceRef = useRef<any>(null);
+  const videoNodeRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const videoRef = useCallback((node: HTMLDivElement | null) => {
+  const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
-        playerInstanceRef.current.destroy();
+        try {
+            playerInstanceRef.current.destroy();
+        } catch (e) {
+            console.error("Error destroying EasyPlayer instance:", e);
+        }
         playerInstanceRef.current = null;
     }
+  }, []);
 
-    if (!node) {
+
+  const initializePlayer = useCallback(() => {
+    if (!videoNodeRef.current) {
       return;
     }
-    
-    if (typeof EasyPlayer === 'undefined') {
-      setError('La librería EasyPlayer no se ha cargado.');
+     if (typeof EasyPlayer === 'undefined' || typeof window.EasyPlayer === 'undefined') {
+      setError('La librería EasyPlayer no se ha cargado correctamente.');
       setIsLoading(false);
       return;
     }
 
+    cleanupPlayer();
     setIsLoading(true);
     setError(null);
-
-    const initializePlayer = () => {
-      try {
-        const player = new EasyPlayer(node, {
-          videoUrl: src,
-          live: true,
-          autoplay: true,
-          showControls: false,
-          decodeType: "auto",
-          // Desactivar la decodificación por hardware puede ayudar con algunos streams
-          hardDecode: false, 
-        });
-
-        playerInstanceRef.current = player;
-        
-        let connectionTimeout: NodeJS.Timeout;
-
-        player.on('error', (e: any) => {
-          console.error('EasyPlayer Error:', e);
-          setError('Error en la reproducción. Intente recargar.');
-          setIsLoading(false);
-          if (connectionTimeout) clearTimeout(connectionTimeout);
-        });
-        
-        player.on('play', () => {
-          setIsLoading(false);
-          if (connectionTimeout) clearTimeout(connectionTimeout);
-        });
-
-        // Agregamos un timeout por si el evento 'play' nunca se dispara
-        connectionTimeout = setTimeout(() => {
-            if(isLoading && playerInstanceRef.current){
-                setError('La conexión está tardando demasiado.');
-                setIsLoading(false);
-            }
-        }, 10000); // 10 segundos
-
-      } catch (e: any) {
-        console.error("Error al inicializar EasyPlayer:", e);
-        setError("No se pudo iniciar el reproductor de video.");
-        setIsLoading(false);
-      }
-    };
     
-    initializePlayer();
+    try {
+      const player = new EasyPlayer(videoNodeRef.current, {
+        videoUrl: src,
+        live: true,
+        autoplay: true,
+        showControls: false,
+        decodeType: "auto",
+        hardDecode: false,
+        debug: false, // Desactivar logs de consola de EasyPlayer
+      });
 
-  }, [src, retryCount]);
+      playerInstanceRef.current = player;
+      
+      let connectionTimeout: NodeJS.Timeout;
+
+      player.on('error', (e: any) => {
+        console.error('EasyPlayer Error:', e);
+        setError('Error en la reproducción. Intente recargar.');
+        setIsLoading(false);
+        if (connectionTimeout) clearTimeout(connectionTimeout);
+        cleanupPlayer();
+      });
+      
+      player.on('play', () => {
+        setIsLoading(false);
+        setError(null);
+        if (connectionTimeout) clearTimeout(connectionTimeout);
+      });
+
+      // Timeout por si 'play' o 'error' no se disparan
+      connectionTimeout = setTimeout(() => {
+          if(playerInstanceRef.current && isLoading) {
+              setError('La conexión está tardando demasiado.');
+              setIsLoading(false);
+              cleanupPlayer();
+          }
+      }, 15000); // 15 segundos de espera
+
+    } catch (e: any) {
+      console.error("Error al inicializar EasyPlayer:", e);
+      setError("No se pudo iniciar el reproductor de video.");
+      setIsLoading(false);
+    }
+  }, [src, isLoading, cleanupPlayer]);
+  
+  useEffect(() => {
+    initializePlayer();
+    return () => {
+      cleanupPlayer();
+    };
+  }, [retryCount, initializePlayer, cleanupPlayer]);
+
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -90,7 +104,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
 
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden", className)}>
-      <div ref={videoRef} className="w-full h-full" />
+      <div ref={videoNodeRef} className="w-full h-full" />
 
       {isLoading && (
          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white pointer-events-none p-4 text-center">
