@@ -24,6 +24,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { StudentMarker } from './student-marker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { VideoPlayer } from '@/components/video-player';
 
 
 type StaticState = {
@@ -54,6 +56,8 @@ export default function MiPanelPage() {
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
     const { toast } = useToast();
     const isMobile = useIsMobile();
+    
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     const { isLoaded, loadError } = useGoogleMaps();
     
@@ -219,6 +223,11 @@ export default function MiPanelPage() {
         const width = size + shadowOffset * 2;
         const height = size + pinHeight + shadowOffset * 2;
         const borderColor = '#f44336';
+        
+        const centerX = width / 2;
+        const centerY = size / 2;
+        const totalHeight = size + pinHeight;
+
 
         const svg = `
             <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,9 +244,9 @@ export default function MiPanelPage() {
                     </filter>
                 </defs>
                 <g filter="url(#shadow-colegio)">
-                    <path d="M ${width / 2} ${size + pinHeight} L ${width / 2 - pinHeight / 1.5} ${size} H ${width / 2 + pinHeight / 1.5} Z" fill="${borderColor}" />
-                    <circle cx="${width / 2}" cy="${size / 2}" r="${size / 2}" fill="${borderColor}"/>
-                    <circle cx="${width / 2}" cy="${size / 2}" r="${(size - borderWidth) / 2}" fill="white"/>
+                    <path d="M ${centerX} ${totalHeight} L ${centerX - (pinHeight / 1.5)} ${size} H ${centerX + (pinHeight / 1.5)} Z" fill="${borderColor}" />
+                    <circle cx="${centerX}" cy="${centerY}" r="${size / 2}" fill="${borderColor}"/>
+                    <circle cx="${centerX}" cy="${centerY}" r="${(size - borderWidth * 2) / 2}" fill="white"/>
                     <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="${size * 0.5}" font-weight="bold" fill="${borderColor}" dy=".1em">C</text>
                 </g>
             </svg>`.trim();
@@ -245,7 +254,7 @@ export default function MiPanelPage() {
         return {
             url: `data:image/svg+xml;base64,${btoa(svg)}`,
             scaledSize: new google.maps.Size(width, height),
-            anchor: new google.maps.Point(width / 2, height - shadowOffset),
+            anchor: new google.maps.Point(centerX, totalHeight - shadowOffset),
         };
     }, [isLoaded]);
 
@@ -291,6 +300,8 @@ export default function MiPanelPage() {
         return <div className="p-4 text-destructive">Error al cargar el mapa.</div>;
     }
     
+    const exampleVideoStreamUrl = "https://video.seguricartrack.com/3/3?AVType=1&jsession=c6e9a45405bb4d0ab180137323be1015&DevIDNO=%20000000593007&Channel=1&Stream=1";
+
     return (
         <div className="h-full w-full relative">
             <GoogleMap
@@ -316,6 +327,7 @@ export default function MiPanelPage() {
                                 anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
                             }}
                             zIndex={isActive ? 100 : 50}
+                            onClick={() => setVideoUrl(exampleVideoStreamUrl)}
                         />
                     );
                 })}
@@ -328,6 +340,7 @@ export default function MiPanelPage() {
                         anchor: new google.maps.Point(16, 16),
                     }}
                     zIndex={50}
+                    onClick={() => setVideoUrl(exampleVideoStreamUrl)}
                 />
 
                 {colegio?.lat && colegio.lng && colegioMarkerIcon && (
@@ -345,6 +358,18 @@ export default function MiPanelPage() {
                 
                  {hijoStopMarkers}
             </GoogleMap>
+
+            <Dialog open={!!videoUrl} onOpenChange={(open) => !open && setVideoUrl(null)}>
+                <DialogContent className="max-w-4xl p-0 border-0">
+                    <DialogHeader className='p-4 pb-0'>
+                        <DialogTitle>Video en Vivo del Autobús</DialogTitle>
+                        <DialogDescription>
+                            Transmisión en tiempo real desde el vehículo.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {videoUrl && <VideoPlayer src={videoUrl} />}
+                </DialogContent>
+            </Dialog>
             
              <div className="absolute bottom-56 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
