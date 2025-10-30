@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
@@ -8,14 +9,13 @@ import { cn } from "@/lib/utils";
 import { Expand, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const baseJsession = 'c6e9a45405bb4d0ab180137323be1015';
-const baseDevId = '000000593007';
+const demoStreamUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
 
 const videoStreams = [
-    { id: 1, title: "Cámara Frontal", url: `https://video-ruta.vemontech.com/3/3?AVType=1&jsession=${baseJsession}&DevIDNO=%20${baseDevId}&Channel=1&Stream=1` },
-    { id: 2, title: "Cámara Interior 1", url: `https://video-ruta.vemontech.com/3/3?AVType=1&jsession=${baseJsession}&DevIDNO=%20${baseDevId}&Channel=2&Stream=1` },
-    { id: 3, title: "Cámara Interior 2", url: `https://video-ruta.vemontech.com/3/3?AVType=1&jsession=${baseJsession}&DevIDNO=%20${baseDevId}&Channel=3&Stream=1` },
-    { id: 4, title: "Cámara Trasera", url: `https://video-ruta.vemontech.com/3/3?AVType=1&jsession=${baseJsession}&DevIDNO=%20${baseDevId}&Channel=4&Stream=1` },
+    { id: 1, title: "Cámara 1", url: demoStreamUrl },
+    { id: 2, title: "Cámara 2", url: demoStreamUrl },
+    { id: 3, title: "Cámara 3", url: demoStreamUrl },
+    { id: 4, title: "Cámara 4", url: demoStreamUrl },
 ];
 
 export default function CamerasPage() {
