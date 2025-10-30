@@ -22,8 +22,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
           rel="stylesheet"
         />
-        <Script src="https://cdn.bootcdn.net/ajax/libs/qs/6.9.3/qs.min.js" strategy="beforeInteractive" />
-        <Script src="https://cdn.bootcdn.net/ajax/libs/eventemitter3/3.1.2/index.min.js" strategy="beforeInteractive" />
+        <Script src="/js/qs.min.js" strategy="beforeInteractive" />
+        <Script src="/js/eventemitter3.min.js" strategy="beforeInteractive" />
         <Script src="/js/EasyPlayer-pro.js" strategy="beforeInteractive" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
@@ -33,3 +33,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
