@@ -4,7 +4,7 @@
 import { PageHeader } from "@/components/page-header";
 import { VideoPlayer } from "@/components/video-player";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VideoThumbnail } from "./video-thumbnail";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Bus } from "lucide-react";
@@ -20,6 +20,15 @@ type Stream = typeof videoStreams[0];
 
 export default function CamerasPage() {
     const [activeStream, setActiveStream] = useState<Stream>(videoStreams[0]);
+    const [isPlaybackInitiated, setIsPlaybackInitiated] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsPlaybackInitiated(true);
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <div className="flex flex-col h-full">
@@ -34,7 +43,13 @@ export default function CamerasPage() {
                 {/* Main Player */}
                 <div className="w-full lg:col-span-2 flex flex-col gap-4">
                     <h2 className="text-xl font-bold tracking-tight">{activeStream.title}</h2>
-                    {activeStream && <VideoPlayer key={activeStream.id} src={activeStream.url} />}
+                    {activeStream && (
+                        <VideoPlayer 
+                            key={activeStream.id} 
+                            src={activeStream.url} 
+                            isPlaybackInitiated={activeStream.id === videoStreams[0].id ? isPlaybackInitiated : false}
+                        />
+                    )}
                 </div>
                 
                 {/* Video List */}

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
@@ -10,9 +11,10 @@ declare const EasyPlayerPro: any;
 interface VideoPlayerProps {
   src: string;
   className?: string;
+  isPlaybackInitiated?: boolean;
 }
 
-export function VideoPlayer({ src, className }: VideoPlayerProps) {
+export function VideoPlayer({ src, className, isPlaybackInitiated = false }: VideoPlayerProps) {
   const playerNodeRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,13 +40,13 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     };
   }, [cleanupPlayer]);
 
-  const initializeAndPlayPlayer = () => {
+  const initializeAndPlayPlayer = useCallback(() => {
     if (typeof EasyPlayerPro === 'undefined' || !playerNodeRef.current) {
       setError("La librería del reproductor no se ha cargado correctamente.");
       return;
     }
     
-    cleanupPlayer(); // Clean up any existing instance
+    cleanupPlayer(); // Clean up any existing instance before creating a new one
 
     try {
       const player = new EasyPlayerPro(playerNodeRef.current, {
@@ -70,13 +72,20 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       setError("No se pudo iniciar el reproductor. " + e.message);
       setIsLoading(false);
     }
-  };
+  }, [src, cleanupPlayer]);
 
-  const handleStartPlayback = () => {
+  const handleStartPlayback = useCallback(() => {
+    if (hasStarted) return;
     setHasStarted(true);
     initializeAndPlayPlayer();
-  };
+  }, [hasStarted, initializeAndPlayPlayer]);
   
+  useEffect(() => {
+    if (isPlaybackInitiated && !hasStarted) {
+        handleStartPlayback();
+    }
+  }, [isPlaybackInitiated, hasStarted, handleStartPlayback]);
+
   const handleRetry = () => {
      setError(null);
      setIsLoading(false);
