@@ -320,6 +320,16 @@ export default function MiPanelPage() {
                     );
                 })}
 
+                <MarkerF
+                    position={{ lat: -2.115191, lng: -79.947008 }}
+                    icon={{
+                        url: '/bus.png',
+                        scaledSize: new google.maps.Size(32, 32),
+                        anchor: new google.maps.Point(16, 16),
+                    }}
+                    zIndex={50}
+                />
+
                 {colegio?.lat && colegio.lng && colegioMarkerIcon && (
                     <MarkerF 
                         position={{ lat: colegio.lat, lng: colegio.lng }}
