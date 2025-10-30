@@ -72,27 +72,31 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       }
     };
     
-    const checkForLibrary = () => {
-      if (typeof window !== 'undefined' && (window as any).Cmsv6Player) {
-        clearInterval(checkInterval);
-        initializePlayer();
-      }
-    };
-
-    checkInterval = setInterval(checkForLibrary, 100);
-
-    const libraryTimeout = setTimeout(() => {
-      if (!playerInstanceRef.current && isMounted) {
-        clearInterval(checkInterval);
-        setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
-        setIsLoading(false);
-      }
-    }, 10000); // 10 segundos
+    // Esperar a que la librería Cmsv6Player esté disponible en window
+    if (typeof window !== 'undefined') {
+        if ((window as any).Cmsv6Player) {
+            initializePlayer();
+        } else {
+            let attempts = 0;
+            checkInterval = setInterval(() => {
+                attempts++;
+                if ((window as any).Cmsv6Player) {
+                    clearInterval(checkInterval);
+                    initializePlayer();
+                } else if (attempts > 50) { // Esperar hasta 5 segundos
+                    clearInterval(checkInterval);
+                     if (isMounted) {
+                        setError('La librería del reproductor (cmsv6) no se cargó correctamente.');
+                        setIsLoading(false);
+                    }
+                }
+            }, 100);
+        }
+    }
 
     return () => {
       isMounted = false;
-      clearInterval(checkInterval);
-      clearTimeout(libraryTimeout);
+      if (checkInterval) clearInterval(checkInterval);
       cleanupPlayer();
     };
   }, [src, retryCount, cleanupPlayer]);
