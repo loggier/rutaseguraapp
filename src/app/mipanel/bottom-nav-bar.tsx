@@ -11,7 +11,7 @@ export function BottomNavBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-20 h-20 bg-primary text-primary-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:hidden">
-      <nav className="grid h-full grid-cols-4 items-center">
+      <nav className="grid h-full grid-cols-5 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (

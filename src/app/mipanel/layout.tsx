@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback, useContext, createContext } fr
 import { usePathname, useRouter } from 'next/navigation';
 import { useLoadScript } from '@react-google-maps/api';
 import {
-  Map, Users, Settings, Bell, LogOut, Loader2,
+  Map, Users, Settings, Bell, LogOut, Loader2, Video
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
+  { href: '/mipanel/camaras', icon: Video, label: 'Cámaras' },
   { href: '/mipanel/hijos', icon: Users, label: 'Mis Hijos' },
   { href: '/mipanel/notifications', icon: Bell, label: 'Alertas' },
   { href: '/mipanel/settings', icon: Settings, label: 'Ajustes' },

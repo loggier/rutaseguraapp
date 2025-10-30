@@ -8,7 +8,7 @@ import {
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
-import { Loader2, LocateFixed } from 'lucide-react';
+import { Loader2, LocateFixed, Video } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
 import { useParentDashboard, useGoogleMaps } from './layout';
@@ -24,8 +24,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { StudentMarker } from './student-marker';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { VideoPlayer } from '@/components/video-player';
+import { useRouter } from 'next/navigation';
 
 
 type StaticState = {
@@ -48,6 +47,7 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 export default function MiPanelPage() {
     const { user } = useUser();
     const { hijos, buses, colegio, loading } = useParentDashboard();
+    const router = useRouter();
     
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -56,8 +56,6 @@ export default function MiPanelPage() {
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
     const { toast } = useToast();
     const isMobile = useIsMobile();
-    
-    const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     const { isLoaded, loadError } = useGoogleMaps();
     
@@ -299,8 +297,6 @@ export default function MiPanelPage() {
     if (loadError) {
         return <div className="p-4 text-destructive">Error al cargar el mapa.</div>;
     }
-    
-    const exampleVideoStreamUrl = "https://video.seguricartrack.com/3/3?AVType=1&jsession=c6e9a45405bb4d0ab180137323be1015&DevIDNO=%20000000593007&Channel=1&Stream=1";
 
     return (
         <div className="h-full w-full relative">
@@ -327,7 +323,7 @@ export default function MiPanelPage() {
                                 anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
                             }}
                             zIndex={isActive ? 100 : 50}
-                            onClick={() => setVideoUrl(exampleVideoStreamUrl)}
+                            onClick={() => router.push('/mipanel/camaras')}
                         />
                     );
                 })}
@@ -340,7 +336,7 @@ export default function MiPanelPage() {
                         anchor: new google.maps.Point(16, 16),
                     }}
                     zIndex={50}
-                    onClick={() => setVideoUrl(exampleVideoStreamUrl)}
+                    onClick={() => router.push('/mipanel/camaras')}
                 />
 
                 {colegio?.lat && colegio.lng && colegioMarkerIcon && (
@@ -358,18 +354,6 @@ export default function MiPanelPage() {
                 
                  {hijoStopMarkers}
             </GoogleMap>
-
-            <Dialog open={!!videoUrl} onOpenChange={(open) => !open && setVideoUrl(null)}>
-                <DialogContent className="max-w-4xl p-0 border-0">
-                    <DialogHeader className='p-4 pb-0'>
-                        <DialogTitle>Video en Vivo del Autobús</DialogTitle>
-                        <DialogDescription>
-                            Transmisión en tiempo real desde el vehículo.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {videoUrl && <VideoPlayer src={videoUrl} />}
-                </DialogContent>
-            </Dialog>
             
              <div className="absolute bottom-56 right-4 z-20 flex flex-col gap-2 md:bottom-4">
                 <Button variant="outline" size="icon" className='h-12 w-12 rounded-full bg-background shadow-lg' onClick={locateUser}>
