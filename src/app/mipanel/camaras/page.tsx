@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 import { Expand, Shrink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const vemontechBaseUrl = 'https://video-ruta.vemontech.com/3/3?AVType=1&jsession=c6e9a45405bb4d0ab180137323be1015&DevIDNO=%20000000593007&Stream=1';
+const demoStreamUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8';
 
 const videoStreams = [
-    { id: 1, title: "Cámara 1", url: `${vemontechBaseUrl}&Channel=1` },
-    { id: 2, title: "Cámara 2", url: `${vemontechBaseUrl}&Channel=2` },
-    { id: 3, title: "Cámara 3", url: `${vemontechBaseUrl}&Channel=3` },
-    { id: 4, title: "Cámara 4", url: `${vemontechBaseUrl}&Channel=4` },
+    { id: 1, title: "Cámara 1", url: demoStreamUrl },
+    { id: 2, title: "Cámara 2", url: demoStreamUrl },
+    { id: 3, title: "Cámara 3", url: demoStreamUrl },
+    { id: 4, title: "Cámara 4", url: demoStreamUrl },
 ];
 
 export default function CamerasPage() {
