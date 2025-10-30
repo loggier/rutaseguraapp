@@ -18,9 +18,8 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   
-  // Generate a unique ID for each player instance
   const uniqueId = useId();
-  const playerId = `player-${uniqueId}`;
+  const playerId = `player-container-${uniqueId}`;
 
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
@@ -35,8 +34,6 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
 
   const initializePlayer = useCallback(() => {
     if (typeof Cmsv6Player === 'undefined') {
-        setError("La librería del reproductor no se pudo cargar.");
-        setIsLoading(false);
         return;
     }
     
@@ -85,12 +82,12 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const handleRetry = () => {
      setError(null);
      setIsLoading(false);
-     setHasStarted(false); // Go back to the "Play" button state
+     setHasStarted(false);
   };
   
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
-        {/* This div is the target for the player */}
+        {/* Este es el contenedor que Cmsv6Player usará */}
         <div id={playerId} className="w-full h-full" />
       
         {!hasStarted && !error && (
