@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
@@ -24,15 +24,22 @@ export function VideoPlayer({
   className,
 }: VideoPlayerProps) {
 
+  // Effect to trigger initialization
+  useEffect(() => {
+    if (playerState === 'idle') {
+      onInit();
+    }
+  }, [playerState, onInit]);
+
+
   const renderOverlay = () => {
     switch (playerState) {
       case 'idle':
         return (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-4 text-center z-10">
-            <Button onClick={onInit} variant="ghost" size="icon" className="h-20 w-20 text-white/80 hover:text-white hover:bg-white/20">
-              <PlayCircle className="h-16 w-16" />
-            </Button>
-            <p className='mt-2 font-semibold'>Iniciar video en vivo</p>
+            <Loader2 className="h-10 w-10 animate-spin mb-4" />
+            <p className='mt-2 font-semibold'>Inicializando reproductor...</p>
+             <p className='text-sm text-muted-foreground'>El video comenzará en breve.</p>
           </div>
         );
       case 'loading':

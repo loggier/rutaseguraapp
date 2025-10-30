@@ -27,7 +27,6 @@ export default function CamerasPage() {
     const [activeStream, setActiveStream] = useState<Stream | null>(null);
     const [playerState, setPlayerState] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
 
     // Initialize player instance once
     const initializePlayer = useCallback(() => {
@@ -42,7 +41,16 @@ export default function CamerasPage() {
                 hasControl: false,
             });
             playerInstanceRef.current = player;
-            setIsPlayerInitialized(true);
+            
+            // Auto-play the first video after 3 seconds
+            const timer = setTimeout(() => {
+                if (videoStreams.length > 0) {
+                    handleStreamChange(videoStreams[0]);
+                }
+            }, 3000);
+
+            return () => clearTimeout(timer);
+
         } catch (e: any) {
             console.error("Error al inicializar EasyPlayerPro:", e);
             setPlayerState('error');
@@ -63,20 +71,9 @@ export default function CamerasPage() {
             }
         };
     }, []);
-    
-    // Auto-play the first video after 3 seconds
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (isPlayerInitialized && !activeStream && videoStreams.length > 0) {
-                handleStreamChange(videoStreams[0]);
-            }
-        }, 3000);
-
-        return () => clearTimeout(timer);
-    }, [isPlayerInitialized, activeStream]);
 
 
-    const handleStreamChange = useCallback((stream: Stream) => {
+    const handleStreamChange = useCallback(async (stream: Stream) => {
         if (!playerInstanceRef.current) {
             setPlayerState('error');
             setErrorMessage("El reproductor no está inicializado.");
@@ -88,18 +85,16 @@ export default function CamerasPage() {
         setActiveStream(stream);
 
         try {
-             // We don't need to call pause(), play() will stop the previous stream and start the new one.
-             playerInstanceRef.current.play(stream.url).then(() => {
-                setPlayerState('playing');
-            }).catch((e: any) => {
-                console.error("Error al reproducir el video:", e);
-                setPlayerState('error');
-                setErrorMessage("No se pudo conectar al stream de video.");
-            });
+             // pause() is not strictly necessary as play() stops the previous stream, but it's good practice.
+            try { playerInstanceRef.current.pause(); } catch(e) {}
+
+            await playerInstanceRef.current.play(stream.url);
+            setPlayerState('playing');
+
         } catch(e: any) {
             console.error("Error en el método play:", e);
             setPlayerState('error');
-            setErrorMessage("Ocurrió un error al intentar reproducir el video.");
+            setErrorMessage("No se pudo conectar al stream de video.");
         }
     }, []);
 
