@@ -1,8 +1,9 @@
+
 'use client';
 
 import { PageHeader } from "@/components/page-header";
 import { VideoPlayer } from "@/components/video-player";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import { VideoThumbnail } from "./video-thumbnail";
 
@@ -27,17 +28,17 @@ export default function CamerasPage() {
                 />
             </div>
             
-            <div className="flex-grow p-4 md:p-6 pt-0 flex flex-col gap-6">
+            <div className="flex-grow p-4 md:p-6 pt-0 grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100%-100px)]">
                 {/* Main Player */}
-                <div className="w-full">
+                <div className="w-full lg:col-span-2">
                     {activeStream && <VideoPlayer key={activeStream.id} src={activeStream.url} />}
                 </div>
                 
                 {/* Video List */}
-                <div className="flex-shrink-0">
-                     <h3 className="text-lg font-semibold mb-3">Lista de Cámaras</h3>
-                    <ScrollArea className="w-full whitespace-nowrap">
-                        <div className="flex w-max space-x-4 pb-4">
+                <div className="flex flex-col h-full overflow-hidden">
+                     <h3 className="text-lg font-semibold mb-3 flex-shrink-0">Lista de Cámaras</h3>
+                    <ScrollArea className="flex-grow pr-4">
+                        <div className="space-y-3">
                             {videoStreams.map((stream) => (
                                 <VideoThumbnail
                                     key={stream.id}
@@ -47,7 +48,6 @@ export default function CamerasPage() {
                                 />
                             ))}
                         </div>
-                        <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                 </div>
             </div>
