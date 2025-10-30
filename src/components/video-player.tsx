@@ -13,6 +13,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,18 +31,35 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       }
       playerInstanceRef.current = null;
     }
+    // Limpiar el contenedor de React
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
   }, []);
 
   const initializePlayer = useCallback(() => {
-    if (typeof Cmsv6Player === 'undefined') {
-        return;
+    if (typeof Cmsv6Player === 'undefined' || !containerRef.current) {
+      setError("La librería del reproductor (cmsv6) no está disponible.");
+      setIsLoading(false);
+      return;
     }
     
+    // Limpiar cualquier instancia anterior
     cleanupPlayer();
     setError(null);
     setIsLoading(true);
 
     try {
+      // 1. Crear el nodo para el reproductor dinámicamente
+      const playerNode = document.createElement('div');
+      playerNode.id = playerId;
+      playerNode.style.width = '100%';
+      playerNode.style.height = '100%';
+
+      // 2. Añadirlo al contenedor gestionado por React
+      containerRef.current.appendChild(playerNode);
+
+      // 3. Inicializar el reproductor usando el ID del nodo recién añadido
       const player = new Cmsv6Player(playerId, {
         videoUrl: src,
         autoplay: true,
@@ -69,6 +87,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   }, [src, cleanupPlayer, playerId]);
 
   useEffect(() => {
+    // Solo para limpieza al desmontar el componente
     return () => {
       cleanupPlayer();
     };
@@ -83,12 +102,13 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
      setError(null);
      setIsLoading(false);
      setHasStarted(false);
+     cleanupPlayer();
   };
   
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
-        {/* Este es el contenedor que Cmsv6Player usará */}
-        <div id={playerId} className="w-full h-full" />
+        {/* Este es el contenedor principal que React gestiona */}
+        <div ref={containerRef} className="w-full h-full" />
       
         {!hasStarted && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-4 text-center z-10">
