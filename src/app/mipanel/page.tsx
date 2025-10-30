@@ -333,7 +333,7 @@ export default function MiPanelPage() {
                 })}
 
                 <MarkerF
-                    position={{ lat: -2.115191, lng: -79.947008 }}
+                    position={{ lat: -0.157713, lng: -78.454052 }}
                     icon={{
                         url: '/bus.png',
                         scaledSize: new google.maps.Size(32, 32),
