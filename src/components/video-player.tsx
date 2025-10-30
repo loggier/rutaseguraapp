@@ -19,6 +19,7 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
+  // Cleanup function to properly destroy the player instance
   const cleanupPlayer = useCallback(() => {
     if (playerInstanceRef.current) {
       try {
@@ -30,61 +31,71 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     }
   }, []);
 
+  // Initialize the player instance when the component mounts
   const initializePlayer = useCallback(() => {
-    if (typeof EasyPlayerPro === 'undefined') {
-      setError("La librería del reproductor no se cargó. Revisa la conexión.");
-      setIsLoading(false);
+    if (typeof EasyPlayerPro === 'undefined' || !playerNodeRef.current) {
       return;
     }
-
-    if (!playerNodeRef.current) {
-      setError("El contenedor del video no está listo.");
-      return;
-    }
-
-    cleanupPlayer();
-    setError(null);
-    setIsLoading(true);
+    
+    cleanupPlayer(); // Clean up any existing instance before creating a new one
 
     try {
+      // Create the player instance but don't start playback yet
       const player = new EasyPlayerPro(playerNodeRef.current, {
         stretch: true,
         hasAudio: true,
-        hasControl: false,
+        hasControl: false, // Explicitly disable default controls
       });
       playerInstanceRef.current = player;
-      
-      player.play(src).then(() => {
-        setIsLoading(false);
-      }).catch((e: any) => {
-        console.error("Error al reproducir el video:", e);
-        setError("No se pudo conectar al stream de video.");
-        setIsLoading(false);
-      });
 
     } catch (e: any) {
       console.error("Error al inicializar EasyPlayerPro:", e);
       setError("No se pudo iniciar el reproductor de video. " + e.message);
       setIsLoading(false);
     }
-  }, [src, cleanupPlayer]);
+  }, [cleanupPlayer]);
 
+  // Effect to initialize on mount and cleanup on unmount
   useEffect(() => {
+    // We only initialize the player structure once the component is mounted.
+    // Playback will be handled by user interaction.
+    initializePlayer();
+
+    // The return function of useEffect serves as the cleanup function
     return () => {
       cleanupPlayer();
     };
-  }, [cleanupPlayer]);
+  }, [initializePlayer]);
+
 
   const handleStartPlayback = () => {
+    if (!playerInstanceRef.current) {
+      // If for some reason the player isn't initialized, try again.
+      initializePlayer();
+      if (!playerInstanceRef.current) {
+        setError("El reproductor de video no está listo. Inténtalo de nuevo.");
+        return;
+      }
+    }
+    
     setHasStarted(true);
-    initializePlayer();
+    setIsLoading(true);
+    setError(null);
+    
+    playerInstanceRef.current.play(src).then(() => {
+      setIsLoading(false);
+    }).catch((e: any) => {
+      console.error("Error al reproducir el video:", e);
+      setError("No se pudo conectar al stream de video.");
+      setIsLoading(false);
+    });
   };
   
   const handleRetry = () => {
      setError(null);
      setIsLoading(false);
      setHasStarted(false);
-     cleanupPlayer();
+     // Player is already initialized, no need to call cleanupPlayer here
   };
   
   return (
