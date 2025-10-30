@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect, useId } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
-declare const Cmsv6Player: any;
+declare const EasyPlayerPro: any;
 
 interface VideoPlayerProps {
   src: string;
@@ -13,7 +13,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, className }: VideoPlayerProps) {
-  const playerId = useId();
+  const playerNodeRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,16 +24,21 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
       try {
         playerInstanceRef.current.destroy();
       } catch (e) {
-        console.error("Error destroying Cmsv6Player instance:", e);
+        console.error("Error destroying EasyPlayerPro instance:", e);
       }
       playerInstanceRef.current = null;
     }
   }, []);
 
   const initializePlayer = useCallback(() => {
-    if (typeof Cmsv6Player === 'undefined') {
+    if (typeof EasyPlayerPro === 'undefined') {
       setError("La librería del reproductor no se cargó. Revisa la conexión.");
       setIsLoading(false);
+      return;
+    }
+
+    if (!playerNodeRef.current) {
+      setError("El contenedor del video no está listo.");
       return;
     }
 
@@ -42,30 +47,29 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
     setIsLoading(true);
 
     try {
-      const player = new Cmsv6Player(playerId, {
-        videoUrl: src,
-        autoplay: true,
-        live: true,
-        // Agrega otras opciones que consideres necesarias de la doc o ejemplos
+      const player = new EasyPlayerPro(playerNodeRef.current, {
+        stretch: true,
+        hasAudio: true,
+        hasControl: false,
       });
       playerInstanceRef.current = player;
       
-      // Simular fin de carga tras un tiempo prudencial
-      setTimeout(() => {
-        if(playerInstanceRef.current) {
-           setIsLoading(false);
-        }
-      }, 4000); 
+      player.play(src).then(() => {
+        setIsLoading(false);
+      }).catch((e: any) => {
+        console.error("Error al reproducir el video:", e);
+        setError("No se pudo conectar al stream de video.");
+        setIsLoading(false);
+      });
 
     } catch (e: any) {
-      console.error("Error al inicializar Cmsv6Player:", e);
+      console.error("Error al inicializar EasyPlayerPro:", e);
       setError("No se pudo iniciar el reproductor de video. " + e.message);
       setIsLoading(false);
     }
-  }, [src, cleanupPlayer, playerId]);
+  }, [src, cleanupPlayer]);
 
   useEffect(() => {
-    // Limpiar al desmontar el componente
     return () => {
       cleanupPlayer();
     };
@@ -79,13 +83,13 @@ export function VideoPlayer({ src, className }: VideoPlayerProps) {
   const handleRetry = () => {
      setError(null);
      setIsLoading(false);
-     setHasStarted(false); // Permite volver a mostrar el botón de Play
+     setHasStarted(false);
      cleanupPlayer();
   };
   
   return (
     <div className={cn("relative w-full aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center", className)}>
-      <div id={playerId} className="w-full h-full" />
+      <div ref={playerNodeRef} className="w-full h-full" />
       
       {!hasStarted && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-4 text-center z-10">
