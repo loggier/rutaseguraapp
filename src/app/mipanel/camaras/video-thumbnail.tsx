@@ -3,7 +3,7 @@
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Video } from "lucide-react";
+import { Bus } from "lucide-react";
 
 type Stream = {
     id: number;
@@ -22,15 +22,21 @@ export function VideoThumbnail({ stream, isActive, onClick }: VideoThumbnailProp
         <Card
             onClick={onClick}
             className={cn(
-                "w-full h-24 flex items-center justify-start cursor-pointer transition-all border-2 p-3 gap-4",
-                "hover:border-primary hover:bg-primary/10",
-                isActive ? "border-primary bg-primary/10 ring-2 ring-primary" : "border-border"
+                "w-full flex items-center justify-start cursor-pointer transition-all border-2 p-3 gap-4",
+                "hover:border-primary hover:bg-primary/5",
+                isActive ? "border-primary bg-primary/10 ring-2 ring-primary/50" : "border-transparent"
             )}
         >
-            <div className={cn("flex-shrink-0 h-16 w-16 rounded-md flex items-center justify-center", isActive ? "bg-primary/20" : "bg-muted")}>
-                <Video className={cn("h-8 w-8", isActive ? "text-primary" : "text-muted-foreground")} />
+            <div className={cn(
+                "flex-shrink-0 h-12 w-12 rounded-lg flex items-center justify-center transition-colors", 
+                isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}>
+                <Bus className="h-6 w-6" />
             </div>
-            <p className="text-sm font-semibold truncate">{stream.title}</p>
+            <div className="overflow-hidden">
+                <p className="text-sm font-semibold truncate">{stream.title}</p>
+                <p className="text-xs text-muted-foreground">En vivo</p>
+            </div>
         </Card>
     );
 }
