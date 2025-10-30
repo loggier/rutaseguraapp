@@ -52,6 +52,7 @@ export default function MiPanelPage() {
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
+    const [activeBusId, setActiveBusId] = useState<string | null>(null);
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
     const { toast } = useToast();
@@ -132,17 +133,15 @@ export default function MiPanelPage() {
     
     const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
     
-    const activeBus = useMemo(() => {
-        if (!activeChildId) return null;
-        const child = hijos.find(h => h.id === activeChildId);
-        if (!child || !child.ruta_id) return null;
-        return buses.find(b => b.ruta?.id === child.ruta_id);
-    }, [activeChildId, hijos, buses]);
+    const selectedBusForInfoWindow = useMemo(() => {
+        if (!activeBusId) return null;
+        return buses.find(b => b.id === activeBusId);
+    }, [activeBusId, buses]);
 
 
     useEffect(() => {
-      if (activeBus && map && activeBus.ruta.colegio) {
-          map.panTo({lat: activeBus.ruta.colegio.lat!, lng: activeBus.ruta.colegio.lng!});
+      if (selectedBusForInfoWindow && map && selectedBusForInfoWindow.ruta.colegio) {
+          map.panTo({lat: selectedBusForInfoWindow.ruta.colegio.lat!, lng: selectedBusForInfoWindow.ruta.colegio.lng!});
       } else if (activeChild && map) {
           const stop = activeChild.paradas.find(p => p.activo);
           if (stop) {
@@ -151,14 +150,14 @@ export default function MiPanelPage() {
       } else if (map && colegio?.lat && colegio?.lng) {
           map.panTo({ lat: colegio.lat, lng: colegio.lng });
       }
-    }, [activeBus, activeChild, map, colegio]);
+    }, [selectedBusForInfoWindow, activeChild, map, colegio]);
 
     const decodedPolylinePath = useMemo(() => {
-        if (!isLoaded || !activeBus) return [];
-        const state = staticStates[activeBus.id];
+        if (!isLoaded || !selectedBusForInfoWindow) return [];
+        const state = staticStates[selectedBusForInfoWindow.id];
         if (!state) return [];
 
-        const optimizedRoute = state.currentTurno === 'Recogida' ? activeBus.ruta.ruta_optimizada_recogida : activeBus.ruta.ruta_optimizada_entrega;
+        const optimizedRoute = state.currentTurno === 'Recogida' ? selectedBusForInfoWindow.ruta.ruta_optimizada_recogida : selectedBusForInfoWindow.ruta.ruta_optimizada_entrega;
         
         if (optimizedRoute && typeof optimizedRoute.polyline === 'string' && optimizedRoute.polyline) {
             try {
@@ -168,7 +167,7 @@ export default function MiPanelPage() {
             }
         }
         return [];
-    }, [isLoaded, activeBus, staticStates]);
+    }, [isLoaded, selectedBusForInfoWindow, staticStates]);
 
     const hijoStopMarkers = useMemo(() => {
         if (!isLoaded) return [];
@@ -256,6 +255,29 @@ export default function MiPanelPage() {
         };
     }, [isLoaded]);
 
+    const busMarkerIcon = useMemo(() => {
+        if(!isLoaded) return null;
+        const width = 48;
+        const height = 58;
+        const pinColor = '#0D2C5B'; // Azul marino
+        const iconColor = 'white';
+
+         const svg = `
+            <svg width="${width}" height="${height}" viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+              <path fill="${pinColor}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67a24 24 0 0 1-35.464 0z"/>
+              <path fill="${iconColor}" d="M80 176a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h16v32a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-32h16a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16H80zm180 96H124a12 12 0 0 1-12-12v-40a12 12 0 0 1 12-12h136a12 12 0 0 1 12 12v40a12 12 0 0 1-12 12zM112 128a16 16 0 0 0-16 16v16a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-16a16 16 0 0 0-16-16H112z"/>
+              <circle fill="${pinColor}" cx="144" cy="320" r="16" />
+              <circle fill="${pinColor}" cx="240" cy="320" r="16" />
+            </svg>
+        `.trim();
+        const markerIcon = `data:image/svg+xml;base64,${btoa(svg)}`;
+        return {
+          url: markerIcon,
+          scaledSize: new google.maps.Size(width, height),
+          anchor: new google.maps.Point(width / 2, height),
+        };
+    }, [isLoaded]);
+
 
     const locateUser = () => {
         if (!map) return;
@@ -290,6 +312,10 @@ export default function MiPanelPage() {
         }
     };
 
+    const handleBusClick = (busId: string, position: {lat: number, lng: number}) => {
+        setActiveBusId(busId);
+        map?.panTo(position);
+    }
 
     if (loading || !isLoaded) {
         return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando mapa...</p></div>;
@@ -310,34 +336,48 @@ export default function MiPanelPage() {
                 {buses.map(bus => {
                     const state = staticStates[bus.id];
                     if (!state || !bus.ruta.colegio?.lat || !bus.ruta.colegio?.lng) return null;
-                    const isActive = activeBus?.id === bus.id;
+                    const isActive = activeBusId === bus.id;
                     const busPosition = {lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng}
 
                     return (
                         <MarkerF 
                             key={bus.id}
                             position={busPosition}
-                            icon={{
-                                url: '/bus.png',
-                                scaledSize: isActive ? new google.maps.Size(40, 40) : new google.maps.Size(32, 32),
-                                anchor: isActive ? new google.maps.Point(20, 20) : new google.maps.Point(16, 16),
-                            }}
+                            icon={busMarkerIcon ? {...busMarkerIcon, scaledSize: new google.maps.Size(isActive ? 48 : 40, isActive ? 58 : 50)} : undefined}
                             zIndex={isActive ? 100 : 50}
-                            onClick={() => router.push('/mipanel/camaras')}
+                            onClick={() => handleBusClick(bus.id, busPosition)}
                         />
                     );
                 })}
 
                 <MarkerF
                     position={{ lat: -0.157713, lng: -78.454052 }}
-                    icon={{
-                        url: '/bus.png',
-                        scaledSize: new google.maps.Size(32, 32),
-                        anchor: new google.maps.Point(16, 16),
-                    }}
+                    icon={busMarkerIcon ? {...busMarkerIcon, scaledSize: new google.maps.Size(40, 50)} : undefined}
                     zIndex={50}
-                    onClick={() => router.push('/mipanel/camaras')}
+                    onClick={() => handleBusClick('temp-bus', {lat: -0.157713, lng: -78.454052})}
                 />
+                
+                {selectedBusForInfoWindow && selectedBusForInfoWindow.ruta.colegio?.lat && selectedBusForInfoWindow.ruta.colegio?.lng && (
+                     <InfoWindowF
+                        position={{ lat: selectedBusForInfoWindow.ruta.colegio.lat, lng: selectedBusForInfoWindow.ruta.colegio.lng }}
+                        onCloseClick={() => setActiveBusId(null)}
+                        options={{
+                            pixelOffset: new google.maps.Size(0, -50),
+                            disableAutoPan: true,
+                        }}
+                    >
+                         <div className="p-2 bg-background rounded-lg shadow-lg w-64">
+                            <h3 className="font-bold text-lg text-secondary">Bus: {selectedBusForInfoWindow.matricula}</h3>
+                            <p className="text-sm text-muted-foreground">Conductor: {selectedBusForInfoWindow.conductor.nombre}</p>
+                            <p className="text-sm text-muted-foreground mt-1">El autobús llegará en 5 min</p>
+                            <Button className="w-full mt-4 bg-secondary" onClick={() => router.push('/mipanel/camaras')}>
+                                <Video className="mr-2 h-4 w-4" />
+                                Ver video en vivo
+                            </Button>
+                        </div>
+                    </InfoWindowF>
+                )}
+
 
                 {colegio?.lat && colegio.lng && colegioMarkerIcon && (
                     <MarkerF 
@@ -348,7 +388,7 @@ export default function MiPanelPage() {
                     />
                 )}
                 
-                {activeBus && (
+                {selectedBusForInfoWindow && (
                     <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                 )}
                 
@@ -370,7 +410,7 @@ export default function MiPanelPage() {
                             <CarouselItem key={hijo.id} className="pl-4 basis-4/5 md:basis-1/3 lg:basis-1/4">
                                 <HijoCard 
                                     hijo={hijo} 
-                                    bus={buses.find(b => b.ruta?.id === hijo.ruta_id)}
+                                    bus={buses.find(b => b.ruta?.id === (hijo as any).ruta_id)}
                                     isActive={activeChildId === hijo.id}
                                 />
                             </CarouselItem>
