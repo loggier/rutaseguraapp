@@ -23,7 +23,12 @@ const typeConfig = {
   general: { label: 'Reporte General', icon: FileText },
 };
 
-export function IncidenceCard({ incidence }: { incidence: IncidenceWithStudent }) {
+type IncidenceCardProps = {
+  incidence: IncidenceWithStudent;
+  onClick: () => void;
+};
+
+export function IncidenceCard({ incidence, onClick }: IncidenceCardProps) {
   const currentStatus = statusConfig[incidence.status] || statusConfig.nuevo;
   const currentType = typeConfig[incidence.tipo_solicitud] || typeConfig.general;
 
@@ -35,7 +40,7 @@ export function IncidenceCard({ incidence }: { incidence: IncidenceWithStudent }
   const timeAgo = formatDistanceToNow(new Date(incidence.created_at), { addSuffix: true, locale: es });
 
   return (
-    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardContent className="p-4 flex items-start gap-4">
         <div className={cn("flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full text-white", currentStatus.color)}>
           <currentStatus.icon className="h-5 w-5" />

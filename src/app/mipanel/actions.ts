@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import type { Estudiante, Parada, TrackedBus, OptimizedRouteResult, Colegio } from '@/lib/types';
+import type { Estudiante, Parada, TrackedBus, OptimizedRouteResult, Colegio, Incidencia } from '@/lib/types';
 
 
 type ParentDashboardData = {
@@ -165,12 +165,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 }
 
 
-export type IncidenceWithStudent = {
-    id: string;
-    created_at: string;
-    fecha_incidente: string;
-    tipo_solicitud: 'video' | 'imagen' | 'general';
-    status: 'nuevo' | 'abierto' | 'en_proceso' | 'resuelto' | 'no_resuelto' | 'cerrado';
+export type IncidenceWithStudent = Incidencia & {
     estudiante: {
         nombre: string;
         apellido: string;
@@ -182,11 +177,7 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
     const { data, error } = await supabase
         .from('incidencias')
         .select(`
-            id,
-            created_at,
-            fecha_incidente,
-            tipo_solicitud,
-            status,
+            *,
             estudiante:estudiantes ( nombre, apellido )
         `)
         .eq('padre_id', parentId)

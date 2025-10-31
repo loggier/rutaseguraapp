@@ -11,6 +11,7 @@ import { EmptyMailbox } from "./empty-mailbox";
 import { IncidenceCard } from "./incidence-card";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
 import { useParentDashboard } from "../layout";
+import { IncidenceDetailModal } from "./incidence-detail-modal";
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -18,6 +19,7 @@ export default function NotificationsPage() {
 
     const [incidents, setIncidents] = useState<IncidenceWithStudent[]>([]);
     const [loadingIncidents, setLoadingIncidents] = useState(true);
+    const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
 
     useEffect(() => {
         if (user?.id) {
@@ -118,36 +120,49 @@ export default function NotificationsPage() {
         return (
             <div className="space-y-4">
                 {incidents.map(incidence => (
-                    <IncidenceCard key={incidence.id} incidence={incidence} />
+                    <IncidenceCard 
+                        key={incidence.id} 
+                        incidence={incidence}
+                        onClick={() => setSelectedIncidence(incidence)} 
+                    />
                 ))}
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex-shrink-0 p-4 md:p-6">
-                <PageHeader
-                    title="Mi bandeja de entrada"
-                    description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
-                />
+        <>
+            <div className="flex flex-col h-full">
+                <div className="flex-shrink-0 p-4 md:p-6">
+                    <PageHeader
+                        title="Mi bandeja de entrada"
+                        description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
+                    />
+                </div>
+                <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden">
+                    <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+                        <TabsTrigger value="alertas">Alertas</TabsTrigger>
+                        <TabsTrigger value="incidencias">Incidencias</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="alertas" className="pt-4 flex-grow overflow-hidden">
+                        <ScrollArea className="h-full pr-2">
+                            {renderAlerts()}
+                        </ScrollArea>
+                    </TabsContent>
+                    <TabsContent value="incidencias" className="pt-4 flex-grow overflow-hidden">
+                        <ScrollArea className="h-full pr-2">
+                            {renderIncidents()}
+                        </ScrollArea>
+                    </TabsContent>
+                </Tabs>
             </div>
-            <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden">
-                <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-                    <TabsTrigger value="alertas">Alertas</TabsTrigger>
-                    <TabsTrigger value="incidencias">Incidencias</TabsTrigger>
-                </TabsList>
-                <TabsContent value="alertas" className="pt-4 flex-grow overflow-hidden">
-                    <ScrollArea className="h-full pr-2">
-                        {renderAlerts()}
-                    </ScrollArea>
-                </TabsContent>
-                <TabsContent value="incidencias" className="pt-4 flex-grow overflow-hidden">
-                    <ScrollArea className="h-full pr-2">
-                        {renderIncidents()}
-                    </ScrollArea>
-                </TabsContent>
-            </Tabs>
-        </div>
+            {selectedIncidence && (
+                <IncidenceDetailModal 
+                    incidence={selectedIncidence}
+                    isOpen={!!selectedIncidence}
+                    onClose={() => setSelectedIncidence(null)}
+                />
+            )}
+        </>
     );
 }
