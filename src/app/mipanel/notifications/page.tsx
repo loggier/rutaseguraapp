@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect } from "react";
@@ -32,12 +33,12 @@ export default function NotificationsPage() {
     }, [user?.id]);
     
     const onTabChange = (tab: string) => {
-        if (tab === 'incidencias' && incidents.length === 0) { // Solo recargar si no hay datos
+        if (tab === 'incidencias' && incidents.length === 0) {
             handleFetchIncidents();
         }
     }
 
-    // Carga inicial de incidencias si el usuario ya está disponible
+    // Carga inicial de incidencias si el usuario ya está disponible y la pestaña está activa por defecto
     useEffect(() => {
         if(user?.id) {
             handleFetchIncidents();
