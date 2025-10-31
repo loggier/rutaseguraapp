@@ -178,7 +178,7 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
         .from('incidencias')
         .select(`
             *,
-            estudiante_id ( nombre, apellido )
+            estudiante_id!inner(nombre, apellido)
         `)
         .eq('padre_id', parentId)
         .order('created_at', { ascending: false });
