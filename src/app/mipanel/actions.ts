@@ -109,7 +109,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 
     if (busesError) {
         console.error("Error fetching buses from view:", busesError);
-        return { hijos: childrenWithData, buses: [], colegio: colegioData };
+        return { hijos: childrenWithData, buses: busesData as TrackedBus[] || [], colegio: colegioData };
     }
 
     // 6. Fetch full route data for the buses
@@ -162,4 +162,40 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         buses: finalBuses,
         colegio: colegioData,
     };
+}
+
+
+export type IncidenceWithStudent = {
+    id: string;
+    created_at: string;
+    fecha_incidente: string;
+    tipo_solicitud: 'video' | 'imagen' | 'general';
+    status: 'nuevo' | 'abierto' | 'en_proceso' | 'resuelto' | 'no_resuelto' | 'cerrado';
+    estudiante: {
+        nombre: string;
+        apellido: string;
+    } | null;
+}
+
+export async function getParentIncidents(parentId: string): Promise<IncidenceWithStudent[]> {
+    const supabase = createServerClient();
+    const { data, error } = await supabase
+        .from('incidencias')
+        .select(`
+            id,
+            created_at,
+            fecha_incidente,
+            tipo_solicitud,
+            status,
+            estudiante:estudiantes ( nombre, apellido )
+        `)
+        .eq('padre_id', parentId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching incidents:", error);
+        return [];
+    }
+
+    return data as IncidenceWithStudent[];
 }

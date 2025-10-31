@@ -2,6 +2,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -174,3 +175,20 @@ export type TrackedBus = {
     ruta_entrega?: OptimizedRouteResult | null;
   };
 }
+
+export type Incidencia = {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    estudiante_id: string;
+    padre_id: string;
+    colegio_id: string;
+    fecha_incidente: string;
+    observacion: string;
+    tipo_solicitud: 'video' | 'imagen' | 'general';
+    status: 'nuevo' | 'abierto' | 'en_proceso' | 'resuelto' | 'no_resuelto' | 'cerrado';
+    resolucion: string | null;
+    asignado_a: string | null;
+    ruta_id: string | null;
+    autobus_id: string | null;
+};
