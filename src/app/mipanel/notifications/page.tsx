@@ -5,12 +5,48 @@ import { useState, useCallback, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
 import { useUser } from "@/contexts/user-context";
-import { Loader2, MessageSquareWarning } from "lucide-react";
+import { Loader2, MessageSquareWarning, Bus, School, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyMailbox } from "./empty-mailbox";
-import { IncidenceCard } from "./incidence-card";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
+import { IncidenceCard } from "./incidence-card";
 import { IncidenceDetailModal } from "./incidence-detail-modal";
+import { NotificationCard } from "./notification-card";
+
+
+const mockAlerts = [
+    {
+        id: "1",
+        icon: <Bus className="h-5 w-5" />,
+        title: "El bus está cerca",
+        description: "El bus de la Ruta 1 está a 5 minutos de la parada de recogida de Isabella.",
+        timestamp: "hace 2 min",
+        variant: 'default' as const,
+    },
+    {
+        id: "2",
+        icon: <School className="h-5 w-5" />,
+        title: "Llegada al Colegio",
+        description: "El bus ha llegado al Colegio San Francisco.",
+        timestamp: "hace 25 min",
+        variant: 'default' as const,
+    },
+     {
+        id: "3",
+        icon: <AlertTriangleIcon className="h-5 w-5" />,
+        title: "Alerta de Tráfico",
+        description: "Se ha detectado tráfico pesado en la ruta de regreso. El tiempo estimado de llegada puede variar.",
+        timestamp: "hace 1 hora",
+        variant: 'destructive' as const,
+    },
+     {
+        id: "4",
+        icon: <Bus className="h-5 w-5" />,
+        title: "Salida del Colegio",
+        description: "El bus ha iniciado la ruta de regreso a casa.",
+        timestamp: "hace 2 horas",
+        variant: 'default' as const,
+    },
+];
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -38,7 +74,6 @@ export default function NotificationsPage() {
         }
     }
 
-    // Carga inicial de incidencias si el usuario ya está disponible y la pestaña está activa por defecto
     useEffect(() => {
         if(user?.id) {
             handleFetchIncidents();
@@ -93,9 +128,17 @@ export default function NotificationsPage() {
                     </TabsList>
                     <TabsContent value="alertas" className="pt-4 flex-grow overflow-hidden">
                         <ScrollArea className="h-full pr-2">
-                             <div className="text-center pt-12">
-                                <EmptyMailbox className="mx-auto" />
-                                <p className="mt-4 font-semibold">¡Listo! No tienes alertas nuevas.</p>
+                             <div className="space-y-4">
+                                {mockAlerts.map(alert => (
+                                    <NotificationCard 
+                                        key={alert.id}
+                                        icon={alert.icon}
+                                        title={alert.title}
+                                        description={alert.description}
+                                        timestamp={alert.timestamp}
+                                        variant={alert.variant}
+                                    />
+                                ))}
                             </div>
                         </ScrollArea>
                     </TabsContent>
