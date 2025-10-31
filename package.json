@@ -78,6 +78,7 @@
     "@babel/parser": "7.24.7",
     "@babel/traverse": "7.24.7",
     "@babel/types": "7.24.7",
-    "@babel/helper-validator-identifier": "7.24.7"
+    "@babel/helper-validator-identifier": "7.24.7",
+    "@babel/core": "7.24.7"
   }
 }
