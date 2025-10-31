@@ -28,7 +28,7 @@ export default function NotificationsPage() {
                 .then(data => setIncidents(data))
                 .finally(() => setLoadingIncidents(false));
         }
-    }, [user]);
+    }, [user?.id]);
 
 
     // Generate mock notifications using children's data
