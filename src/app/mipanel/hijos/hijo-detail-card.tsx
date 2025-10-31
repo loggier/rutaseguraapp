@@ -172,7 +172,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                         <AddressRow icon={MapPin} type="Entrega (Casa)" stop={paradaEntrega} />
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-2">
                          <Button asChild className="w-full" variant="outline">
                             <Link href={`/mipanel/hijos/${hijo.id}/direcciones`}>
                                 <Edit className="mr-2 h-4 w-4" />
