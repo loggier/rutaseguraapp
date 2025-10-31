@@ -42,13 +42,6 @@ export default function LoginPage() {
       setInstallPromptEvent(event as BeforeInstallPromptEvent);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Mover esta lógica al cliente
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
-      setIsAppInstalled(true);
-    }
-
     const handleAppInstalled = () => {
       setIsAppInstalled(true);
       setInstallPromptEvent(null);
@@ -57,6 +50,13 @@ export default function LoginPage() {
           description: 'RutaSegura se ha instalado correctamente.',
       });
     };
+
+    // Check if running in standalone mode (installed PWA)
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsAppInstalled(true);
+    }
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
@@ -73,7 +73,7 @@ export default function LoginPage() {
     const { outcome } = await installPromptEvent.userChoice;
     if (outcome === 'accepted') {
       console.log('El usuario aceptó la instalación');
-      setIsAppInstalled(true);
+      // The 'appinstalled' event will handle setting isAppInstalled to true.
     } else {
       console.log('El usuario rechazó la instalación');
     }
