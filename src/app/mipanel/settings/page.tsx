@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from '@/components/ui/button';
@@ -15,15 +15,55 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { ImageCropper } from '../hijos/[id]/direcciones/image-cropper';
+import type { NotificationSettings } from '@/lib/types';
+
+
+const notificationOptions = [
+    { id: "llegada-alumno", label: "Llegada por alumno", description: "Cuando el bus está cerca de la parada.", defaultChecked: true },
+    { id: "alumno-en-bus", label: "Alumno en bus", description: "Cuando tu hijo(a) es marcado como recogido.", defaultChecked: false },
+    { id: "llegada-colegio", label: "Llegada a colegio", description: "Cuando el bus llega al colegio.", defaultChecked: true },
+    { id: "exceso-velocidad", label: "Exceso de velocidad", description: "Si el bus excede los límites de velocidad.", defaultChecked: false },
+    { id: "salida-colegio", label: "Salida del colegio", description: "Cuando el bus inicia la ruta de regreso.", defaultChecked: true },
+    { id: "llega-casa", label: "Llega a casa", description: "Cuando tu hijo(a) es entregado en su parada.", defaultChecked: true },
+];
+
+const getDefaultNotificationSettings = (): NotificationSettings => {
+    return notificationOptions.reduce((acc, opt) => {
+        acc[opt.id] = opt.defaultChecked;
+        return acc;
+    }, {} as NotificationSettings);
+}
+
 
 export default function SettingsPage() {
     const { user, setUser } = useUser();
-    const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
+    
+    // State for user profile fields
+    const [nombre, setNombre] = useState(user?.nombre || '');
+    const [apellido, setApellido] = useState(user?.apellido || '');
+    const [telefono, setTelefono] = useState(user?.telefono || '');
 
+    // State for notification settings
+    const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(
+        user?.notification_settings || getDefaultNotificationSettings()
+    );
+
+    // State for UI
+    const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Sync state if user context changes
+    useEffect(() => {
+        if(user) {
+            setNombre(user.nombre || '');
+            setApellido(user.apellido || '');
+            setTelefono(user.telefono || '');
+            setNotificationSettings(user.notification_settings || getDefaultNotificationSettings());
+        }
+    }, [user]);
 
     const getAvatarFallback = () => {
         if (!user) return "AD";
@@ -89,7 +129,6 @@ export default function SettingsPage() {
             const result = await response.json();
             if(!response.ok) throw new Error(result.message || "Error al actualizar la foto de perfil.");
             
-            // Actualizar el estado del usuario local y el localStorage
             const updatedUser = { ...user, avatar_url: publicUrl };
             setUser(updatedUser);
             localStorage.setItem('supabase_session', JSON.stringify(updatedUser));
@@ -112,6 +151,64 @@ export default function SettingsPage() {
             if(fileInputRef.current) fileInputRef.current.value = "";
         }
     };
+
+    const handleSaveChanges = async () => {
+        if (!user) return;
+        setIsSaving(true);
+        
+        try {
+            // Save profile data
+            const profilePromise = fetch(`/api/profile/${user.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, apellido, telefono }),
+            });
+            
+            // Save notification settings
+            const notificationsPromise = fetch(`/api/profile/${user.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notification_settings: notificationSettings }),
+            });
+            
+            const [profileResponse, notificationsResponse] = await Promise.all([profilePromise, notificationsPromise]);
+            
+            if (!profileResponse.ok || !notificationsResponse.ok) {
+                const profileError = !profileResponse.ok ? await profileResponse.json() : null;
+                const notificationsError = !notificationsResponse.ok ? await notificationsResponse.json() : null;
+                throw new Error(profileError?.message || notificationsError?.message || "Ocurrió un error al guardar.");
+            }
+            
+            const updatedUser = {
+                ...user,
+                nombre,
+                apellido,
+                telefono,
+                notification_settings: notificationSettings,
+            };
+
+            setUser(updatedUser);
+            localStorage.setItem('supabase_session', JSON.stringify(updatedUser));
+            
+            toast({
+                title: "Éxito",
+                description: "Tu configuración se ha guardado correctamente.",
+            });
+            
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Error al Guardar",
+                description: error.message,
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleNotificationChange = (id: string, checked: boolean) => {
+        setNotificationSettings(prev => ({ ...prev, [id]: checked }));
+    }
 
     return (
         <>
@@ -158,29 +255,22 @@ export default function SettingsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="nombre">Nombre</Label>
-                                        <Input id="nombre" defaultValue={user?.nombre || ''} />
+                                        <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="apellido">Apellido</Label>
-                                        <Input id="apellido" defaultValue={user?.apellido || ''} />
+                                        <Input id="apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Correo Electrónico</Label>
-                                    <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
+                                    <Input id="email" type="email" value={user?.email || ''} disabled />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="telefono">Teléfono</Label>
-                                    <Input id="telefono" type="tel" defaultValue={user?.telefono || ''} />
+                                    <Input id="telefono" type="tel" value={telefono || ''} onChange={(e) => setTelefono(e.target.value)} />
                                 </div>
                             </CardContent>
-                            <CardFooter className="border-t pt-6 flex justify-between">
-                                <Button variant="outline">Cambiar Contraseña</Button>
-                                <Button onClick={() => setIsSaving(true)} disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Guardar Cambios
-                                </Button>
-                            </CardFooter>
                         </Card>
 
                         <Card>
@@ -189,49 +279,27 @@ export default function SettingsPage() {
                                 <CardDescription>Elige qué alertas quieres recibir en tu dispositivo.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-2">
-                                <NotificationSwitch
-                                    id="llegada-alumno"
-                                    label="Llegada por alumno"
-                                    description="Cuando el bus está cerca de la parada."
-                                    defaultChecked={true}
-                                />
-                                <Separator />
-                                <NotificationSwitch
-                                    id="alumno-en-bus"
-                                    label="Alumno en bus"
-                                    description="Cuando tu hijo(a) es marcado como recogido."
-                                    defaultChecked={false}
-                                />
-                                <Separator />
-                                <NotificationSwitch
-                                    id="llegada-colegio"
-                                    label="Llegada a colegio"
-                                    description="Cuando el bus llega al colegio."
-                                    defaultChecked={true}
-                                />
-                                <Separator />
-                                <NotificationSwitch
-                                    id="exceso-velocidad"
-                                    label="Exceso de velocidad"
-                                    description="Si el bus excede los límites de velocidad."
-                                    defaultChecked={false}
-                                />
-                                <Separator />
-                                    <NotificationSwitch
-                                    id="salida-colegio"
-                                    label="Salida del colegio"
-                                    description="Cuando el bus inicia la ruta de regreso."
-                                    defaultChecked={true}
-                                />
-                                <Separator />
-                                <NotificationSwitch
-                                    id="llega-casa"
-                                    label="Llega a casa"
-                                    description="Cuando tu hijo(a) es entregado en su parada."
-                                    defaultChecked={true}
-                                />
+                                {notificationOptions.map((opt, index) => (
+                                    <React.Fragment key={opt.id}>
+                                        <NotificationSwitch
+                                            id={opt.id}
+                                            label={opt.label}
+                                            description={opt.description}
+                                            checked={notificationSettings[opt.id] ?? opt.defaultChecked}
+                                            onCheckedChange={(checked) => handleNotificationChange(opt.id, checked)}
+                                        />
+                                        {index < notificationOptions.length - 1 && <Separator />}
+                                    </React.Fragment>
+                                ))}
                             </CardContent>
                         </Card>
+                    </div>
+
+                     <div className="flex justify-end pt-4">
+                        <Button onClick={handleSaveChanges} disabled={isSaving}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar Cambios
+                        </Button>
                     </div>
                 </div>
             </ScrollArea>

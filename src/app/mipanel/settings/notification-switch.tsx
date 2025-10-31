@@ -8,7 +8,8 @@ type NotificationSwitchProps = {
   id: string;
   label: string;
   description: string;
-  defaultChecked?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
   className?: string;
 };
 
@@ -16,7 +17,8 @@ export function NotificationSwitch({
   id,
   label,
   description,
-  defaultChecked,
+  checked,
+  onCheckedChange,
   className,
 }: NotificationSwitchProps) {
   return (
@@ -32,7 +34,11 @@ export function NotificationSwitch({
         </Label>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch id={id} defaultChecked={defaultChecked} />
+      <Switch 
+        id={id} 
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+      />
     </div>
   );
 }

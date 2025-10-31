@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -9,6 +10,10 @@ export type User = {
   estado: "activo" | "suspendido" | "en_revision" | "sin_monedas";
   fecha_registro: string;
   avatarUrl: string;
+};
+
+export type NotificationSettings = {
+    [key: string]: boolean;
 };
 
 export type Profile = {
@@ -23,6 +28,7 @@ export type Profile = {
   telefono?: string | null;
   direccion?: string | null;
   email_adicional?: string | null;
+  notification_settings?: NotificationSettings | null;
 };
 
 export type Colegio = {
