@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
 import { useUser } from "@/contexts/user-context";
@@ -18,31 +18,31 @@ export default function NotificationsPage() {
     const { hijos, loading: loadingHijos } = useParentDashboard();
 
     const [incidents, setIncidents] = useState<IncidenceWithStudent[]>([]);
-    const [loadingIncidents, setLoadingIncidents] = useState(true);
+    const [loadingIncidents, setLoadingIncidents] = useState(false);
+    const [hasFetchedIncidents, setHasFetchedIncidents] = useState(false);
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
 
-    useEffect(() => {
-      const fetchIncidents = async () => {
-        if (user?.id) {
-            setLoadingIncidents(true);
-            try {
-                const data = await getParentIncidents(user.id);
-                setIncidents(data);
-            } catch (error) {
-                console.error("Failed to fetch incidents", error);
-                setIncidents([]);
-            } finally {
-                setLoadingIncidents(false);
-            }
-        } else {
-            // Si no hay user.id, no podemos cargar nada.
+    const handleFetchIncidents = useCallback(async () => {
+        if (!user?.id || loadingIncidents) return;
+        
+        setLoadingIncidents(true);
+        setHasFetchedIncidents(true);
+        try {
+            const data = await getParentIncidents(user.id);
+            setIncidents(data);
+        } catch (error) {
+            console.error("Failed to fetch incidents", error);
+            setIncidents([]);
+        } finally {
             setLoadingIncidents(false);
         }
-      };
-    
-      fetchIncidents();
-    }, [user?.id]);
+    }, [user?.id, loadingIncidents]);
 
+    const onTabChange = (value: string) => {
+        if (value === 'incidencias' && !hasFetchedIncidents) {
+            handleFetchIncidents();
+        }
+    };
 
     // Generate mock notifications using children's data
     const notifications = loadingHijos || hijos.length === 0 ? [] : [
@@ -121,7 +121,7 @@ export default function NotificationsPage() {
                 </div>
             );
         }
-        if (incidents.length === 0) {
+        if (incidents.length === 0 && hasFetchedIncidents) {
             return (
                 <div className="text-center pt-12">
                     <MessageSquareWarning className="mx-auto h-24 w-24 text-muted-foreground/60" strokeWidth={1}/>
@@ -152,7 +152,7 @@ export default function NotificationsPage() {
                         description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
                     />
                 </div>
-                <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden">
+                <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden" onValueChange={onTabChange}>
                     <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
                         <TabsTrigger value="alertas">Alertas</TabsTrigger>
                         <TabsTrigger value="incidencias">Incidencias</TabsTrigger>
