@@ -12,6 +12,7 @@ import { useParentDashboard } from "../layout";
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ImageCropper } from './[id]/direcciones/image-cropper';
+import { ReportIncidenceSheet } from './report-incidence-sheet';
 
 type HijoDetailCardProps = {
     hijo: Estudiante & { paradas: Parada[], ruta_id?: string, padre_id: string };
@@ -41,6 +42,7 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();
@@ -172,14 +174,14 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                         <AddressRow icon={MapPin} type="Entrega (Casa)" stop={paradaEntrega} />
                     </div>
                     
-                    <div className="flex flex-col gap-2">
+                     <div className="flex flex-col gap-2">
                          <Button asChild className="w-full" variant="outline">
                             <Link href={`/mipanel/hijos/${hijo.id}/direcciones`}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Gestionar Direcciones
                             </Link>
                         </Button>
-                        <Button className="w-full" variant="destructive">
+                        <Button className="w-full" variant="destructive" onClick={() => setIsReportSheetOpen(true)}>
                              <AlertTriangle className="mr-2 h-4 w-4" />
                              Reportar incidencia
                         </Button>
@@ -194,6 +196,11 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                     onClose={() => setImageToCrop(null)}
                 />
             )}
+            <ReportIncidenceSheet
+                isOpen={isReportSheetOpen}
+                onClose={() => setIsReportSheetOpen(false)}
+                student={hijo}
+            />
         </>
     )
 }
