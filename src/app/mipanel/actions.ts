@@ -166,7 +166,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 
 
 export type IncidenceWithStudent = Incidencia & {
-    estudiante: {
+    estudiante_id: {
         nombre: string;
         apellido: string;
     } | null;
@@ -178,7 +178,7 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
         .from('incidencias')
         .select(`
             *,
-            estudiante:estudiantes ( nombre, apellido )
+            estudiante_id ( nombre, apellido )
         `)
         .eq('padre_id', parentId)
         .order('created_at', { ascending: false });
@@ -187,6 +187,6 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
         console.error("Error fetching incidents:", error);
         return [];
     }
-
+    
     return data as IncidenceWithStudent[];
 }

@@ -52,8 +52,8 @@ export function IncidenceDetailModal({ incidence, isOpen, onClose }: IncidenceDe
   const currentStatus = statusConfig[incidence.status] || statusConfig.nuevo;
   const currentType = typeConfig[incidence.tipo_solicitud] || typeConfig.general;
 
-  const studentName = incidence.estudiante 
-    ? `${incidence.estudiante.nombre} ${incidence.estudiante.apellido}` 
+  const studentName = incidence.estudiante_id 
+    ? `${incidence.estudiante_id.nombre} ${incidence.estudiante_id.apellido}` 
     : 'Estudiante no disponible';
   
   const formattedIncidenceDate = format(new Date(incidence.fecha_incidente), "d 'de' MMMM, yyyy", { locale: es });
