@@ -6,7 +6,6 @@ import { navItems, useParentDashboard } from './layout';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Estudiante, TrackedBus } from '@/lib/types';
 import { HijoCard } from './hijo-card';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -29,7 +28,7 @@ export function MiPanelSidebar() {
       </div>
       <nav className="grid items-start gap-2 text-sm font-medium">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
