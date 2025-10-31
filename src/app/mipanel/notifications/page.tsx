@@ -11,23 +11,6 @@ import { IncidenceCard } from "./incidence-card";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
 import { IncidenceDetailModal } from "./incidence-detail-modal";
 
-// Mock data for alerts, will be replaced with real data later
-const mockNotifications = [
-    {
-        icon: 'AlertTriangle',
-        title: "Bus Salió de Ruta",
-        description: "El bus de la ruta 'Ruta Matutina' se ha desviado.",
-        timestamp: "hace 2 min",
-        variant: "destructive" as const
-    },
-    {
-        icon: 'CheckCircle',
-        title: "Estudiante Recogido",
-        description: `Tu hijo ha sido recogido(a) en su parada.`,
-        timestamp: "hace 15 min"
-    },
-];
-
 export default function NotificationsPage() {
     const { user } = useUser();
     const [incidents, setIncidents] = useState<IncidenceWithStudent[]>([]);
@@ -49,10 +32,18 @@ export default function NotificationsPage() {
     }, [user?.id]);
     
     const onTabChange = (tab: string) => {
-        if (tab === 'incidencias' && user?.id) {
+        if (tab === 'incidencias' && incidents.length === 0) { // Solo recargar si no hay datos
             handleFetchIncidents();
         }
     }
+
+    // Carga inicial de incidencias si el usuario ya está disponible
+    useEffect(() => {
+        if(user?.id) {
+            handleFetchIncidents();
+        }
+    }, [user?.id, handleFetchIncidents]);
+
 
     const renderIncidents = () => {
         if (loadingIncidents) {

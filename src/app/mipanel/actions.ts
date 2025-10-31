@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import type { Estudiante, Parada, TrackedBus, OptimizedRouteResult, Colegio, Incidencia } from '@/lib/types';
 
 
@@ -11,7 +12,7 @@ type ParentDashboardData = {
 };
 
 export async function getParentDashboardData(parentId: string): Promise<ParentDashboardData> {
-    const supabase = createServerClient();
+    const supabase = createClient();
 
     // 0. Get parent's profile to find their colegio_id
     const { data: parentProfile, error: parentProfileError } = await supabase
@@ -136,7 +137,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return {
             id: bus.id,
             matricula: bus.matricula,
-            conductor: { 
+            conductor: bus.conductor_id ? { 
                 id: bus.conductor_id,
                 nombre: bus.conductor_nombre,
                 apellido: '',
@@ -147,7 +148,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
                 colegio_id: bus.colegio_id,
                 creado_por: '',
                 fecha_creacion: ''
-            },
+            } : null,
             ruta: {
                 ...fullRouteData,
                 ruta_recogida: fullRouteData.ruta_optimizada_recogida,
@@ -173,8 +174,15 @@ export type IncidenceWithStudent = Incidencia & {
 }
 
 export async function getParentIncidents(parentId: string): Promise<IncidenceWithStudent[]> {
-    const supabase = createServerClient();
-    const { data, error } = await supabase
+    // Usar el Service Role Key para esta consulta para evitar problemas de RLS con server actions
+     const supabaseAdmin = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { cookies: { get: () => undefined, set: () => {}, remove: () => {} },
+        db: { schema: 'rutasegura' },
+        }
+    );
+    const { data, error } = await supabaseAdmin
         .from('incidencias')
         .select(`
             *,
@@ -184,7 +192,7 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error("Error fetching incidents:", error);
+        console.error("Error fetching incidents with service key:", error);
         return [];
     }
     
