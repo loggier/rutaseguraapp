@@ -46,12 +46,11 @@ const getOffsetPosition = (position: { lat: number; lng: number }, index: number
 
 export default function MiPanelPage() {
     const { user } = useUser();
-    const { hijos, buses, colegio, loading } = useParentDashboard();
+    const { hijos, buses, colegio, loading, activeChildId, setActiveChildId } = useParentDashboard();
     const router = useRouter();
     
     const [staticStates, setStaticStates] = useState<Record<string, StaticState>>({});
     const [map, setMap] = useState<google.maps.Map | null>(null);
-    const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const [activeBusId, setActiveBusId] = useState<string | null>(null);
     const [carouselApi, setCarouselApi] = useState<CarouselApi>();
     const [mapTypeId, setMapTypeId] = useState<string>('roadmap');
@@ -103,10 +102,6 @@ export default function MiPanelPage() {
     }, []);
 
     useEffect(() => {
-        if (hijos.length > 0 && !activeChildId) {
-            setActiveChildId(hijos[0].id);
-        }
-        
         const initialStates: Record<string, StaticState> = {};
         buses.forEach(bus => {
             if (bus.ruta?.colegio?.lat && bus.ruta?.colegio?.lng) {
@@ -118,7 +113,7 @@ export default function MiPanelPage() {
         });
         setStaticStates(initialStates);
 
-    }, [hijos, buses, activeChildId]);
+    }, [buses]);
 
     useEffect(() => {
         if (!carouselApi) return;
@@ -129,7 +124,14 @@ export default function MiPanelPage() {
                 setActiveChildId(hijos[selectedSlide].id);
             }
         });
-    }, [carouselApi, hijos]);
+
+        // Sync carousel with activeChildId
+        const activeChildIndex = hijos.findIndex(h => h.id === activeChildId);
+        if (activeChildIndex !== -1 && activeChildIndex !== carouselApi.selectedScrollSnap()) {
+            carouselApi.scrollTo(activeChildIndex);
+        }
+
+    }, [carouselApi, hijos, activeChildId, setActiveChildId]);
     
     const activeChild = useMemo(() => hijos.find(h => h.id === activeChildId), [hijos, activeChildId]);
     
@@ -215,7 +217,7 @@ export default function MiPanelPage() {
 
         return markers;
 
-    }, [hijos, activeChildId, isLoaded]);
+    }, [hijos, activeChildId, isLoaded, setActiveChildId]);
     
     useEffect(() => {
         if(map && mapTypeId) {

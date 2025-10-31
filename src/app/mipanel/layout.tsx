@@ -40,6 +40,8 @@ export type ParentDashboardContextType = {
   colegio: Colegio | null;
   loading: boolean;
   refreshData: () => void;
+  activeChildId: string | null;
+  setActiveChildId: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 const ParentDashboardContext = React.createContext<ParentDashboardContextType | null>(null);
@@ -72,8 +74,10 @@ export const useGoogleMaps = () => {
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData'>>({ hijos: [], buses: [], colegio: null });
+  const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData' | 'activeChildId' | 'setActiveChildId'>>({ hijos: [], buses: [], colegio: null });
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+
 
   const router = useRouter(); 
   const pathname = usePathname();
@@ -120,8 +124,11 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     });
 
     setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses, colegio: data.colegio });
+    if (childrenWithParadas.length > 0 && !activeChildId) {
+        setActiveChildId(childrenWithParadas[0].id);
+    }
     setIsLoadingData(false);
-  }, [user]);
+  }, [user, activeChildId]);
 
   useEffect(() => {
     fetchData();
@@ -155,10 +162,10 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user} setUser={setUser}>
-      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData }}>
+      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData, activeChildId, setActiveChildId }}>
         <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
           <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
-            <MiPanelSidebar hijos={dashboardData.hijos} buses={dashboardData.buses} />
+            <MiPanelSidebar />
             <div className="flex flex-col h-screen">
                 {isMapPage && (
                     <header className="absolute top-0 right-0 z-20 flex h-16 items-center justify-end gap-4 bg-transparent px-4">

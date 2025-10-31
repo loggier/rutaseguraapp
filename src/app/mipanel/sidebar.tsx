@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { navItems } from './layout';
+import { navItems, useParentDashboard } from './layout';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,14 +11,10 @@ import { HijoCard } from './hijo-card';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 
-type MiPanelSidebarProps = {
-  hijos: Estudiante[];
-  buses: TrackedBus[];
-};
-
-export function MiPanelSidebar({ hijos, buses }: MiPanelSidebarProps) {
+export function MiPanelSidebar() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
+  const { hijos, buses, activeChildId, setActiveChildId } = useParentDashboard();
 
   if (isMobile) {
     return null;
@@ -58,7 +54,8 @@ export function MiPanelSidebar({ hijos, buses }: MiPanelSidebarProps) {
                     key={hijo.id} 
                     hijo={hijo} 
                     bus={buses.find(b => b.ruta?.id === (hijo as any).ruta_id)}
-                    isActive={false} // active state is managed in the map page
+                    isActive={activeChildId === hijo.id}
+                    onClick={() => setActiveChildId(hijo.id)}
                  />
               ))}
             </div>

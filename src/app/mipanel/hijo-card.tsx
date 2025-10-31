@@ -11,9 +11,10 @@ type HijoCardProps = {
     hijo: Estudiante;
     bus: TrackedBus | undefined;
     isActive: boolean;
+    onClick?: () => void;
 }
 
-export function HijoCard({ hijo, bus, isActive }: HijoCardProps) {
+export function HijoCard({ hijo, bus, isActive, onClick }: HijoCardProps) {
     
     const getStatus = () => {
         if (!bus) {
@@ -25,7 +26,14 @@ export function HijoCard({ hijo, bus, isActive }: HijoCardProps) {
     const status = getStatus();
 
     return (
-        <Card className={cn("transition-all", isActive ? "ring-2 ring-primary shadow-lg" : "shadow-md")}>
+        <Card 
+            className={cn(
+                "transition-all", 
+                isActive ? "ring-2 ring-primary shadow-lg" : "shadow-md",
+                onClick && "cursor-pointer hover:shadow-lg hover:ring-2 hover:ring-primary/50"
+            )}
+            onClick={onClick}
+        >
             <CardContent className="p-4 flex items-center gap-4">
                 <Avatar className="h-16 w-16 border">
                     <AvatarImage src={hijo.avatar_url || ''} data-ai-hint="child face" />
