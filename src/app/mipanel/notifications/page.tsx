@@ -22,12 +22,25 @@ export default function NotificationsPage() {
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
 
     useEffect(() => {
+      const fetchIncidents = async () => {
         if (user?.id) {
             setLoadingIncidents(true);
-            getParentIncidents(user.id)
-                .then(data => setIncidents(data))
-                .finally(() => setLoadingIncidents(false));
+            try {
+                const data = await getParentIncidents(user.id);
+                setIncidents(data);
+            } catch (error) {
+                console.error("Failed to fetch incidents", error);
+                setIncidents([]);
+            } finally {
+                setLoadingIncidents(false);
+            }
+        } else {
+            // Si no hay user.id, no podemos cargar nada.
+            setLoadingIncidents(false);
         }
+      };
+    
+      fetchIncidents();
     }, [user?.id]);
 
 
