@@ -44,6 +44,7 @@ export default function LoginPage() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Mover esta lógica al cliente
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
       setIsAppInstalled(true);
     }
