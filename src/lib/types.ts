@@ -4,6 +4,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -170,7 +171,7 @@ export type Viaje = {
 export type TrackedBus = {
   id: string; // bus id
   matricula: string;
-  conductor: Conductor;
+  conductor: Conductor | null;
   ruta: Ruta & {
     ruta_recogida?: OptimizedRouteResult | null;
     ruta_entrega?: OptimizedRouteResult | null;
