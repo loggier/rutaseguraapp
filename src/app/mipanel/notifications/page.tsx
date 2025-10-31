@@ -12,6 +12,7 @@ import { IncidenceCard } from "./incidence-card";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
 import { useParentDashboard } from "../layout";
 import { IncidenceDetailModal } from "./incidence-detail-modal";
+import { createClient } from "@/lib/supabase/client";
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -24,20 +25,32 @@ export default function NotificationsPage() {
     const [activeTab, setActiveTab] = useState('alertas');
 
     const handleFetchIncidents = useCallback(async () => {
-        if (!user?.id || loadingIncidents) return;
+        if (!user?.id) return;
         
         setLoadingIncidents(true);
         setHasFetchedIncidents(true);
+        const supabase = createClient();
         try {
-            const data = await getParentIncidents(user.id);
-            setIncidents(data);
+            const { data, error } = await supabase
+                .from('incidencias')
+                .select(`
+                    *,
+                    estudiante_id!inner(nombre, apellido)
+                `)
+                .eq('padre_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                throw error;
+            }
+            setIncidents(data as IncidenceWithStudent[]);
         } catch (error) {
             console.error("Failed to fetch incidents", error);
             setIncidents([]);
         } finally {
             setLoadingIncidents(false);
         }
-    }, [user?.id, loadingIncidents]);
+    }, [user?.id]);
 
     useEffect(() => {
         if (activeTab === 'incidencias' && !hasFetchedIncidents && user?.id) {
