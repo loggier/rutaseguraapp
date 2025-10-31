@@ -155,7 +155,7 @@ export function ReportIncidenceSheet({ isOpen, onClose, student }: ReportInciden
                     )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                      <Controller
                         name="fecha_incidente_date"
                         control={control}
