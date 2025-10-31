@@ -12,7 +12,6 @@ import { IncidenceCard } from "./incidence-card";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
 import { useParentDashboard } from "../layout";
 import { IncidenceDetailModal } from "./incidence-detail-modal";
-import { createClient } from "@/lib/supabase/client";
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -20,43 +19,27 @@ export default function NotificationsPage() {
 
     const [incidents, setIncidents] = useState<IncidenceWithStudent[]>([]);
     const [loadingIncidents, setLoadingIncidents] = useState(false);
-    const [hasFetchedIncidents, setHasFetchedIncidents] = useState(false);
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
     const [activeTab, setActiveTab] = useState('alertas');
 
-    const handleFetchIncidents = useCallback(async () => {
-        if (!user?.id) return;
-        
+    const handleFetchIncidents = useCallback(async (parentId: string) => {
         setLoadingIncidents(true);
-        setHasFetchedIncidents(true);
-        const supabase = createClient();
         try {
-            const { data, error } = await supabase
-                .from('incidencias')
-                .select(`
-                    *,
-                    estudiante_id!inner(nombre, apellido)
-                `)
-                .eq('padre_id', user.id)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                throw error;
-            }
-            setIncidents(data as IncidenceWithStudent[]);
+            const data = await getParentIncidents(parentId);
+            setIncidents(data);
         } catch (error) {
             console.error("Failed to fetch incidents", error);
             setIncidents([]);
         } finally {
             setLoadingIncidents(false);
         }
-    }, [user?.id]);
+    }, []);
 
     useEffect(() => {
-        if (activeTab === 'incidencias' && !hasFetchedIncidents && user?.id) {
-            handleFetchIncidents();
+        if (activeTab === 'incidencias' && user?.id) {
+            handleFetchIncidents(user.id);
         }
-    }, [activeTab, hasFetchedIncidents, user?.id, handleFetchIncidents]);
+    }, [activeTab, user?.id, handleFetchIncidents]);
 
 
     // Generate mock notifications using children's data
@@ -136,7 +119,7 @@ export default function NotificationsPage() {
                 </div>
             );
         }
-        if (incidents.length === 0 && hasFetchedIncidents) {
+        if (incidents.length === 0) {
             return (
                 <div className="text-center pt-12">
                     <MessageSquareWarning className="mx-auto h-24 w-24 text-muted-foreground/60" strokeWidth={1}/>
