@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
 import { useUser } from "@/contexts/user-context";
@@ -21,6 +21,7 @@ export default function NotificationsPage() {
     const [loadingIncidents, setLoadingIncidents] = useState(false);
     const [hasFetchedIncidents, setHasFetchedIncidents] = useState(false);
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
+    const [activeTab, setActiveTab] = useState('alertas');
 
     const handleFetchIncidents = useCallback(async () => {
         if (!user?.id || loadingIncidents) return;
@@ -38,11 +39,12 @@ export default function NotificationsPage() {
         }
     }, [user?.id, loadingIncidents]);
 
-    const onTabChange = (value: string) => {
-        if (value === 'incidencias' && !hasFetchedIncidents) {
+    useEffect(() => {
+        if (activeTab === 'incidencias' && !hasFetchedIncidents && user?.id) {
             handleFetchIncidents();
         }
-    };
+    }, [activeTab, hasFetchedIncidents, user?.id, handleFetchIncidents]);
+
 
     // Generate mock notifications using children's data
     const notifications = loadingHijos || hijos.length === 0 ? [] : [
@@ -152,7 +154,7 @@ export default function NotificationsPage() {
                         description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
                     />
                 </div>
-                <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden" onValueChange={onTabChange}>
+                <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden" onValueChange={setActiveTab}>
                     <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
                         <TabsTrigger value="alertas">Alertas</TabsTrigger>
                         <TabsTrigger value="incidencias">Incidencias</TabsTrigger>

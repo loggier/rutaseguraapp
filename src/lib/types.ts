@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 export type User = {
   id: string;
   nombre: string;
@@ -180,8 +174,8 @@ export type TrackedBus = {
 
 export type Incidencia = {
     id: string;
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
     estudiante_id: string;
     padre_id: string;
     colegio_id: string;
