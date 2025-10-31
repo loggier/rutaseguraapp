@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { Estudiante, Parada } from "@/lib/types";
-import { MapPin, School, Home, Edit, Camera, Loader2 } from "lucide-react";
+import { MapPin, School, Home, Edit, Camera, Loader2, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { useParentDashboard } from "../layout";
@@ -172,12 +172,18 @@ export function HijoDetailCard({ hijo }: HijoDetailCardProps) {
                         <AddressRow icon={MapPin} type="Entrega (Casa)" stop={paradaEntrega} />
                     </div>
                     
-                    <Button asChild className="w-full" variant="outline">
-                        <Link href={`/mipanel/hijos/${hijo.id}/direcciones`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Gestionar Direcciones
-                        </Link>
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                         <Button asChild className="w-full" variant="outline">
+                            <Link href={`/mipanel/hijos/${hijo.id}/direcciones`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Gestionar Direcciones
+                            </Link>
+                        </Button>
+                        <Button className="w-full" variant="destructive">
+                             <AlertTriangle className="mr-2 h-4 w-4" />
+                             Reportar incidencia
+                        </Button>
+                    </div>
 
                 </CardContent>
             </Card>
