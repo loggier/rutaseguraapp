@@ -122,14 +122,14 @@ export function ReportIncidenceSheet({ isOpen, onClose, student }: ReportInciden
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="sm:max-w-lg w-full flex flex-col" side={'bottom'}>
         <SheetHeader className="px-1">
-          <SheetTitle>Reportar Incidencia</SheetTitle>
+          <SheetTitle>Reportar Incidencia en Transporte</SheetTitle>
           <SheetDescription>
-            Completa el formulario para reportar una incidencia sobre {student.nombre}.
+            Reporta un incidente ocurrido durante el transporte de {student.nombre}.
           </SheetDescription>
         </SheetHeader>
         
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-auto">
-            <div className="flex-1 space-y-4 px-1 py-4 overflow-y-auto">
+            <div className="flex-1 space-y-6 px-1 py-4 overflow-y-auto">
                 <Controller
                     name="tipo_solicitud"
                     control={control}
