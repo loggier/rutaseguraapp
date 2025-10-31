@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,8 +15,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { Loader2, Download } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: Array<string>;
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed',
+    platform: string
+  }>;
+  prompt(): Promise<void>;
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,6 +32,53 @@ export default function LoginPage() {
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsAppInstalled(true);
+    }
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setInstallPromptEvent(null);
+      toast({
+          title: 'Aplicación Instalada',
+          description: 'RutaSegura se ha instalado correctamente.',
+      });
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, [toast]);
+  
+  const handleInstallClick = async () => {
+    if (!installPromptEvent) {
+      return;
+    }
+    installPromptEvent.prompt();
+    const { outcome } = await installPromptEvent.userChoice;
+    if (outcome === 'accepted') {
+      console.log('El usuario aceptó la instalación');
+      setIsAppInstalled(true);
+    } else {
+      console.log('El usuario rechazó la instalación');
+    }
+    setInstallPromptEvent(null);
+  };
+
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,9 +109,6 @@ export default function LoginPage() {
       if (data.user.rol === 'padre') {
         router.push('/mipanel');
       } else {
-        // Redirigir a los otros roles a su dashboard correspondiente
-        // Ejemplo: router.push('/admin-dashboard');
-        // Por ahora, solo los padres tienen acceso a esta app.
         toast({
             variant: 'destructive',
             title: 'Acceso Denegado',
@@ -127,6 +180,18 @@ export default function LoginPage() {
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar Sesión
               </Button>
+              {installPromptEvent && !isAppInstalled && (
+                <Button
+                  variant="outline"
+                  onClick={handleInstallClick}
+                  className="w-full mt-2"
+                  disabled={isPending}
+                  type="button"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Instalar Aplicación
+                </Button>
+              )}
             </form>
           </CardContent>
         </Card>

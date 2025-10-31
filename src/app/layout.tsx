@@ -6,6 +6,13 @@ import Script from "next/script";
 export const metadata: Metadata = {
   title: "RutaSegura",
   description: "Sistema de rastreo de autobuses escolares.",
+  manifest: "/manifest.json",
+  themeColor: "#01C998",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "RutaSegura",
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +29,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
           rel="stylesheet"
         />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png"></link>
         <Script src="/js/EasyPlayer-pro.js" strategy="beforeInteractive" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
