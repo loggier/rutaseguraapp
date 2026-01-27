@@ -68,7 +68,7 @@ export default function MiPanelPage() {
     }, [colegio]);
 
     const busesEnRuta = useMemo(() => 
-        buses.filter(bus => bus.status_ruta),
+        buses.filter(bus => bus.ruta?.status_ruta),
     [buses]);
 
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {

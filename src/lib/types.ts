@@ -3,6 +3,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -113,7 +114,6 @@ export type Autobus = {
   conductor_id: string | null;
   ruta_id: string | null;
   creado_por: string;
-  status_ruta?: boolean;
   // Campos join desde la vista
   colegio_nombre?: string;
   conductor_nombre?: string;
@@ -153,6 +153,7 @@ export type Ruta = {
   estudiantes_count: number;
   ruta_optimizada_recogida: OptimizedRouteResult | null;
   ruta_optimizada_entrega: OptimizedRouteResult | null;
+  status_ruta?: boolean;
   colegio?: Colegio;
   paradas?: Parada[];
   estudiantes?: Estudiante[];
@@ -189,7 +190,6 @@ export type TrackedBus = {
   ruta: Ruta | null;
   last_valid_latitude?: number | null;
   last_valid_longitude?: number | null;
-  status_ruta?: boolean;
 }
 
 export type Incidencia = {

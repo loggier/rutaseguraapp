@@ -156,7 +156,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
       newBuses.forEach(bus => {
         const prevBus = prevBuses.find(pb => pb.id === bus.id);
         // If bus status changed from false/undefined to true
-        if (bus.status_ruta && (!prevBus || !prevBus.status_ruta)) {
+        if (bus.ruta?.status_ruta && (!prevBus || !prevBus.ruta?.status_ruta)) {
           toast({
             title: `Bus ${bus.matricula} inició ruta`,
           });
