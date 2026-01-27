@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -65,6 +66,10 @@ export default function MiPanelPage() {
         }
         return { lat: -0.180653, lng: -78.467834 }; // Fallback
     }, [colegio]);
+
+    const busesEnRuta = useMemo(() => 
+        buses.filter(bus => bus.status_ruta),
+    [buses]);
 
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
@@ -335,7 +340,7 @@ export default function MiPanelPage() {
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
-                {buses.map(bus => {
+                {busesEnRuta.map(bus => {
                     if (!bus.last_valid_latitude || !bus.last_valid_longitude) return null;
                     
                     const isActive = activeBusId === bus.id;

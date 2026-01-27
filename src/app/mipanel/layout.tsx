@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState, useCallback, useContext, createContext } from 'react';
+import React, { useEffect, useState, useCallback, useContext, createContext, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLoadScript } from '@react-google-maps/api';
 import {
@@ -22,6 +23,7 @@ import { MiPanelSidebar } from './sidebar';
 import type { Estudiante, Parada, TrackedBus, Colegio } from '@/lib/types';
 import { getParentDashboardData } from './actions';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -78,6 +80,8 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData' | 'activeChildId' | 'setActiveChildId'>>({ hijos: [], buses: [], colegio: null });
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const prevBusesRef = useRef<MappedBus[]>();
 
 
   const router = useRouter(); 
@@ -142,6 +146,27 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
         refreshData(true);
     }
   }, [user, refreshData]);
+
+  // Toast notification for route start
+  useEffect(() => {
+    const prevBuses = prevBusesRef.current;
+    const newBuses = dashboardData.buses;
+
+    if (prevBuses && newBuses.length > 0) {
+      newBuses.forEach(bus => {
+        const prevBus = prevBuses.find(pb => pb.id === bus.id);
+        // If bus status changed from false/undefined to true
+        if (bus.status_ruta && (!prevBus || !prevBus.status_ruta)) {
+          toast({
+            title: `Bus ${bus.matricula} inició ruta`,
+          });
+        }
+      });
+    }
+
+    // Update ref for the next poll
+    prevBusesRef.current = newBuses;
+  }, [dashboardData.buses, toast]);
 
   // Polling for position updates
   useEffect(() => {
