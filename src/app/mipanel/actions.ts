@@ -15,31 +15,7 @@ type ParentDashboardData = {
 export async function getParentDashboardData(parentId: string): Promise<ParentDashboardData> {
     const supabase = createClient();
 
-    // 1. Get parent's profile to find their colegio_id
-    const { data: parentProfile, error: parentProfileError } = await supabase
-        .from('profiles')
-        .select('colegio_id')
-        .eq('id', parentId)
-        .single();
-    
-    if (parentProfileError || !parentProfile?.colegio_id) {
-        console.error("Error fetching parent profile or parent has no school:", parentProfileError);
-        return { hijos: [], buses: [], colegio: null };
-    }
-    const colegioId = parentProfile.colegio_id;
-
-    // 2. Get the parent's school details
-    const { data: colegioData, error: colegioError } = await supabase
-        .from('colegios')
-        .select('*')
-        .eq('id', colegioId)
-        .single();
-    
-    if (colegioError) {
-        console.error("Error fetching school data:", colegioError);
-    }
-
-    // 3. Get children of the parent
+    // 1. Get parent's children
     const { data: hijos, error: hijosError } = await supabase
         .from('estudiantes')
         .select(`id, student_id, nombre, apellido, avatar_url, colegio_id, activo, padre_id, email, telefono, colegio:colegios(nombre)`)
@@ -47,43 +23,45 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 
     if (hijosError || !hijos || hijos.length === 0) {
         console.error("Error fetching children or no children found:", hijosError);
-        return { hijos: [], buses: [], colegio: colegioData };
+        return { hijos: [], buses: [], colegio: null };
     }
-
     const hijosIds = hijos.map(h => h.id);
 
-    // 4. Get route assignments for all children
+    // 2. Get school from the first child (assuming all have same school)
+    const colegioId = hijos[0].colegio_id;
+    const { data: colegioData, error: colegioError } = await supabase
+        .from('colegios')
+        .select('*')
+        .eq('id', colegioId)
+        .single();
+    if (colegioError) console.error("Error fetching school data:", colegioError);
+    
+    // 3. Get route assignments for all children
     const { data: routeAssignments, error: assignmentsError } = await supabase
         .from('ruta_estudiantes')
         .select('estudiante_id, ruta_id')
         .in('estudiante_id', hijosIds);
 
-    if (assignmentsError) {
-        console.error("Error fetching route assignments:", assignmentsError);
-    }
+    if (assignmentsError) console.error("Error fetching route assignments:", assignmentsError);
+    
     const assignmentsMap = (routeAssignments || []).reduce((acc, assign) => {
         acc[assign.estudiante_id] = assign.ruta_id;
         return acc;
     }, {} as Record<string, string>);
 
-    // 5. Get all stops for all children
+    // 4. Get all stops for all children
     const { data: paradas, error: paradasError } = await supabase
         .from('paradas')
         .select('*')
         .in('estudiante_id', hijosIds);
-    
-    if (paradasError) {
-        console.error("Error fetching stops:", paradasError);
-    }
+    if (paradasError) console.error("Error fetching stops:", paradasError);
     const paradasMap = (paradas || []).reduce((acc, parada) => {
-        if (!acc[parada.estudiante_id]) {
-            acc[parada.estudiante_id] = [];
-        }
+        if (!acc[parada.estudiante_id]) acc[parada.estudiante_id] = [];
         acc[parada.estudiante_id].push(parada as Parada);
         return acc;
     }, {} as Record<string, Parada[]>);
 
-    // 6. Assemble the full child data object
+    // 5. Assemble the full child data object
     const childrenWithData = hijos.map((hijo: any) => ({
         ...hijo,
         colegio_nombre: hijo.colegio?.nombre || 'No Asignado',
@@ -91,30 +69,31 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         paradas: paradasMap[hijo.id] || [],
     }));
 
-    // 7. Get the unique set of route IDs the children are assigned to
+    // 6. Get the unique set of route IDs the children are assigned to
     const uniqueRutaIds = [...new Set(Object.values(assignmentsMap).filter(Boolean))];
 
-    // If no children are on any routes, return early with no buses.
     if (uniqueRutaIds.length === 0) {
-        return { hijos: childrenWithData, buses: [], colegio: colegioData };
+        return { hijos: childrenWithData, buses: [], colegio: colegioData || null };
     }
     
-    // 8. Fetch buses assigned to these routes, including their driver and full route details
+    // 7. Fetch buses assigned to these routes, but only if they have a valid location
     const { data: busesData, error: busesError } = await supabase
         .from('autobuses')
         .select(`
             *,
             conductor:conductores(*),
-            ruta:rutas!inner(*, colegio:colegios!inner(id, nombre, lat, lng))
+            ruta:rutas(*)
         `)
-        .in('ruta_id', uniqueRutaIds);
-
+        .in('ruta_id', uniqueRutaIds)
+        .not('last_valid_latitude', 'is', null)
+        .not('last_valid_longitude', 'is', null);
+        
     if (busesError) {
         console.error("Error fetching buses for routes:", busesError);
-        return { hijos: childrenWithData, buses: [], colegio: colegioData };
+        return { hijos: childrenWithData, buses: [], colegio: colegioData || null };
     }
 
-    // 9. Map the raw bus data to our TrackedBus type
+    // 8. Map the raw bus data to our TrackedBus type
     const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => ({
         id: bus.id,
         matricula: bus.matricula,
@@ -127,7 +106,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     return {
         hijos: childrenWithData,
         buses: finalBuses,
-        colegio: colegioData,
+        colegio: colegioData || null,
     };
 }
 
