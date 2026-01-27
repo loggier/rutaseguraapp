@@ -146,10 +146,11 @@ export default function MiPanelPage() {
             }
         }
         const bus = buses.find(b => b.id === activeBusId);
-        if(!bus) return null;
+        if(!bus || !bus.last_valid_latitude || !bus.last_valid_longitude) return null;
+        
         return {
             ...bus,
-            position: {lat: bus.ruta.colegio.lat!, lng: bus.ruta.colegio.lng!}
+            position: {lat: bus.last_valid_latitude, lng: bus.last_valid_longitude}
         }
     }, [activeBusId, buses]);
 
@@ -343,10 +344,12 @@ export default function MiPanelPage() {
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
                 {buses.map(bus => {
+                    if (!bus.last_valid_latitude || !bus.last_valid_longitude) return null;
                     const state = staticStates[bus.id];
-                    if (!state || !bus.ruta.colegio?.lat || !bus.ruta.colegio?.lng) return null;
+                    if (!state) return null;
+
                     const isActive = activeBusId === bus.id;
-                    const busPosition = {lat: bus.ruta.colegio.lat, lng: bus.ruta.colegio.lng}
+                    const busPosition = {lat: bus.last_valid_latitude, lng: bus.last_valid_longitude};
 
                     return (
                         <MarkerF 
@@ -377,7 +380,7 @@ export default function MiPanelPage() {
                     >
                          <div className="p-2 bg-background rounded-lg shadow-lg w-64">
                             <h3 className="font-bold text-lg text-secondary">Bus: {selectedBusForInfoWindow.matricula}</h3>
-                            <p className="text-sm text-muted-foreground">Conductor: {selectedBusForInfoWindow.conductor.nombre}</p>
+                            <p className="text-sm text-muted-foreground">Conductor: {selectedBusForInfoWindow.conductor?.nombre || 'No asignado'}</p>
                             <p className="text-sm text-muted-foreground mt-1">El autobús llegará en 5 min</p>
                             <Button className="w-full mt-4 bg-secondary" onClick={() => router.push('/mipanel/camaras')}>
                                 <Video className="mr-2 h-4 w-4" />

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { createServerClient } from '@supabase/ssr';
@@ -137,6 +138,8 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return {
             id: bus.id,
             matricula: bus.matricula,
+            last_valid_latitude: bus.last_valid_latitude,
+            last_valid_longitude: bus.last_valid_longitude,
             conductor: bus.conductor_id ? { 
                 id: bus.conductor_id,
                 nombre: bus.conductor_nombre,

@@ -117,6 +117,16 @@ export type Autobus = {
   ruta_estudiantes_count?: number;
   conductor?: Conductor | null;
   bus_asignado?: { matricula: string }[] | null;
+  // New fields from table definition
+  modelo_camara?: string | null;
+  last_valid_latitude?: number | null;
+  last_valid_longitude?: number | null;
+  speed?: number | null;
+  course?: number | null;
+  device_time?: string | null;
+  server_time?: string | null;
+  address?: string | null;
+  wox_device_id?: number | null;
 };
 
 
@@ -176,6 +186,8 @@ export type TrackedBus = {
     ruta_recogida?: OptimizedRouteResult | null;
     ruta_entrega?: OptimizedRouteResult | null;
   };
+  last_valid_latitude?: number | null;
+  last_valid_longitude?: number | null;
 }
 
 export type Incidencia = {
