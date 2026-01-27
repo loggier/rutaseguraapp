@@ -137,14 +137,6 @@ export default function MiPanelPage() {
     
     const selectedBusForInfoWindow = useMemo(() => {
         if (!activeBusId) return null;
-        if(activeBusId === 'temp-bus') {
-            return {
-                id: 'temp-bus',
-                matricula: 'DEMO-001',
-                conductor: { nombre: 'Conductor Demo' },
-                position: {lat: -0.157713, lng: -78.454052}
-            }
-        }
         const bus = buses.find(b => b.id === activeBusId);
         if(!bus || !bus.last_valid_latitude || !bus.last_valid_longitude) return null;
         
@@ -361,13 +353,6 @@ export default function MiPanelPage() {
                         />
                     );
                 })}
-
-                <MarkerF
-                    position={{ lat: -0.157713, lng: -78.454052 }}
-                    icon={activeBusId === 'temp-bus' ? activeBusMarkerIcon : busMarkerIcon}
-                    zIndex={activeBusId === 'temp-bus' ? 100 : 50}
-                    onClick={() => handleBusClick('temp-bus')}
-                />
                 
                 {selectedBusForInfoWindow && (
                      <InfoWindowF
@@ -434,5 +419,3 @@ export default function MiPanelPage() {
         </div>
     );
 }
-
-    
