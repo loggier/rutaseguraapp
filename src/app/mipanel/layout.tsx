@@ -152,31 +152,41 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                 filter: `colegio_id=eq.${dashboardData.colegio.id}`
             },
             (payload) => {
-                const updatedBusData = payload.new as Autobus;
-                
+                const updatedRecord = payload.new as Partial<Autobus> & { id: string };
+
                 setDashboardData(currentData => {
-                    const busIndex = currentData.buses.findIndex(b => b.id === updatedBusData.id);
+                    const busIndex = currentData.buses.findIndex(b => b.id === updatedRecord.id);
 
                     if (busIndex === -1) {
-                        return currentData; // Not a bus this user is tracking
+                        return currentData;
                     }
 
                     const newBuses = [...currentData.buses];
-                    const busToUpdate = { ...newBuses[busIndex] };
+                    const oldBus = newBuses[busIndex];
 
-                    // Update location from realtime payload
-                    busToUpdate.last_valid_latitude = updatedBusData.last_valid_latitude;
-                    busToUpdate.last_valid_longitude = updatedBusData.last_valid_longitude;
+                    const updatedBus = {
+                        ...oldBus,
+                        last_valid_latitude: updatedRecord.last_valid_latitude !== undefined 
+                            ? updatedRecord.last_valid_latitude 
+                            : oldBus.last_valid_latitude,
+                        last_valid_longitude: updatedRecord.last_valid_longitude !== undefined 
+                            ? updatedRecord.last_valid_longitude
+                            : oldBus.last_valid_longitude,
+                    };
 
-                    newBuses[busIndex] = busToUpdate;
+                    if (oldBus.last_valid_latitude === updatedBus.last_valid_latitude &&
+                        oldBus.last_valid_longitude === updatedBus.last_valid_longitude) {
+                        return currentData;
+                    }
                     
+                    newBuses[busIndex] = updatedBus;
+
                     return { ...currentData, buses: newBuses };
                 });
             }
         )
         .subscribe();
 
-    // Cleanup subscription on component unmount
     return () => {
         supabase.removeChannel(channel);
     };
