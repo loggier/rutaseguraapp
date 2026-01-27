@@ -38,7 +38,6 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     
     if (colegioError) {
         console.error("Error fetching school data:", colegioError);
-        return { hijos: [], buses: [], colegio: null };
     }
 
 
@@ -97,14 +96,21 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         paradas: paradasMap[hijo.id] || [],
     }));
 
-    // Fetch all buses for the school directly
+    // Get all unique route IDs assigned to the children
+    const allAssignedRutaIds = [...new Set(Object.values(assignmentsMap).filter(Boolean))];
+
+    if (allAssignedRutaIds.length === 0) {
+        return { hijos: childrenWithData, buses: [], colegio: colegioData };
+    }
+
+    // 5. Fetch buses that are assigned to these specific routes
     const { data: busesData, error: busesError } = await supabase
         .from('autobuses_view')
         .select('*')
-        .eq('colegio_id', colegioId);
+        .in('ruta_id', allAssignedRutaIds);
 
     if (busesError) {
-        console.error("Error fetching buses from view:", busesError);
+        console.error("Error fetching buses for routes:", busesError);
         return { hijos: childrenWithData, buses: [], colegio: colegioData };
     }
     
@@ -112,37 +118,11 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return { hijos: childrenWithData, buses: [], colegio: colegioData };
     }
     
-    const allRutaIds = [...new Set(busesData.map(b => b.ruta_id).filter(Boolean))];
-
-    if (allRutaIds.length === 0) {
-        const finalBuses: TrackedBus[] = busesData.map((bus: any) => ({
-            id: bus.id,
-            matricula: bus.matricula,
-            last_valid_latitude: bus.last_valid_latitude,
-            last_valid_longitude: bus.last_valid_longitude,
-            conductor: bus.conductor_id ? { 
-                id: bus.conductor_id,
-                nombre: bus.conductor_nombre,
-                apellido: '',
-                licencia: '',
-                telefono: null,
-                activo: true,
-                avatar_url: null,
-                colegio_id: bus.colegio_id,
-                creado_por: '',
-                fecha_creacion: ''
-            } : null,
-            ruta: null
-        }));
-        return { hijos: childrenWithData, buses: finalBuses, colegio: colegioData };
-    }
-
-
-    // 6. Fetch full route data for the buses
+    // 6. Fetch full route data for the buses (using the same route IDs)
     const { data: routesData, error: routesError } = await supabase
         .from('rutas')
         .select('id, nombre, hora_salida_manana, hora_salida_tarde, colegio_id, creado_por, fecha_creacion, estudiantes_count, ruta_optimizada_recogida, ruta_optimizada_entrega, colegio:colegios!inner(id, nombre, lat, lng)')
-        .in('id', allRutaIds);
+        .in('id', allAssignedRutaIds);
 
     if (routesError) {
         console.error("Error fetching routes:", routesError);
