@@ -18,10 +18,9 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 import { BottomNavBar } from './bottom-nav-bar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
-import type { Estudiante, Parada, TrackedBus, Colegio, Autobus } from '@/lib/types';
+import type { Estudiante, Parada, TrackedBus, Colegio } from '@/lib/types';
 import { getParentDashboardData } from './actions';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -110,82 +109,47 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     setIsLoadingUser(false);
   }, [router]);
   
-  const fetchData = useCallback(async () => {
+  const refreshData = useCallback(async (isInitialLoad = false) => {
     if (!user?.id) return;
-    setIsLoadingData(true);
-    const data = await getParentDashboardData(user.id);
+    if (isInitialLoad) setIsLoadingData(true);
     
-    const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
-    
-    const mappedBuses = data.buses.map(bus => {
-        return {
-            ...bus,
-            estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
-        };
-    });
+    try {
+        const data = await getParentDashboardData(user.id);
+        const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
+        
+        const mappedBuses = data.buses.map(bus => {
+            return {
+                ...bus,
+                estudiantes_ids: data.hijos.filter(h => h.ruta_id === bus.ruta?.id).map(h => h.id)
+            };
+        });
 
-    setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses, colegio: data.colegio });
-    if (childrenWithParadas.length > 0 && !activeChildId) {
-        setActiveChildId(childrenWithParadas[0].id);
+        setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses, colegio: data.colegio });
+        if (isInitialLoad && childrenWithParadas.length > 0 && !activeChildId) {
+            setActiveChildId(childrenWithParadas[0].id);
+        }
+    } catch (error) {
+        console.error("Failed to refresh dashboard data:", error);
+    } finally {
+        if (isInitialLoad) setIsLoadingData(false);
     }
-    setIsLoadingData(false);
-  }, [user, activeChildId]);
+  }, [user, activeChildId, setActiveChildId]);
 
+  // Initial data load
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Realtime subscription for bus locations
-  useEffect(() => {
-    if (!dashboardData.colegio?.id) {
-        return;
+    if (user?.id) {
+        refreshData(true);
     }
+  }, [user, refreshData]);
 
-    const supabase = createClient();
-    const channel = supabase.channel('autobuses-location-changes')
-        .on(
-            'postgres_changes',
-            { 
-                event: 'UPDATE', 
-                schema: 'rutasegura', 
-                table: 'autobuses',
-                filter: `colegio_id=eq.${dashboardData.colegio.id}`
-            },
-            (payload) => {
-                const updatedRecord = payload.new as Partial<Autobus> & { id: string };
+  // Polling for position updates
+  useEffect(() => {
+      const intervalId = setInterval(() => {
+          refreshData(false); // Silent refresh
+      }, 20000); // Poll every 20 seconds
 
-                setDashboardData(currentData => {
-                    const busIndex = currentData.buses.findIndex(b => b.id === updatedRecord.id);
-
-                    if (busIndex === -1) {
-                        return currentData;
-                    }
-
-                    const newBuses = [...currentData.buses];
-                    const oldBus = newBuses[busIndex];
-
-                    const updatedBus = {
-                        ...oldBus,
-                        last_valid_latitude: updatedRecord.last_valid_latitude !== undefined 
-                            ? updatedRecord.last_valid_latitude 
-                            : oldBus.last_valid_latitude,
-                        last_valid_longitude: updatedRecord.last_valid_longitude !== undefined 
-                            ? updatedRecord.last_valid_longitude
-                            : oldBus.last_valid_longitude,
-                    };
-                    
-                    newBuses[busIndex] = updatedBus;
-
-                    return { ...currentData, buses: newBuses };
-                });
-            }
-        )
-        .subscribe();
-
-    return () => {
-        supabase.removeChannel(channel);
-    };
-}, [dashboardData.colegio?.id]);
+      return () => clearInterval(intervalId);
+  }, [refreshData]);
 
 
   const handleLogout = () => {
@@ -216,7 +180,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <UserProvider user={user} setUser={setUser}>
-      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: fetchData, activeChildId, setActiveChildId }}>
+      <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: () => refreshData(false), activeChildId, setActiveChildId }}>
         <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
           <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
             <MiPanelSidebar />
