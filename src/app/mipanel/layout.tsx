@@ -18,9 +18,10 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 import { BottomNavBar } from './bottom-nav-bar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
-import type { Estudiante, Parada, TrackedBus, Colegio } from '@/lib/types';
+import type { Estudiante, Parada, TrackedBus, Colegio, Autobus } from '@/lib/types';
 import { getParentDashboardData } from './actions';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -133,6 +134,54 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Realtime subscription for bus locations
+  useEffect(() => {
+    if (!dashboardData.colegio?.id) {
+        return;
+    }
+
+    const supabase = createClient();
+    const channel = supabase.channel('autobuses-location-changes')
+        .on(
+            'postgres_changes',
+            { 
+                event: 'UPDATE', 
+                schema: 'rutasegura', 
+                table: 'autobuses',
+                filter: `colegio_id=eq.${dashboardData.colegio.id}`
+            },
+            (payload) => {
+                const updatedBusData = payload.new as Autobus;
+                
+                setDashboardData(currentData => {
+                    const busIndex = currentData.buses.findIndex(b => b.id === updatedBusData.id);
+
+                    if (busIndex === -1) {
+                        return currentData; // Not a bus this user is tracking
+                    }
+
+                    const newBuses = [...currentData.buses];
+                    const busToUpdate = { ...newBuses[busIndex] };
+
+                    // Update location from realtime payload
+                    busToUpdate.last_valid_latitude = updatedBusData.last_valid_latitude;
+                    busToUpdate.last_valid_longitude = updatedBusData.last_valid_longitude;
+
+                    newBuses[busIndex] = busToUpdate;
+                    
+                    return { ...currentData, buses: newBuses };
+                });
+            }
+        )
+        .subscribe();
+
+    // Cleanup subscription on component unmount
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}, [dashboardData.colegio?.id]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('supabase_session');
