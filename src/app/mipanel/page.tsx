@@ -161,7 +161,7 @@ export default function MiPanelPage() {
     }, [selectedBusForInfoWindow, activeChild, map, colegio]);
 
     const decodedPolylinePath = useMemo(() => {
-        if (!isLoaded || !selectedBusForInfoWindow || !('ruta' in selectedBusForInfoWindow)) return [];
+        if (!isLoaded || !selectedBusForInfoWindow || !selectedBusForInfoWindow.ruta) return [];
         const state = staticStates[selectedBusForInfoWindow.id];
         if (!state) return [];
 
@@ -337,9 +337,7 @@ export default function MiPanelPage() {
             >
                 {buses.map(bus => {
                     if (!bus.last_valid_latitude || !bus.last_valid_longitude) return null;
-                    const state = staticStates[bus.id];
-                    if (!state) return null;
-
+                    
                     const isActive = activeBusId === bus.id;
                     const busPosition = {lat: bus.last_valid_latitude, lng: bus.last_valid_longitude};
 
@@ -385,7 +383,7 @@ export default function MiPanelPage() {
                     />
                 )}
                 
-                {selectedBusForInfoWindow && 'ruta' in selectedBusForInfoWindow && (
+                {selectedBusForInfoWindow && selectedBusForInfoWindow.ruta && (
                     <PolylineF path={decodedPolylinePath} options={{ strokeColor: '#01C998', strokeWeight: 5, strokeOpacity: 0.8 }}/>
                 )}
                 

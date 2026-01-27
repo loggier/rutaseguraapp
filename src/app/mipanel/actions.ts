@@ -97,32 +97,56 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         paradas: paradasMap[hijo.id] || [],
     }));
 
-    const rutaIds = [...new Set(childrenWithData.map(h => h.ruta_id).filter(Boolean))];
-
-    if (rutaIds.length === 0) {
-        return { hijos: childrenWithData, buses: [], colegio: colegioData };
-    }
-
-    // 5. Get all necessary buses and their related info from the view
+    // Fetch all buses for the school directly
     const { data: busesData, error: busesError } = await supabase
         .from('autobuses_view')
         .select('*')
-        .in('ruta_id', rutaIds as string[]);
+        .eq('colegio_id', colegioId);
 
     if (busesError) {
         console.error("Error fetching buses from view:", busesError);
-        return { hijos: childrenWithData, buses: busesData as TrackedBus[] || [], colegio: colegioData };
+        return { hijos: childrenWithData, buses: [], colegio: colegioData };
     }
+    
+    if (!busesData || busesData.length === 0) {
+        return { hijos: childrenWithData, buses: [], colegio: colegioData };
+    }
+    
+    const allRutaIds = [...new Set(busesData.map(b => b.ruta_id).filter(Boolean))];
+
+    if (allRutaIds.length === 0) {
+        const finalBuses: TrackedBus[] = busesData.map((bus: any) => ({
+            id: bus.id,
+            matricula: bus.matricula,
+            last_valid_latitude: bus.last_valid_latitude,
+            last_valid_longitude: bus.last_valid_longitude,
+            conductor: bus.conductor_id ? { 
+                id: bus.conductor_id,
+                nombre: bus.conductor_nombre,
+                apellido: '',
+                licencia: '',
+                telefono: null,
+                activo: true,
+                avatar_url: null,
+                colegio_id: bus.colegio_id,
+                creado_por: '',
+                fecha_creacion: ''
+            } : null,
+            ruta: null
+        }));
+        return { hijos: childrenWithData, buses: finalBuses, colegio: colegioData };
+    }
+
 
     // 6. Fetch full route data for the buses
     const { data: routesData, error: routesError } = await supabase
         .from('rutas')
         .select('id, nombre, hora_salida_manana, hora_salida_tarde, colegio_id, creado_por, fecha_creacion, estudiantes_count, ruta_optimizada_recogida, ruta_optimizada_entrega, colegio:colegios!inner(id, nombre, lat, lng)')
-        .in('id', rutaIds as string[]);
+        .in('id', allRutaIds);
 
     if (routesError) {
         console.error("Error fetching routes:", routesError);
-        return { hijos: childrenWithData, buses: busesData as TrackedBus[] || [], colegio: colegioData };
+        return { hijos: childrenWithData, buses: [], colegio: colegioData };
     }
     
     const routesMap = (routesData || []).reduce((acc, route) => {
@@ -132,8 +156,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 
 
     const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => {
-        const fullRouteData = routesMap[bus.ruta_id];
-        if (!fullRouteData) return null;
+        const fullRouteData = bus.ruta_id ? routesMap[bus.ruta_id] : null;
 
         return {
             id: bus.id,
@@ -152,13 +175,13 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
                 creado_por: '',
                 fecha_creacion: ''
             } : null,
-            ruta: {
+            ruta: fullRouteData ? {
                 ...fullRouteData,
                 ruta_recogida: fullRouteData.ruta_optimizada_recogida,
                 ruta_entrega: fullRouteData.ruta_optimizada_entrega,
-            }
+            } : null
         };
-    }).filter((bus): bus is TrackedBus => bus !== null && !!bus.ruta);
+    }).filter((bus): bus is TrackedBus => bus !== null);
 
 
     return {
@@ -170,14 +193,13 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
 
 
 export type IncidenceWithStudent = Incidencia & {
-    estudiante_id: {
+    estudiante: {
         nombre: string;
         apellido: string;
     } | null;
 }
 
 export async function getParentIncidents(parentId: string): Promise<IncidenceWithStudent[]> {
-    // Usar el Service Role Key para esta consulta para evitar problemas de RLS con server actions
      const supabaseAdmin = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -189,7 +211,7 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
         .from('incidencias')
         .select(`
             *,
-            estudiante_id!inner(nombre, apellido)
+            estudiante:estudiante_id!inner(nombre, apellido)
         `)
         .eq('padre_id', parentId)
         .order('created_at', { ascending: false });
