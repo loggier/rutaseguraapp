@@ -76,7 +76,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return { hijos: childrenWithData, buses: [], colegio: colegioData || null };
     }
     
-    // 7. Fetch buses assigned to these routes, but only if they have a valid location
+    // 7. Fetch buses assigned to these routes.
     const { data: busesData, error: busesError } = await supabase
         .from('autobuses')
         .select(`
@@ -84,9 +84,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
             conductor:conductores(*),
             ruta:rutas(*)
         `)
-        .in('ruta_id', uniqueRutaIds)
-        .not('last_valid_latitude', 'is', null)
-        .not('last_valid_longitude', 'is', null);
+        .in('ruta_id', uniqueRutaIds);
         
     if (busesError) {
         console.error("Error fetching buses for routes:", busesError);
