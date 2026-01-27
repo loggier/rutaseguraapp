@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -146,7 +147,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
       const intervalId = setInterval(() => {
           refreshData(false); // Silent refresh
-      }, 20000); // Poll every 20 seconds
+      }, 5000); // Poll every 5 seconds
 
       return () => clearInterval(intervalId);
   }, [refreshData]);
