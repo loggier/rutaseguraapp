@@ -173,11 +173,6 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
                             ? updatedRecord.last_valid_longitude
                             : oldBus.last_valid_longitude,
                     };
-
-                    if (oldBus.last_valid_latitude === updatedBus.last_valid_latitude &&
-                        oldBus.last_valid_longitude === updatedBus.last_valid_longitude) {
-                        return currentData;
-                    }
                     
                     newBuses[busIndex] = updatedBus;
 
