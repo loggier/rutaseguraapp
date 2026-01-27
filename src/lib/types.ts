@@ -1,6 +1,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -183,10 +184,7 @@ export type TrackedBus = {
   id: string; // bus id
   matricula: string;
   conductor: Conductor | null;
-  ruta: (Ruta & {
-    ruta_recogida?: OptimizedRouteResult | null;
-    ruta_entrega?: OptimizedRouteResult | null;
-  }) | null;
+  ruta: Ruta | null;
   last_valid_latitude?: number | null;
   last_valid_longitude?: number | null;
 }
