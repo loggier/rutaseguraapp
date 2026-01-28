@@ -5,7 +5,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   GoogleMap,
-  MarkerF,
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
@@ -26,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { StudentMarker } from './student-marker';
 import { useRouter } from 'next/navigation';
+import { BusMarker } from './bus-marker';
+import { MarkerF } from '@react-google-maps/api';
 
 
 type StaticState = {
@@ -151,19 +152,6 @@ export default function MiPanelPage() {
         }
     }, [activeBusId, buses]);
 
-
-    useEffect(() => {
-      if (selectedBusForInfoWindow && map) {
-          map.panTo(selectedBusForInfoWindow.position);
-      } else if (activeChild && map) {
-          const stop = activeChild.paradas.find(p => p.activo);
-          if (stop) {
-            map.panTo({ lat: stop.lat, lng: stop.lng });
-          }
-      } else if (map && colegio?.lat && colegio?.lng) {
-          map.panTo({ lat: colegio.lat, lng: colegio.lng });
-      }
-    }, [selectedBusForInfoWindow, activeChild, map, colegio]);
 
     const decodedPolylinePath = useMemo(() => {
         if (!isLoaded || !selectedBusForInfoWindow || !selectedBusForInfoWindow.ruta) return [];
@@ -344,14 +332,14 @@ export default function MiPanelPage() {
                     if (bus.last_latitude == null || bus.last_longitude == null) return null;
                     
                     const isActive = activeBusId === bus.id;
-                    const busPosition = {lat: bus.last_latitude, lng: bus.last_longitude};
 
                     return (
-                        <MarkerF 
+                        <BusMarker
                             key={bus.id}
-                            position={busPosition}
-                            icon={isActive ? activeBusMarkerIcon : busMarkerIcon}
-                            zIndex={isActive ? 100 : 50}
+                            bus={bus}
+                            isActive={isActive}
+                            icon={busMarkerIcon}
+                            activeIcon={activeBusMarkerIcon}
                             onClick={() => handleBusClick(bus.id)}
                         />
                     );
