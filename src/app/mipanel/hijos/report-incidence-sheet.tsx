@@ -130,30 +130,6 @@ export function ReportIncidenceSheet({ isOpen, onClose, student }: ReportInciden
         
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-y-auto">
             <div className="flex-1 space-y-6 px-1 py-4 overflow-y-auto">
-                <Controller
-                    name="tipo_solicitud"
-                    control={control}
-                    render={({ field }) => (
-                        <div className="grid gap-2">
-                        <Label>Tipo de Solicitud</Label>
-                        <RadioGroup {...field} onValueChange={field.onChange} className="flex gap-4">
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="general" id="general"/>
-                                <Label htmlFor="general">Reporte General</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="video" id="video"/>
-                                <Label htmlFor="video">Solicitar Video</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="imagen" id="imagen" />
-                                <Label htmlFor="imagen">Solicitar Imagen</Label>
-                            </div>
-                        </RadioGroup>
-                         {errors.tipo_solicitud && <p className="text-xs text-destructive">{errors.tipo_solicitud.message}</p>}
-                        </div>
-                    )}
-                />
 
                 <div className="space-y-4">
                      <Controller
@@ -190,7 +166,7 @@ export function ReportIncidenceSheet({ isOpen, onClose, student }: ReportInciden
                         )}
                     />
                     <div className="grid gap-2">
-                         <Label htmlFor="fecha_incidente_time">Hora (24h)</Label>
+                         <Label htmlFor="fecha_incidente_time">Hora del incidente (24h)</Label>
                          <Input
                             id="fecha_incidente_time"
                             type="time"
