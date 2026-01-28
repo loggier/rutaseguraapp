@@ -78,6 +78,7 @@ export type NotificationsContextType = {
   unreadCount: number;
   markNotificationAsRead: (notificationId: string) => Promise<void>;
   markAllNotificationsAsRead: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 };
 
 const NotificationsContext = React.createContext<NotificationsContextType | null>(null);
@@ -310,7 +311,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider user={user} setUser={setUser}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: () => refreshData(false), activeChildId, setActiveChildId }}>
-       <NotificationsContext.Provider value={{ notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead }}>
+       <NotificationsContext.Provider value={{ notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead, refreshNotifications: fetchNotifications }}>
         <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
           <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
             <MiPanelSidebar />

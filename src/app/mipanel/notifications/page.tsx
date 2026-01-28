@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
 import { useUser } from "@/contexts/user-context";
-import { Loader2, MessageSquareWarning, Bus, School, AlertTriangle as AlertTriangleIcon, Bell } from "lucide-react";
+import { Loader2, MessageSquareWarning, Bus, School, AlertTriangle as AlertTriangleIcon, Bell, RefreshCw, CheckCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getParentIncidents, type IncidenceWithStudent } from "../actions";
 import { IncidenceCard } from "./incidence-card";
@@ -14,6 +14,7 @@ import { useNotifications } from "../layout";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -21,7 +22,7 @@ export default function NotificationsPage() {
     const [loadingIncidents, setLoadingIncidents] = useState(false);
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
 
-    const { notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead } = useNotifications();
+    const { notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead, refreshNotifications } = useNotifications();
     const [isMarking, setIsMarking] = useState(false);
 
     const handleFetchIncidents = useCallback(async () => {
@@ -43,6 +44,13 @@ export default function NotificationsPage() {
             handleFetchIncidents();
         }
     }
+    
+    const handleRefresh = async () => {
+        if (refreshNotifications) {
+            await refreshNotifications();
+        }
+        await handleFetchIncidents();
+    };
 
     useEffect(() => {
         if(user?.id) {
@@ -145,16 +153,21 @@ export default function NotificationsPage() {
         <>
             <div className="flex flex-col h-full">
                 <div className="flex-shrink-0 p-4 md:p-6">
-                    <PageHeader
+                     <PageHeader
                         title="Mi bandeja de entrada"
                         description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
                     >
-                         {unreadCount > 0 && (
-                            <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={isMarking}>
-                                {isMarking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Marcar todo como leído
+                         <div className="flex items-center gap-2">
+                             <Button variant="outline" size="icon" onClick={handleRefresh} disabled={loadingNotifications || isMarking} aria-label="Actualizar notificaciones">
+                                <RefreshCw className={cn("h-5 w-5", (loadingNotifications || loadingIncidents) && "animate-spin")} />
                             </Button>
-                        )}
+                            {unreadCount > 0 && (
+                                <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={isMarking || loadingNotifications}>
+                                    {isMarking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-2 h-4 w-4" />}
+                                    Marcar todo como leído
+                                </Button>
+                            )}
+                        </div>
                     </PageHeader>
                 </div>
                 <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden" onValueChange={onTabChange}>
