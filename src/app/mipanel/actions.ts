@@ -1,7 +1,6 @@
-
-
 'use server';
 
+import { unstable_noStore as noStore } from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
 import type { Estudiante, Parada, TrackedBus, Colegio, Incidencia, Conductor, Ruta } from '@/lib/types';
 
@@ -13,6 +12,7 @@ type ParentDashboardData = {
 };
 
 export async function getParentDashboardData(parentId: string): Promise<ParentDashboardData> {
+    noStore();
     const supabaseAdmin = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -108,7 +108,6 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         matricula: bus.matricula,
         last_valid_latitude: bus.last_valid_latitude,
         last_valid_longitude: bus.last_valid_longitude,
-        status_ruta: bus.status_ruta,
         conductor: bus.conductor as Conductor | null,
         ruta: bus.ruta as Ruta | null,
     }));
