@@ -143,11 +143,11 @@ export default function MiPanelPage() {
     const selectedBusForInfoWindow = useMemo(() => {
         if (!activeBusId) return null;
         const bus = buses.find(b => b.id === activeBusId);
-        if(bus?.last_valid_latitude == null || bus?.last_valid_longitude == null) return null;
+        if(bus?.last_latitude == null || bus?.last_longitude == null) return null;
         
         return {
             ...bus,
-            position: {lat: bus.last_valid_latitude, lng: bus.last_valid_longitude}
+            position: {lat: bus.last_latitude, lng: bus.last_longitude}
         }
     }, [activeBusId, buses]);
 
@@ -341,10 +341,10 @@ export default function MiPanelPage() {
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
                 {busesEnRuta.map(bus => {
-                    if (bus.last_valid_latitude == null || bus.last_valid_longitude == null) return null;
+                    if (bus.last_latitude == null || bus.last_longitude == null) return null;
                     
                     const isActive = activeBusId === bus.id;
-                    const busPosition = {lat: bus.last_valid_latitude, lng: bus.last_valid_longitude};
+                    const busPosition = {lat: bus.last_latitude, lng: bus.last_longitude};
 
                     return (
                         <MarkerF 

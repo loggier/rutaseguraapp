@@ -106,8 +106,9 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
     const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => ({
         id: bus.id,
         matricula: bus.matricula,
-        last_valid_latitude: bus.last_valid_latitude,
-        last_valid_longitude: bus.last_valid_longitude,
+        last_latitude: bus.last_latitude,
+        last_longitude: bus.last_longitude,
+        last_speed: bus.last_speed,
         conductor: bus.conductor as Conductor | null,
         ruta: bus.ruta as Ruta | null,
     }));

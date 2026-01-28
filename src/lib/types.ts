@@ -4,6 +4,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -123,9 +124,9 @@ export type Autobus = {
   bus_asignado?: { matricula: string }[] | null;
   // New fields from table definition
   modelo_camara?: string | null;
-  last_valid_latitude?: number | null;
-  last_valid_longitude?: number | null;
-  speed?: number | null;
+  last_latitude?: number | null;
+  last_longitude?: number | null;
+  last_speed?: number | null;
   course?: number | null;
   device_time?: string | null;
   server_time?: string | null;
@@ -188,8 +189,9 @@ export type TrackedBus = {
   matricula: string;
   conductor: Conductor | null;
   ruta: Ruta | null;
-  last_valid_latitude?: number | null;
-  last_valid_longitude?: number | null;
+  last_latitude?: number | null;
+  last_longitude?: number | null;
+  last_speed?: number | null;
 }
 
 export type Incidencia = {
