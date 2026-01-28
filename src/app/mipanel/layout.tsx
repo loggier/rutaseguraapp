@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import Link from 'next/link';
@@ -20,10 +21,11 @@ import { UserProvider, type User as AppUser } from '@/contexts/user-context';
 import { BottomNavBar } from './bottom-nav-bar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MiPanelSidebar } from './sidebar';
-import type { Estudiante, Parada, TrackedBus, Colegio } from '@/lib/types';
-import { getParentDashboardData } from './actions';
+import type { Estudiante, Parada, TrackedBus, Colegio, Notificacion } from '@/lib/types';
+import { getParentDashboardData, getParentNotifications } from './actions';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { createClient } from '@/lib/supabase/client';
 
 export const navItems = [
   { href: '/mipanel', icon: Map, label: 'Mapa' },
@@ -73,6 +75,21 @@ export const useGoogleMaps = () => {
     return context;
 };
 
+export type NotificationsContextType = {
+  notifications: Notificacion[];
+  loadingNotifications: boolean;
+};
+
+const NotificationsContext = React.createContext<NotificationsContextType | null>(null);
+
+export const useNotifications = () => {
+    const context = React.useContext(NotificationsContext);
+    if (!context) {
+        throw new Error("useNotifications must be used within a NotificationsProvider");
+    }
+    return context;
+};
+
 
 function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -80,6 +97,8 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [dashboardData, setDashboardData] = useState<Omit<ParentDashboardContextType, 'loading' | 'refreshData' | 'activeChildId' | 'setActiveChildId'>>({ hijos: [], buses: [], colegio: null });
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notificacion[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const { toast } = useToast();
   const prevBusesRef = useRef<MappedBus[]>([]);
 
@@ -153,13 +172,28 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [user?.id, activeChildId, toast]);
 
+  const fetchNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingNotifications(true);
+    try {
+        const data = await getParentNotifications(user.id);
+        setNotifications(data);
+    } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+        setNotifications([]);
+    } finally {
+        setLoadingNotifications(false);
+    }
+  }, [user?.id]);
+  
   // Initial data load
   useEffect(() => {
     if (user?.id) {
         refreshData(true);
+        fetchNotifications();
     }
-  }, [user?.id, refreshData]);
-
+  }, [user?.id, refreshData, fetchNotifications]);
+  
   // Polling for position updates
   useEffect(() => {
       if (!user?.id) return;
@@ -169,6 +203,36 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
 
       return () => clearInterval(intervalId);
   }, [user?.id, refreshData]);
+
+  // Realtime for notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel(`notificaciones-user-${user.id}`)
+      .on<Notificacion>(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'rutasegura', 
+          table: 'notificaciones',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newNotification = payload.new as Notificacion;
+          toast({
+            title: "Nueva Alerta",
+            description: newNotification.mensaje,
+          });
+          setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, toast]);
 
 
   const handleLogout = () => {
@@ -200,6 +264,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider user={user} setUser={setUser}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: () => refreshData(false), activeChildId, setActiveChildId }}>
+       <NotificationsContext.Provider value={{ notifications, loadingNotifications }}>
         <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
           <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
             <MiPanelSidebar />
@@ -239,6 +304,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </GoogleMapsContext.Provider>
+       </NotificationsContext.Provider>
       </ParentDashboardContext.Provider>
     </UserProvider>
   );

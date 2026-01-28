@@ -1,4 +1,5 @@
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -231,4 +232,16 @@ export type DespachoParada = {
     hora_llegada_real: string | null;
     latitud: number | null;
     longitud: number | null;
+};
+
+export type Notificacion = {
+  id: string;
+  user_id: string;
+  colegio_id: string | null;
+  estudiante_id: string | null;
+  despacho_id: string | null;
+  mensaje: string;
+  tipo: string | null;
+  visto: boolean;
+  created_at: string;
 };

@@ -1,9 +1,10 @@
 
+
 'use server';
 
 import { unstable_noStore as noStore } from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
-import type { Estudiante, Parada, TrackedBus, Colegio, Incidencia, Conductor, Ruta } from '@/lib/types';
+import type { Estudiante, Parada, TrackedBus, Colegio, Incidencia, Conductor, Ruta, Notificacion } from '@/lib/types';
 
 
 type ParentDashboardData = {
@@ -133,7 +134,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         .select(`
             *,
             conductor:conductores(*),
-            ruta:rutas(*)
+            ruta:rutas!inner(*)
         `)
         .in('ruta_id', uniqueRutaIds);
         
@@ -190,4 +191,29 @@ export async function getParentIncidents(parentId: string): Promise<IncidenceWit
     }
     
     return data as IncidenceWithStudent[];
+}
+
+export async function getParentNotifications(userId: string): Promise<Notificacion[]> {
+    noStore();
+    const supabaseAdmin = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { 
+            cookies: { get: () => undefined, set: () => {}, remove: () => {} },
+            db: { schema: 'rutasegura' },
+        }
+    );
+    const { data, error } = await supabaseAdmin
+        .from('notificaciones')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50); // Limit to last 50 notifications
+
+    if (error) {
+        console.error("Error fetching notifications:", error);
+        return [];
+    }
+
+    return data;
 }
