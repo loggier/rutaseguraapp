@@ -65,7 +65,7 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
             .from('despachos')
             .select('id, ruta_id')
             .in('ruta_id', uniqueRutaIds)
-            .eq('estado', 'en_curso');
+            .in('estado', ['programado', 'en_curso']);
         
         if (despachosError) console.error("Error fetching active despachos:", despachosError);
 
