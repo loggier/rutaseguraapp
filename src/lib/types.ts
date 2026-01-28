@@ -5,6 +5,7 @@
 
 
 
+
 export type User = {
   id: string;
   nombre: string;
@@ -72,6 +73,7 @@ export type Estudiante = {
   colegio_nombre?: string;
   paradas?: Parada[];
   ruta_id?: string;
+  despacho_estado?: string;
 };
 
 export type Parada = {
@@ -209,4 +211,30 @@ export type Incidencia = {
     asignado_a: string | null;
     ruta_id: string | null;
     autobus_id: string | null;
+};
+
+export type Despacho = {
+  id: string;
+  autobus_id: string;
+  conductor_id: string | null;
+  ruta_id: string;
+  colegio_id: string;
+  turno: 'Recogida' | 'Entrega';
+  estado: 'programado' | 'en_curso' | 'finalizado' | 'cancelado';
+  hora_inicio: string | null;
+  hora_fin: string | null;
+  fecha_creacion: string;
+};
+
+export type DespachoParada = {
+    id: string;
+    despacho_id: string;
+    estudiante_id: string;
+    parada_id: string;
+    orden: number | null;
+    estado: 'pendiente' | 'en_parada' | 'recogido' | 'entregado' | 'ausente';
+    hora_llegada_estimada: string | null;
+    hora_llegada_real: string | null;
+    latitud: number | null;
+    longitud: number | null;
 };

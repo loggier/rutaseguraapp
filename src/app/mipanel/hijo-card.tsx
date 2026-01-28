@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { Estudiante, TrackedBus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Bus, School } from "lucide-react";
+import { Bus, School, UserCheck, Clock, Home, AlertTriangle } from "lucide-react";
 
 type HijoCardProps = {
     hijo: Estudiante;
@@ -14,13 +14,24 @@ type HijoCardProps = {
     onClick?: () => void;
 }
 
+const statusConfig = {
+    'pendiente': { text: 'Pendiente', variant: 'secondary' as const, Icon: Clock },
+    'en_parada': { text: 'En Parada', variant: 'default' as const, className: 'bg-yellow-500 hover:bg-yellow-500/90 text-white', Icon: Bus },
+    'recogido': { text: 'A Bordo', variant: 'default' as const, className: 'bg-green-600 hover:bg-green-600/90 text-white', Icon: UserCheck },
+    'entregado': { text: 'Entregado', variant: 'default' as const, className: 'bg-blue-600 hover:bg-blue-600/90 text-white', Icon: Home },
+    'ausente': { text: 'Ausente', variant: 'destructive' as const, Icon: AlertTriangle },
+    'default': { text: 'Esperando Ruta', variant: 'secondary' as const, Icon: School },
+};
+
+
 export function HijoCard({ hijo, bus, isActive, onClick }: HijoCardProps) {
     
     const getStatus = () => {
-        if (!bus) {
-            return { text: "Esperando ruta", variant: "secondary" as const, className: "" };
+        const estado = hijo.despacho_estado;
+        if (estado && statusConfig[estado as keyof typeof statusConfig]) {
+            return statusConfig[estado as keyof typeof statusConfig];
         }
-        return { text: "Listo para recogida", variant: "default" as const, className: "" };
+        return null; // Return null if no active dispatch
     }
     
     const status = getStatus();
@@ -47,7 +58,12 @@ export function HijoCard({ hijo, bus, isActive, onClick }: HijoCardProps) {
                        {bus ? <Bus className="h-4 w-4" /> : <School className="h-4 w-4" />}
                        <span className="truncate">{hijo.colegio_nombre || "Sin colegio asignado"}</span>
                     </div>
-                    <Badge variant={status.variant} className={cn("mt-2", status.className)}>{status.text}</Badge>
+                    {status && (
+                         <Badge variant={status.variant} className={cn("mt-2", status.className)}>
+                            <status.Icon className="h-3 w-3 mr-1.5" />
+                            {status.text}
+                        </Badge>
+                    )}
                 </div>
             </CardContent>
         </Card>

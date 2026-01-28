@@ -6,7 +6,7 @@ import type { Estudiante, Parada, TrackedBus, Colegio, Incidencia, Conductor, Ru
 
 
 type ParentDashboardData = {
-    hijos: (Estudiante & { paradas: Parada[], ruta_id?: string })[];
+    hijos: (Estudiante & { paradas: Parada[], ruta_id?: string, despacho_estado?: string })[];
     buses: TrackedBus[];
     colegio: Colegio | null;
 };
@@ -56,12 +56,39 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return acc;
     }, {} as Record<string, string>);
     
-    const childrenWithData = hijos.map((hijo: any) => ({
-        ...hijo,
-        ruta_id: assignmentsMap[hijo.id],
-    }));
+    const uniqueRutaIds = [...new Set(Object.values(assignmentsMap).filter(Boolean))];
 
-    // 4. Get all stops for all children (this can be done in parallel)
+    // 4. Get dispatch status for children if there are active routes
+    let dispatchStatusMap: Record<string, string> = {};
+    if (uniqueRutaIds.length > 0) {
+        const { data: activeDespachos, error: despachosError } = await supabaseAdmin
+            .from('despachos')
+            .select('id, ruta_id')
+            .in('ruta_id', uniqueRutaIds)
+            .eq('estado', 'en_curso');
+        
+        if (despachosError) console.error("Error fetching active despachos:", despachosError);
+
+        if (activeDespachos && activeDespachos.length > 0) {
+            const activeDespachoIds = activeDespachos.map(d => d.id);
+            const { data: despachoParadas, error: paradasError } = await supabaseAdmin
+                .from('despacho_paradas')
+                .select('estudiante_id, estado')
+                .in('despacho_id', activeDespachoIds)
+                .in('estudiante_id', hijosIds);
+            
+            if (paradasError) console.error("Error fetching despacho paradas:", paradasError);
+            
+            if (despachoParadas) {
+                dispatchStatusMap = despachoParadas.reduce((acc, parada) => {
+                    acc[parada.estudiante_id] = parada.estado;
+                    return acc;
+                }, {} as Record<string, string>);
+            }
+        }
+    }
+    
+    // 5. Get all stops for all children
     const { data: paradas, error: paradasError } = await supabaseAdmin
         .from('paradas')
         .select('*')
@@ -73,21 +100,21 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return acc;
     }, {} as Record<string, Parada[]>);
 
-    const childrenWithFullData = childrenWithData.map(hijo => ({
+    // 6. Combine all data
+    const childrenWithFullData = hijos.map((hijo: any) => ({
         ...hijo,
+        ruta_id: assignmentsMap[hijo.id],
         colegio_nombre: hijo.colegio?.nombre || 'No Asignado',
         paradas: paradasMap[hijo.id] || [],
+        despacho_estado: dispatchStatusMap[hijo.id] || undefined,
     }));
 
 
-    // 5. Get the unique set of route IDs the children are assigned to
-    const uniqueRutaIds = [...new Set(Object.values(assignmentsMap).filter(Boolean))];
-
+    // 7. Get buses assigned to these routes if any are active.
     if (uniqueRutaIds.length === 0) {
         return { hijos: childrenWithFullData, buses: [], colegio: colegioData || null };
     }
     
-    // 6. Fetch buses assigned to these routes.
     const { data: busesData, error: busesError } = await supabaseAdmin
         .from('autobuses')
         .select(`
@@ -102,7 +129,6 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         return { hijos: childrenWithFullData, buses: [], colegio: colegioData || null };
     }
 
-    // 7. Map the raw bus data to our TrackedBus type
     const finalBuses: TrackedBus[] = (busesData || []).map((bus: any) => ({
         id: bus.id,
         matricula: bus.matricula,
