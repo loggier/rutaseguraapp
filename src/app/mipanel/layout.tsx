@@ -1,11 +1,8 @@
-
-
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState, useCallback, useContext, createContext, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useContext, createContext, useRef, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLoadScript } from '@react-google-maps/api';
 import {
@@ -78,6 +75,9 @@ export const useGoogleMaps = () => {
 export type NotificationsContextType = {
   notifications: Notificacion[];
   loadingNotifications: boolean;
+  unreadCount: number;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
 };
 
 const NotificationsContext = React.createContext<NotificationsContextType | null>(null);
@@ -234,6 +234,52 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     };
   }, [user?.id, toast]);
 
+  const unreadCount = useMemo(() => notifications.filter(n => !n.visto).length, [notifications]);
+
+    const markNotificationAsRead = useCallback(async (notificationId: string) => {
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, visto: true } : n));
+        try {
+            await fetch(`/api/notifications/${notificationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visto: true }),
+            });
+        } catch (error) {
+            console.error("Failed to mark notification as read", error);
+            // Revert on error
+            setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, visto: false } : n));
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "No se pudo marcar la notificación como leída.",
+            });
+        }
+    }, []);
+
+    const markAllNotificationsAsRead = useCallback(async () => {
+        if (!user?.id || unreadCount === 0) return;
+        const originalNotifications = [...notifications];
+        // Optimistic update
+        setNotifications(prev => prev.map(n => ({ ...n, visto: true })));
+        try {
+            const response = await fetch(`/api/notifications/mark-all-as-read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            if (!response.ok) throw new Error("Server error");
+        } catch (error) {
+            console.error("Failed to mark all notifications as read", error);
+            setNotifications(originalNotifications); // Revert
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "No se pudo marcar todo como leído.",
+            });
+        }
+    }, [user?.id, notifications, unreadCount, toast]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('supabase_session');
@@ -264,7 +310,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider user={user} setUser={setUser}>
       <ParentDashboardContext.Provider value={{ ...dashboardData, loading: isLoadingData, refreshData: () => refreshData(false), activeChildId, setActiveChildId }}>
-       <NotificationsContext.Provider value={{ notifications, loadingNotifications }}>
+       <NotificationsContext.Provider value={{ notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead }}>
         <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
           <div className="min-h-screen w-full bg-background text-foreground md:grid md:grid-cols-[280px_1fr]">
             <MiPanelSidebar />

@@ -2,18 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { navItems, useParentDashboard } from './layout';
+import { navItems, useParentDashboard, useNotifications } from './layout';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { HijoCard } from './hijo-card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
 
 
 export function MiPanelSidebar() {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const { hijos, buses, activeChildId, setActiveChildId } = useParentDashboard();
+  const { unreadCount } = useNotifications();
 
   if (isMobile) {
     return null;
@@ -29,17 +31,23 @@ export function MiPanelSidebar() {
       <nav className="grid items-start gap-2 text-sm font-medium">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
+          const itemIsBell = item.label === 'Alertas';
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                'relative flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
                 isActive && 'bg-muted text-primary'
               )}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
+              {itemIsBell && unreadCount > 0 && (
+                <Badge variant="destructive" className="absolute right-3 top-1/2 -translate-y-1/2 h-5 min-w-[1.25rem] p-1 flex items-center justify-center text-xs">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                </Badge>
+              )}
             </Link>
           );
         })}

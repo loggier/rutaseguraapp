@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useCallback, useEffect } from "react";
@@ -15,6 +13,7 @@ import { NotificationCard } from "./notification-card";
 import { useNotifications } from "../layout";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
 
 export default function NotificationsPage() {
     const { user } = useUser();
@@ -22,7 +21,8 @@ export default function NotificationsPage() {
     const [loadingIncidents, setLoadingIncidents] = useState(false);
     const [selectedIncidence, setSelectedIncidence] = useState<IncidenceWithStudent | null>(null);
 
-    const { notifications, loadingNotifications } = useNotifications();
+    const { notifications, loadingNotifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead } = useNotifications();
+    const [isMarking, setIsMarking] = useState(false);
 
     const handleFetchIncidents = useCallback(async () => {
         if (!user?.id) return;
@@ -45,11 +45,20 @@ export default function NotificationsPage() {
     }
 
     useEffect(() => {
-        // Initial fetch for incidents when the component mounts and user is available
         if(user?.id) {
             handleFetchIncidents();
         }
     }, [user?.id, handleFetchIncidents]);
+
+    const handleMarkAsRead = async (notificationId: string) => {
+        await markNotificationAsRead(notificationId);
+    };
+    
+    const handleMarkAll = async () => {
+        setIsMarking(true);
+        await markAllNotificationsAsRead();
+        setIsMarking(false);
+    }
 
     const getNotificationIcon = (type: string | null) => {
         switch (type) {
@@ -86,14 +95,16 @@ export default function NotificationsPage() {
         return (
             <div className="space-y-4">
                 {notifications.map(alert => (
-                    <NotificationCard 
-                        key={alert.id}
-                        icon={getNotificationIcon(alert.tipo)}
-                        title={alert.tipo?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Notificación"}
-                        description={alert.mensaje}
-                        timestamp={formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: es })}
-                        variant={alert.tipo === 'alerta_trafico' ? 'destructive' : 'default'}
-                    />
+                    <div key={alert.id} onClick={() => !alert.visto && handleMarkAsRead(alert.id)} className="cursor-pointer">
+                        <NotificationCard 
+                            icon={getNotificationIcon(alert.tipo)}
+                            title={alert.tipo?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Notificación"}
+                            description={alert.mensaje}
+                            timestamp={formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: es })}
+                            visto={alert.visto}
+                            variant={alert.tipo === 'alerta_trafico' ? 'destructive' : 'default'}
+                        />
+                    </div>
                 ))}
             </div>
         );
@@ -137,7 +148,14 @@ export default function NotificationsPage() {
                     <PageHeader
                         title="Mi bandeja de entrada"
                         description="Aquí verás las notificaciones importantes y tus incidencias reportadas."
-                    />
+                    >
+                         {unreadCount > 0 && (
+                            <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={isMarking}>
+                                {isMarking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Marcar todo como leído
+                            </Button>
+                        )}
+                    </PageHeader>
                 </div>
                 <Tabs defaultValue="alertas" className="flex flex-col flex-grow w-full px-4 md:px-6 overflow-hidden" onValueChange={onTabChange}>
                     <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
