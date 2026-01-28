@@ -1,11 +1,4 @@
 
-
-
-
-
-
-
-
 export type User = {
   id: string;
   nombre: string;
@@ -74,6 +67,7 @@ export type Estudiante = {
   paradas?: Parada[];
   ruta_id?: string;
   despacho_estado?: string;
+  despacho_turno?: 'Recogida' | 'Entrega';
 };
 
 export type Parada = {
@@ -232,7 +226,7 @@ export type DespachoParada = {
     estudiante_id: string;
     parada_id: string;
     orden: number | null;
-    estado: 'pendiente' | 'en_parada' | 'recogido' | 'entregado' | 'ausente';
+    estado: 'pendiente' | 'en_parada' | 'recogido' | 'entregado' | 'ausente' | 'llegando' | 'saliendo';
     hora_llegada_estimada: string | null;
     hora_llegada_real: string | null;
     latitud: number | null;
