@@ -81,7 +81,7 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
   const { toast } = useToast();
-  const prevBusesRef = useRef<MappedBus[]>();
+  const prevBusesRef = useRef<MappedBus[]>([]);
 
 
   const router = useRouter(); 
@@ -120,7 +120,6 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
     
     try {
         const data = await getParentDashboardData(user.id);
-        const childrenWithParadas = data.hijos.map(h => ({...h, paradas: h.paradas || []}));
         
         const mappedBuses = data.buses.map(bus => {
             return {
@@ -129,53 +128,47 @@ function MiPanelLayoutContent({ children }: { children: React.ReactNode }) {
             };
         });
 
-        setDashboardData({ hijos: childrenWithParadas, buses: mappedBuses, colegio: data.colegio });
-        if (isInitialLoad && childrenWithParadas.length > 0 && !activeChildId) {
-            setActiveChildId(childrenWithParadas[0].id);
+        // Toast notification for route start
+        if (prevBusesRef.current && mappedBuses.length > 0) {
+            mappedBuses.forEach(newBus => {
+                const prevBus = prevBusesRef.current.find(pb => pb.id === newBus.id);
+                if (newBus.ruta?.status_ruta && (!prevBus || !prevBus.ruta?.status_ruta)) {
+                toast({
+                    title: `Bus ${newBus.matricula} inició ruta`,
+                });
+                }
+            });
+        }
+        prevBusesRef.current = mappedBuses;
+
+
+        setDashboardData({ hijos: data.hijos, buses: mappedBuses, colegio: data.colegio });
+        if (isInitialLoad && data.hijos.length > 0 && !activeChildId) {
+            setActiveChildId(data.hijos[0].id);
         }
     } catch (error) {
         console.error("Failed to refresh dashboard data:", error);
     } finally {
         if (isInitialLoad) setIsLoadingData(false);
     }
-  }, [user, activeChildId, setActiveChildId]);
+  }, [user?.id, activeChildId, toast]);
 
   // Initial data load
   useEffect(() => {
     if (user?.id) {
         refreshData(true);
     }
-  }, [user, refreshData]);
-
-  // Toast notification for route start
-  useEffect(() => {
-    const prevBuses = prevBusesRef.current;
-    const newBuses = dashboardData.buses;
-
-    if (prevBuses && newBuses.length > 0) {
-      newBuses.forEach(bus => {
-        const prevBus = prevBuses.find(pb => pb.id === bus.id);
-        // If bus status changed from false/undefined to true
-        if (bus.ruta?.status_ruta && (!prevBus || !prevBus.ruta?.status_ruta)) {
-          toast({
-            title: `Bus ${bus.matricula} inició ruta`,
-          });
-        }
-      });
-    }
-
-    // Update ref for the next poll
-    prevBusesRef.current = newBuses;
-  }, [dashboardData.buses, toast]);
+  }, [user?.id, refreshData]);
 
   // Polling for position updates
   useEffect(() => {
+      if (!user?.id) return;
       const intervalId = setInterval(() => {
           refreshData(false); // Silent refresh
-      }, 5000); // Poll every 5 seconds
+      }, 5000); 
 
       return () => clearInterval(intervalId);
-  }, [refreshData]);
+  }, [user?.id, refreshData]);
 
 
   const handleLogout = () => {
