@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // ¡IMPORTANTE! Reemplaza esta clave con la CLAVE PÚBLICA (VAPID) de tu proyecto de Firebase.
 // La encuentras en: Configuración del proyecto > Cloud Messaging > Certificados push web.
-const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
+const VAPID_KEY = 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE';
 
 type FirebaseMessagingContextType = {
   permission: NotificationPermission;
@@ -29,6 +29,22 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
   const { user } = useUser();
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
+
+  // Registrar el Service Worker al cargar el componente
+  useEffect(() => {
+    const registerServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          console.log('[SW] Attempting to register Service Worker...');
+          const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          console.log('%c[SW] Registration successful!', 'color: green', 'Scope is:', registration.scope);
+        } catch (registrationError) {
+          console.error('%c[SW] Registration failed!', 'color: red', registrationError);
+        }
+      }
+    };
+    registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     if ('Notification' in window) {

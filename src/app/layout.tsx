@@ -36,22 +36,6 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground">
         {children}
         <Toaster />
-        <Script id="service-worker-registration" strategy="afterInteractive">
-          {`
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', () => {
-                console.log('[SW] Page loaded. Attempting to register Service Worker...');
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                  .then(registration => {
-                    console.log('%c[SW] Registration successful!', 'color: green', 'Scope is:', registration.scope);
-                  })
-                  .catch(registrationError => {
-                    console.error('%c[SW] Registration failed!', 'color: red', registrationError);
-                  });
-              });
-            }
-          `}
-        </Script>
       </body>
     </html>
   );
