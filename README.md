@@ -154,14 +154,17 @@ process.on('SIGINT', () => {
 
 ### Tabla de Tokens para Notificaciones (FCM)
 
-Para habilitar las notificaciones push a través de Firebase Cloud Messaging, necesitas crear una tabla en tu base de datos de Supabase para almacenar los tokens de los dispositivos de los usuarios. Este script SQL está diseñado para que sea seguro ejecutarlo varias veces.
+Para habilitar las notificaciones push, necesitas una tabla para almacenar los tokens de los dispositivos. **Asegúrate de que la clave foránea `user_id` apunte a `rutasegura.users(id)`**.
 
-Ejecuta el siguiente SQL en tu Editor SQL de Supabase:
+#### Script de Creación (Si no has creado la tabla)
+
+Ejecuta esto en tu Editor SQL de Supabase. Es seguro ejecutarlo varias veces.
 
 ```sql
 -- Crear la tabla solo si no existe para prevenir errores al re-ejecutar.
 CREATE TABLE IF NOT EXISTS rutasegura.fcm_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- La referencia correcta debe ser a `rutasegura.users(id)`.
     user_id UUID NOT NULL REFERENCES rutasegura.users(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -186,4 +189,19 @@ CREATE TRIGGER update_fcm_tokens_updated_at
 BEFORE UPDATE ON rutasegura.fcm_tokens
 FOR EACH ROW
 EXECUTE FUNCTION rutasegura.update_updated_at_column();
+```
+
+#### Script de Corrección (Si ya creaste la tabla con el error)
+
+Si ya creaste la tabla con la referencia incorrecta a `auth.users`, ejecuta este script para corregirla:
+
+```sql
+-- 1. Elimina la restricción de clave foránea incorrecta
+ALTER TABLE rutasegura.fcm_tokens
+DROP CONSTRAINT IF EXISTS fcm_tokens_user_id_fkey;
+
+-- 2. Vuelve a añadir la restricción correcta apuntando a rutasegura.users
+ALTER TABLE rutasegura.fcm_tokens
+ADD CONSTRAINT fcm_tokens_user_id_fkey
+FOREIGN KEY (user_id) REFERENCES rutasegura.users(id) ON DELETE CASCADE;
 ```
