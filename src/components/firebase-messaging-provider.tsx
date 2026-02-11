@@ -8,7 +8,7 @@ import { useUser } from '@/contexts/user-context';
 import { useToast } from '@/hooks/use-toast';
 
 // **ACCIÓN REQUERIDA:** Reemplaza esta clave con tu clave VAPID de la consola de Firebase.
-const VAPID_KEY = 'YOUR_VAPID_KEY_FROM_FIREBASE_CONSOLE';
+const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
 
 async function requestPermissionAndGetToken(userId: string) {
     if (typeof window === 'undefined' || !('Notification' in window) || !app) {
