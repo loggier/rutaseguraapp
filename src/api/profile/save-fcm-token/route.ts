@@ -34,14 +34,16 @@ export async function POST(request: Request) {
     const { userId, token } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // Upsert the token to avoid duplicates and handle updates
+    // Upsert para asegurar un solo token por usuario.
+    // Si el 'user_id' ya existe, actualiza el 'token' y 'updated_at'.
+    // Si no existe, inserta una nueva fila.
     const { error } = await supabaseAdmin.from('fcm_tokens').upsert(
       {
         user_id: userId,
         token: token,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'token' }
+      { onConflict: 'user_id' } // El conflicto se basa en el user_id
     );
 
     if (error) {

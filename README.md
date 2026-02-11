@@ -154,25 +154,24 @@ process.on('SIGINT', () => {
 
 ### Tabla de Tokens para Notificaciones (FCM)
 
-Para habilitar las notificaciones push, necesitas una tabla para almacenar los tokens de los dispositivos. **Asegúrate de que la clave foránea `user_id` apunte a `rutasegura.users(id)`**.
+Para habilitar las notificaciones push, necesitas una tabla para almacenar los tokens de los dispositivos. La siguiente configuración asegura que **solo exista un token por usuario**, lo que significa que las notificaciones solo llegarán al **último dispositivo que haya iniciado sesión**.
 
-#### Script de Creación (Si no has creado la tabla)
+#### Script de Creación (Para nuevas instalaciones)
 
-Ejecuta esto en tu Editor SQL de Supabase. Es seguro ejecutarlo varias veces.
+Ejecuta esto en tu Editor SQL de Supabase. Esto crea la tabla con la configuración correcta de un solo token por usuario.
 
 ```sql
--- Crear la tabla solo si no existe para prevenir errores al re-ejecutar.
+-- Esta versión asegura UN SOLO token por usuario.
 CREATE TABLE IF NOT EXISTS rutasegura.fcm_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- La referencia correcta debe ser a `rutasegura.users(id)`.
-    user_id UUID NOT NULL REFERENCES rutasegura.users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL UNIQUE,
+    -- La restricción UNIQUE en `user_id` es la clave para un solo token por usuario.
+    user_id UUID NOT NULL UNIQUE REFERENCES rutasegura.users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Esta función actualiza automáticamente el campo `updated_at` cuando un registro cambia.
--- `CREATE OR REPLACE` asegura que se pueda volver a ejecutar sin error.
 CREATE OR REPLACE FUNCTION rutasegura.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -191,17 +190,23 @@ FOR EACH ROW
 EXECUTE FUNCTION rutasegura.update_updated_at_column();
 ```
 
-#### Script de Corrección (Si ya creaste la tabla con el error)
+#### Script de Corrección (Si ya tienes la tabla con la configuración anterior)
 
-Si ya creaste la tabla con la referencia incorrecta a `auth.users`, ejecuta este script para corregirla:
+Si creaste la tabla permitiendo múltiples tokens por usuario, ejecuta este script para migrar a la nueva estructura de token único.
+
+**¡Atención!** Este script eliminará los tokens antiguos de los usuarios que tengan más de uno, conservando solo el más reciente.
 
 ```sql
--- 1. Elimina la restricción de clave foránea incorrecta
-ALTER TABLE rutasegura.fcm_tokens
-DROP CONSTRAINT IF EXISTS fcm_tokens_user_id_fkey;
+-- 1. Elimina la restricción de unicidad del token (si existe).
+ALTER TABLE rutasegura.fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_token_key;
 
--- 2. Vuelve a añadir la restricción correcta apuntando a rutasegura.users
-ALTER TABLE rutasegura.fcm_tokens
-ADD CONSTRAINT fcm_tokens_user_id_fkey
-FOREIGN KEY (user_id) REFERENCES rutasegura.users(id) ON DELETE CASCADE;
+-- 2. Limpia los tokens duplicados por usuario, manteniendo solo el más reciente.
+DELETE FROM rutasegura.fcm_tokens a
+    USING rutasegura.fcm_tokens b
+WHERE a.updated_at < b.updated_at
+  AND a.user_id = b.user_id;
+
+-- 3. Añade la restricción de unicidad al user_id.
+-- Esto fallará si el paso 2 no se ejecuta correctamente o si hay duplicados restantes.
+ALTER TABLE rutasegura.fcm_tokens ADD CONSTRAINT fcm_tokens_user_id_key UNIQUE (user_id);
 ```
