@@ -1,7 +1,20 @@
 {
   "name": "RutaSegura",
   "short_name": "RutaSegura",
-  "description": "Sistema de rastreo de autobuses escolares.",
+  "description": "Aplicación de seguimiento para padres de RutaSegura.",
+  "id": "/?source=pwa",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D2C5B",
+  "theme_color": "#01C998",
+  "scope": "/",
+  "categories": [
+    "navigation",
+    "travel",
+    "education"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -10,45 +23,30 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-256x256.png",
-      "sizes": "256x256",
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
+      "src": "/icons/icon-1024x1024.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "https://picsum.photos/seed/login/1080/1920",
-      "sizes": "1080x1920",
+      "src": "/screenshots/screenshot-1.jpg",
       "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Página de Inicio de Sesión"
+      "sizes": "1080x1920",
+      "form_factor": "narrow"
     },
     {
-      "src": "https://picsum.photos/seed/map-tracking/1080/1920",
-      "sizes": "1080x1920",
+      "src": "/screenshots/screenshot-2.jpg",
       "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Mapa de Seguimiento en Vivo"
-    },
-    {
-       "src": "https://picsum.photos/seed/notifications/1080/1920",
-       "sizes": "1080x1920",
-       "type": "image/jpeg",
-       "form_factor": "narrow",
-       "label": "Bandeja de Notificaciones"
+      "sizes": "1080x1920",
+      "form_factor": "narrow"
     }
-  ],
-  "orientation": "portrait",
-  "id": "/",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#01C998"
+  ]
 }
