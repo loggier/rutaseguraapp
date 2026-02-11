@@ -40,12 +40,13 @@ export default function RootLayout({
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                console.log('[SW] Page loaded. Attempting to register Service Worker...');
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
                   .then(registration => {
-                    console.log('Main Service Worker registered: ', registration);
+                    console.log('%c[SW] Registration successful!', 'color: green', 'Scope is:', registration.scope);
                   })
                   .catch(registrationError => {
-                    console.log('Main Service Worker registration failed: ', registrationError);
+                    console.error('%c[SW] Registration failed!', 'color: red', registrationError);
                   });
               });
             }
