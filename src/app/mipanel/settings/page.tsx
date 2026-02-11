@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { useUser } from '@/contexts/user-context';
 import { NotificationSwitch } from './notification-switch';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Camera } from 'lucide-react';
+import { Loader2, Camera, BellRing, BellOff, HelpCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import { ImageCropper } from '../hijos/[id]/direcciones/image-cropper';
 import type { NotificationSettings } from '@/lib/types';
+import { useFirebaseMessaging } from '@/components/firebase-messaging-provider';
 
 
 const notificationOptions = [
@@ -55,6 +56,12 @@ export default function SettingsPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // --- New states and hooks for push notifications ---
+    const { permission, requestPermission } = useFirebaseMessaging();
+    const [isRequesting, setIsRequesting] = useState(false);
+    // --- End new states ---
+
 
     // Sync state if user context changes
     useEffect(() => {
@@ -211,6 +218,50 @@ export default function SettingsPage() {
         setNotificationSettings(prev => ({ ...prev, [id]: checked }));
     }
 
+    // --- New handler for requesting permission ---
+    const handleRequestPermission = async () => {
+        setIsRequesting(true);
+        await requestPermission();
+        // The permission state will update via the context, re-rendering the component
+        setIsRequesting(false);
+    };
+
+    const renderPermissionStatus = () => {
+        switch (permission) {
+            case 'granted':
+                return (
+                    <div className="flex items-center text-green-600">
+                        <BellRing className="mr-2 h-5 w-5" />
+                        <span className="font-medium">Las notificaciones push están activadas.</span>
+                    </div>
+                );
+            case 'denied':
+                return (
+                    <div className="flex items-start text-destructive">
+                        <BellOff className="mr-2 h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                             <span className="font-medium">Las notificaciones push están bloqueadas.</span>
+                             <p className="text-xs">Para activarlas, debes cambiar los permisos en la configuración de tu navegador o dispositivo.</p>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                     <div className="flex items-center justify-between">
+                         <div className="flex items-center text-muted-foreground">
+                            <HelpCircle className="mr-2 h-5 w-5" />
+                            <span className="font-medium">Activa las notificaciones push.</span>
+                         </div>
+                        <Button onClick={handleRequestPermission} disabled={isRequesting} size="sm">
+                            {isRequesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Activar
+                        </Button>
+                    </div>
+                );
+        }
+    }
+
+
     return (
         <>
             <ScrollArea className='h-full'>
@@ -277,21 +328,36 @@ export default function SettingsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Notificaciones</CardTitle>
-                                <CardDescription>Elige qué alertas quieres recibir en tu dispositivo.</CardDescription>
+                                <CardDescription>Gestiona los permisos y alertas que recibes.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                {notificationOptions.map((opt, index) => (
-                                    <React.Fragment key={opt.id}>
-                                        <NotificationSwitch
-                                            id={opt.id}
-                                            label={opt.label}
-                                            description={opt.description}
-                                            checked={notificationSettings[opt.id] ?? opt.defaultChecked}
-                                            onCheckedChange={(checked) => handleNotificationChange(opt.id, checked)}
-                                        />
-                                        {index < notificationOptions.length - 1 && <Separator />}
-                                    </React.Fragment>
-                                ))}
+                            <CardContent className="space-y-4">
+                                <Card className="bg-muted/20">
+                                    <CardHeader className="p-4">
+                                        <CardTitle className="text-base">Permiso de Notificaciones Push</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        {renderPermissionStatus()}
+                                    </CardContent>
+                                </Card>
+
+                                <Separator/>
+
+                                <div className="space-y-2">
+                                     <p className="text-base font-semibold">Tipos de Alerta</p>
+                                    {notificationOptions.map((opt, index) => (
+                                        <React.Fragment key={opt.id}>
+                                            <NotificationSwitch
+                                                id={opt.id}
+                                                label={opt.label}
+                                                description={opt.description}
+                                                checked={notificationSettings[opt.id] ?? opt.defaultChecked}
+                                                onCheckedChange={(checked) => handleNotificationChange(opt.id, checked)}
+                                            />
+                                            {index < notificationOptions.length - 1 && <Separator />}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+
                             </CardContent>
                         </Card>
                     </div>
