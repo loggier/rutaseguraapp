@@ -4,16 +4,32 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
-## Database Setup
+## Arquitectura de Notificaciones Push
 
-### Push Notification Tokens Table
+Para enviar notificaciones push a los dispositivos de los usuarios, se utiliza una arquitectura que combina Supabase y Firebase Cloud Messaging (FCM). El flujo es el siguiente:
 
-To enable push notifications via Firebase Cloud Messaging, you need to create a table in your Supabase database to store user device tokens. This SQL script is designed to be safe to run multiple times.
+1.  **Acción en la App (Admin):** Una acción en tu panel de administración (o en cualquier otro lugar) inserta un nuevo registro en la tabla `rutasegura.notificaciones`.
+2.  **Disparador en la Base de Datos:** Un `TRIGGER` en la base de datos de Supabase detecta esta nueva inserción.
+3.  **Ejecución de Edge Function:** El trigger invoca automáticamente una **Supabase Edge Function** (`send-push-notification`).
+4.  **Llamada a Firebase:** La Edge Function obtiene los tokens de notificación del usuario de la tabla `fcm_tokens` y realiza una llamada a la API de Firebase (FCM) para enviar la notificación push.
+5.  **Recepción en el Dispositivo:** El Service Worker de la PWA en el dispositivo del usuario recibe y muestra la notificación.
 
-Run the following SQL in your Supabase SQL Editor:
+### ¿Dónde se crea la Supabase Edge Function?
+
+La Supabase Edge Function **NO** vive dentro de este proyecto Next.js. Es un proyecto separado que se gestiona con la [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started). Debes crear un nuevo directorio en tu máquina local para gestionar tus funciones de Supabase, enlazarlo a tu proyecto de Supabase y desplegar la función desde allí.
+
+---
+
+## Configuración de la Base de Datos
+
+### Tabla de Tokens para Notificaciones (FCM)
+
+Para habilitar las notificaciones push a través de Firebase Cloud Messaging, necesitas crear una tabla en tu base de datos de Supabase para almacenar los tokens de los dispositivos de los usuarios. Este script SQL está diseñado para que sea seguro ejecutarlo varias veces.
+
+Ejecuta el siguiente SQL en tu Editor SQL de Supabase:
 
 ```sql
--- Create the table only if it doesn't exist to prevent errors on re-run.
+-- Crear la tabla solo si no existe para prevenir errores al re-ejecutar.
 CREATE TABLE IF NOT EXISTS rutasegura.fcm_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES rutasegura.users(id) ON DELETE CASCADE,
@@ -22,8 +38,8 @@ CREATE TABLE IF NOT EXISTS rutasegura.fcm_tokens (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- This function automatically updates the `updated_at` field on record change.
--- `CREATE OR REPLACE` ensures it can be run again without error.
+-- Esta función actualiza automáticamente el campo `updated_at` cuando un registro cambia.
+-- `CREATE OR REPLACE` asegura que se pueda volver a ejecutar sin error.
 CREATE OR REPLACE FUNCTION rutasegura.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -32,10 +48,10 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- We drop the trigger first to ensure we can re-run the script without errors.
+-- Primero eliminamos el trigger para asegurarnos de poder re-ejecutar el script sin errores.
 DROP TRIGGER IF EXISTS update_fcm_tokens_updated_at ON rutasegura.fcm_tokens;
 
--- This trigger executes the function when a row in `fcm_tokens` is updated.
+-- Este trigger ejecuta la función cuando una fila en `fcm_tokens` es actualizada.
 CREATE TRIGGER update_fcm_tokens_updated_at
 BEFORE UPDATE ON rutasegura.fcm_tokens
 FOR EACH ROW
