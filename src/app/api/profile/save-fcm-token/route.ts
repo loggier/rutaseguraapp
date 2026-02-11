@@ -1,4 +1,3 @@
-
 'use server';
 
 import { NextResponse } from 'next/server';
@@ -34,41 +33,24 @@ export async function POST(request: Request) {
     const { userId, token } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // Lógica manual y robusta para evitar problemas con `upsert` y `onConflict`.
-    // 1. Verificar si la combinación exacta de usuario y token ya existe.
-    const { data: existingToken, error: selectError } = await supabaseAdmin
+    // Usamos `upsert` con `ignoreDuplicates: true`.
+    // Esto es atómico y le dice a la base de datos: "Intenta insertar esta fila.
+    // Si ya existe una fila que causa un conflicto en las columnas 'user_id' y 'token',
+    // simplemente no hagas nada y no generes un error".
+    // Esta es la forma más robusta de evitar duplicados y errores de "duplicate key".
+    const { error: upsertError } = await supabaseAdmin
       .from('fcm_tokens')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('token', token)
-      .maybeSingle();
-
-    if (selectError) {
-      console.error('Error al verificar token existente:', selectError);
-      return NextResponse.json({ message: `Error de base de datos al verificar token: ${selectError.message}` }, { status: 500 });
+      .upsert(
+        { user_id: userId, token: token },
+        { onConflict: 'user_id,token', ignoreDuplicates: true }
+      );
+    
+    if (upsertError) {
+      console.error('Error al hacer upsert del token FCM:', upsertError);
+      return NextResponse.json({ message: `Error de base de datos al guardar el token: ${upsertError.message}` }, { status: 500 });
     }
 
-    // 2. Si ya existe, no hacemos nada más que confirmar.
-    if (existingToken) {
-      return NextResponse.json({ message: 'Este dispositivo ya estaba registrado.' }, { status: 200 });
-    }
-
-    // 3. Si no existe, lo insertamos.
-    const { error: insertError } = await supabaseAdmin
-      .from('fcm_tokens')
-      .insert({
-        user_id: userId,
-        token: token,
-      });
-
-    // Si hay un error de inserción (por ejemplo, violación de clave foránea porque el user_id no existe en rutasegura.users)
-    // lo devolveremos de forma explícita.
-    if (insertError) {
-      console.error('Error al insertar el nuevo token FCM:', insertError);
-      return NextResponse.json({ message: `Error de base de datos al guardar el token: ${insertError.message}` }, { status: 500 });
-    }
-
-    return NextResponse.json({ message: 'Token guardado con éxito.' }, { status: 201 });
+    return NextResponse.json({ message: 'Token guardado con éxito.' }, { status: 200 });
 
   } catch (error: any) {
     console.error('Error inesperado en save-fcm-token:', error);
