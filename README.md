@@ -34,20 +34,30 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function enviarNotificacion(userId: string, titulo: string, mensaje: string) {
     try {
-        // 1. Obtener los tokens FCM del usuario
-        const { data: tokens, error: tokensError } = await supabaseAdmin
+        // 1. Obtener el token FCM del usuario
+        const { data: tokenData, error: tokensError } = await supabaseAdmin
             .from('fcm_tokens')
             .select('token')
             .eq('user_id', userId)
-            .schema('rutasegura');
+            .schema('rutasegura')
+            .single(); // Usamos single() porque ahora hay un solo token por usuario
 
         if (tokensError) throw tokensError;
 
-        // 2. Si hay tokens, enviar la notificación push
-        if (tokens && tokens.length > 0) {
+        // 2. Si hay un token, enviar la notificación push
+        if (tokenData && tokenData.token) {
             const fcmPayload = {
-                registration_ids: tokens.map(t => t.token),
-                notification: { title, body: mensaje, icon: "/icons/icon-192x192.png" },
+                // 'to' es más simple para un solo dispositivo
+                to: tokenData.token, 
+                notification: { 
+                    title: titulo, 
+                    body: mensaje, 
+                    icon: "/icons/icon-192x192.png" 
+                },
+                // Data payload para que el clic en la notificación abra una URL específica
+                data: {
+                    url: "/mipanel/notifications"
+                }
             };
             await fetch("https://fcm.googleapis.com/fcm/send", {
                 method: "POST",
@@ -106,18 +116,26 @@ const channel = supabase
       const { user_id, titulo, mensaje } = payload.new;
 
       try {
-        const { data: tokens, error: tokensError } = await supabase
+        const { data: tokenData, error: tokensError } = await supabase
             .from('fcm_tokens')
             .select('token')
             .eq('user_id', user_id)
-            .schema('rutasegura');
+            .schema('rutasegura')
+            .single();
 
         if (tokensError) throw tokensError;
 
-        if (tokens && tokens.length > 0) {
+        if (tokenData && tokenData.token) {
             const fcmPayload = {
-                registration_ids: tokens.map(t => t.token),
-                notification: { title: titulo, body: mensaje, icon: "/icons/icon-192x192.png" },
+                to: tokenData.token,
+                notification: { 
+                    title: titulo, 
+                    body: mensaje, 
+                    icon: "/icons/icon-192x192.png" 
+                },
+                data: {
+                    url: "/mipanel/notifications"
+                }
             };
             
             await fetch("https://fcm.googleapis.com/fcm/send", {
