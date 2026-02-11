@@ -47,17 +47,16 @@ async function enviarNotificacion(userId: string, titulo: string, mensaje: strin
         if (tokensData && tokensData.length > 0) {
             const tokens = tokensData.map(t => t.token);
 
+            // **IMPORTANTE**: No uses el campo `notification`. Envía todo dentro de `data`.
+            // Esto da control total al Service Worker y evita notificaciones duplicadas.
             const fcmPayload = {
-                // Usamos 'registration_ids' para enviar a múltiples dispositivos
                 registration_ids: tokens, 
-                notification: { 
+                data: {
                     title: titulo, 
                     body: mensaje, 
-                    icon: "/icons/icon-192x192.png" 
-                },
-                // Data payload para que el clic en la notificación abra una URL específica
-                data: {
-                    url: "/mipanel/notifications"
+                    icon: "/icons/icon-192x192.png", // Icono grande para la notificación
+                    badge: "/icons/icon-72x72.png",  // Icono pequeño para la barra de estado (Android)
+                    url: "/mipanel/notifications"    // URL a abrir al hacer clic
                 }
             };
             
@@ -129,14 +128,15 @@ const channel = supabase
 
         if (tokensData && tokensData.length > 0) {
             const tokens = tokensData.map(t => t.token);
+
+            // **IMPORTANTE**: No uses el campo `notification`. Envía todo dentro de `data`.
             const fcmPayload = {
                 registration_ids: tokens,
-                notification: { 
+                data: {
                     title: titulo, 
                     body: mensaje, 
-                    icon: "/icons/icon-192x192.png" 
-                },
-                data: {
+                    icon: "/icons/icon-192x192.png",
+                    badge: "/icons/icon-72x72.png",
                     url: "/mipanel/notifications"
                 }
             };

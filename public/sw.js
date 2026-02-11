@@ -1,92 +1,96 @@
-// Escucha el evento de instalación del Service Worker
-self.addEventListener('install', (event) => {
-    console.log('[SW] Service Worker a instalar...');
-    // Forza al SW a activarse inmediatamente
-    self.skipWaiting();
-});
+// Importa los scripts de Firebase (¡asegúrate de que las versiones coincidan con tu package.json!)
+importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-messaging-compat.js');
 
-// Escucha el evento de activación del Service Worker
-self.addEventListener('activate', (event) => {
-    console.log('[SW] Service Worker activado.');
-    // Toma el control de todas las páginas abiertas
-    event.waitUntil(self.clients.claim());
-});
+console.log('[SW] Service Worker cargado.');
 
-// Intenta importar los scripts de Firebase. Si falla, lo registrará en la consola.
+// **IMPORTANTE**: Reemplaza esta configuración con la de tu propio proyecto de Firebase.
+// La encuentras en: Configuración del proyecto > Tus apps > SDK de Firebase.
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE",
+  authDomain: "YOUR_AUTH_DOMAIN_FROM_FIREBASE_CONSOLE_GOES_HERE",
+  projectId: "YOUR_PROJECT_ID_FROM_FIREBASE_CONSOLE_GOES_HERE",
+  storageBucket: "YOUR_STORAGE_BUCKET_FROM_FIREBASE_CONSOLE_GOES_HERE",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID_FROM_FIREBASE_CONSOLE_GOES_HERE",
+  appId: "YOUR_APP_ID_FROM_FIREBASE_CONSOLE_GOES_HERE",
+};
+
 try {
-    // Usamos importScripts porque 'import' no funciona en el scope global de un SW
-    importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-    importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
-    console.log('[SW] Scripts de Firebase importados correctamente.');
-
-    // ¡¡¡MUY IMPORTANTE!!!
-    // REEMPLAZA ESTAS CREDENCIALES CON LAS DE TU PROYECTO DE FIREBASE.
-    // Las encuentras en: Configuración del proyecto > General > Tus apps > Configuración de SDK.
-    const firebaseConfig = {
-      apiKey: "AIzaSyBQY3hL4_FJ5brqyXJrvZGv8Wzz7Jbvlow",
-      authDomain: "dev2026-914cf.firebaseapp.com",
-      projectId: "dev2026-914cf",
-      storageBucket: "dev2026-914cf.firebasestorage.app",
-      messagingSenderId: "961466814009",
-      appId: "1:961466814009:web:b888041a63c159cc9fc7e8"
-    };
-
-    // Inicializa Firebase solo si no ha sido inicializado antes.
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-        console.log('[SW] Firebase inicializado.');
-    } else {
-        firebase.app(); // Si ya está inicializado, simplemente lo usa.
-        console.log('[SW] Firebase ya estaba inicializado.');
-    }
-
-    const messaging = firebase.messaging();
-
-    // Este manejador se ejecuta cuando se recibe un mensaje PUSH y la app está en segundo plano o cerrada.
-    messaging.onBackgroundMessage((payload) => {
-        console.log('[SW] Mensaje de background recibido: ', payload);
-        
-        const notificationTitle = payload.notification?.title || 'Nueva Notificación';
-        const notificationOptions = {
-            body: payload.notification?.body || 'Has recibido una nueva notificación.',
-            icon: payload.notification?.icon || '/icons/icon-192x192.png',
-            // Añadimos datos personalizados para usarlos en el evento de clic
-            data: {
-                url: payload.data?.url || '/mipanel/notifications' // URL a abrir al hacer clic
-            }
-        };
-
-        // Muestra la notificación al usuario
-        self.registration.showNotification(notificationTitle, notificationOptions);
-    });
-
-} catch(e) {
-    console.error('[SW] Error crítico al importar o inicializar Firebase en Service Worker:', e);
+  firebase.initializeApp(firebaseConfig);
+  console.log('[SW] Firebase app inicializada correctamente.');
+} catch (e) {
+  console.error('[SW] Error al inicializar Firebase en el Service Worker:', e);
 }
 
 
-// Este manejador se ejecuta cuando el usuario HACE CLIC en la notificación.
+const messaging = firebase.messaging();
+console.log('[SW] Firebase Messaging object inicializado.');
+
+// Este manejador se activa cuando se recibe un mensaje y la app está en segundo plano o cerrada.
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] Received background message. ', payload);
+
+  // IMPORTANTE: El backend debe enviar toda la información de la notificación
+  // dentro del payload `data`. El payload `notification` NO debe usarse,
+  // ya que puede ser manejado automáticamente por el navegador, causando duplicados.
+  const data = payload.data;
+  if (!data || !data.title) {
+    console.error('[SW] Background message is missing `data` payload or `data.title`. Cannot display notification.');
+    return;
+  }
+
+  const notificationTitle = data.title;
+  const notificationOptions = {
+    body: data.body,
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-72x72.png', // Un ícono más pequeño para la barra de estado de Android
+    data: {
+      url: data.url || '/mipanel/notifications', // URL a abrir cuando se haga clic
+    },
+    // Usar una etiqueta (tag) ayuda a agrupar o reemplazar notificaciones
+    tag: 'rutasegura-notification'
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+
+// Este manejador se activa cuando el usuario hace clic en la notificación.
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notificación clickeada: ', event.notification);
+  console.log('[SW] Notification click received.', event);
 
-    event.notification.close(); // Cierra la notificación
+  event.notification.close(); // Cierra la notificación
 
-    // Obtiene la URL de los datos que guardamos en onBackgroundMessage
-    const urlToOpen = event.notification.data?.url || '/mipanel';
+  const urlToOpen = new URL(event.notification.data.url || '/', self.location.origin).href;
 
-    // Busca si ya hay una ventana de la app abierta y la enfoca. Si no, abre una nueva.
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            for (const client of clientList) {
-                // Si encontramos una ventana abierta con la misma URL, la enfocamos.
-                if (client.url === self.origin + urlToOpen && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            // Si no hay ninguna ventana abierta, abrimos una nueva.
-            if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
-            }
-        })
-    );
+  // Intenta enfocar una pestaña existente de la app o abrir una nueva.
+  event.waitUntil(
+    clients.matchAll({
+      type: "window",
+      includeUncontrolled: true,
+    }).then((clientList) => {
+      // Si ya hay una ventana abierta con la misma URL, la enfoca.
+      for (const client of clientList) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no, abre una nueva ventana.
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+self.addEventListener('install', (event) => {
+  console.log('[SW] Evento: install');
+  // Fuerza al nuevo Service Worker a activarse inmediatamente.
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Evento: activate');
+  // Toma el control de todas las páginas abiertas inmediatamente.
+  event.waitUntil(clients.claim());
 });

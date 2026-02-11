@@ -57,9 +57,10 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
         const messaging = getMessaging(app);
         const unsubscribe = onMessage(messaging, (payload) => {
             console.log('[PUSH] Mensaje recibido en primer plano. ', payload);
+            // Para consistencia con el service worker, leemos del payload 'data'
             toast({
-                title: payload.notification?.title,
-                description: payload.notification?.body,
+                title: payload.data?.title,
+                description: payload.data?.body,
             });
         });
         return () => unsubscribe();
@@ -74,7 +75,7 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
     }
     console.log('[PUSH] Usuario verificado:', user.id);
 
-    if (!VAPID_KEY || VAPID_KEY.includes('YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE')) {
+    if (!VAPID_KEY || VAPID_KEY === 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM') {
         const errorMsg = "No se ha proporcionado una clave VAPID pública válida. Reemplaza el valor de ejemplo en 'src/components/firebase-messaging-provider.tsx'.";
         console.error(`[PUSH] ERROR: ${errorMsg}`);
         toast({ variant: 'destructive', title: 'Error de Configuración', description: errorMsg });
