@@ -6,9 +6,9 @@ import { app } from '@/lib/firebase';
 import { useUser } from '@/contexts/user-context';
 import { useToast } from '@/hooks/use-toast';
 
-// Reemplaza esta clave con la clave pública (VAPID) de tu proyecto de Firebase.
+// ¡IMPORTANTE! Reemplaza esta clave con la CLAVE PÚBLICA (VAPID) de tu proyecto de Firebase.
 // La encuentras en: Configuración del proyecto > Cloud Messaging > Certificados push web.
-const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
+const VAPID_KEY = 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE';
 
 type FirebaseMessagingContextType = {
   permission: NotificationPermission;
@@ -55,10 +55,10 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para activar las notificaciones.' });
         return;
     }
-    if (!VAPID_KEY || VAPID_KEY === 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM') {
+    if (!VAPID_KEY || VAPID_KEY === 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE') {
         const errorMsg = "No se ha proporcionado una clave VAPID válida de Firebase en el código.";
         console.error(errorMsg);
-        toast({ variant: 'destructive', title: 'Error de Configuración', description: 'Por favor, añade tu clave VAPID en firebase-messaging-provider.tsx' });
+        toast({ variant: 'destructive', title: 'Error de Configuración', description: 'Por favor, añade tu clave VAPID pública en firebase-messaging-provider.tsx' });
         return;
     }
     if (typeof window === 'undefined' || !('Notification' in window) || !app) {
