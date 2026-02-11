@@ -75,8 +75,16 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
 
         if (currentPermission === 'granted') {
             toast({ title: '¡Éxito!', description: 'Permiso de notificación concedido.' });
+            
+            // Espera a que el Service Worker esté listo
+            const registration = await navigator.serviceWorker.ready;
+            
             // Obtiene el token y lo guarda
-            const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+            const currentToken = await getToken(messaging, { 
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration,
+            });
+
             if (currentToken) {
                 console.log('FCM Token obtenido y guardado:', currentToken);
                 await fetch('/api/profile/save-fcm-token', {

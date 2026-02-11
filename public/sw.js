@@ -1,76 +1,104 @@
+// Use the Firebase SDK for Google Analytics
+importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-messaging-compat.js');
 
-// Estrategia: Cache First (para assets estáticos)
-const CACHE_NAME = 'rutasegura-cache-v1';
+// ACTION REQUIRED: Fill in your Firebase project's configuration below.
+// You can find this in your Firebase project settings.
+const firebaseConfig = {
+    apiKey: "...",
+    authDomain: "...",
+    projectId: "...",
+    storageBucket: "...",
+    messagingSenderId: "...",
+    appId: "..."
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+    console.log('[sw.js] Received background message: ', payload);
+
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+        body: payload.notification.body,
+        icon: '/icons/icon-192x192.png',
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+
+// --- Caching Logic ---
+
+const CACHE_NAME = 'rutasegura-pwa-cache-v2'; // Bump version to force update
 const urlsToCache = [
   '/',
   '/manifest.json',
-  // Es importante no cachear el Service Worker en sí mismo.
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
+// Install the service worker and cache static assets
 self.addEventListener('install', event => {
-  // Realiza la instalación
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // No intervenir en las peticiones que no son GET
-  if (event.request.method !== 'GET') {
-      return;
-  }
-  
-  // No cachear las peticiones a la API
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
+// Activate event to clean up old caches
+self.addEventListener('activate', event => {
+    const cacheWhitelist = [CACHE_NAME];
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        console.log('Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+});
 
+
+// Serve cached content when offline
+self.addEventListener('fetch', event => {
+    // We only want to cache GET requests.
+    if (event.request.method !== 'GET') {
+        return;
+    }
+    
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Si el recurso está en la caché, devuélvelo.
+        // Cache hit - return response
         if (response) {
           return response;
         }
 
-        // Si no, búscalo en la red.
         return fetch(event.request).then(
-          networkResponse => {
-            // Y si lo encontramos, lo añadimos a la caché para la próxima vez.
-            if(!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+          (response) => {
+            // Check if we received a valid response
+            if(!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
             }
 
-            const responseToCache = networkResponse.clone();
-
+            const responseToCache = response.clone();
             caches.open(CACHE_NAME)
-              .then(cache => {
+              .then((cache) => {
                 cache.put(event.request, responseToCache);
               });
 
-            return networkResponse;
+            return response;
           }
         );
       })
-  );
-});
-
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Borra las cachés antiguas
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
   );
 });
