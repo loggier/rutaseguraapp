@@ -34,16 +34,20 @@ export async function POST(request: Request) {
     const { userId, token } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // Upsert para asegurar un solo token por usuario.
-    // Si el 'user_id' ya existe, actualiza el 'token' y 'updated_at'.
-    // Si no existe, inserta una nueva fila.
+    // Upsert para insertar el token si la combinación (user_id, token) no existe.
+    // Si ya existe, simplemente actualiza el campo `updated_at`.
+    // Esto permite que un usuario tenga múltiples tokens (en diferentes dispositivos),
+    // pero evita que el mismo token se duplique para el mismo usuario.
     const { error } = await supabaseAdmin.from('fcm_tokens').upsert(
       {
         user_id: userId,
         token: token,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' } // El conflicto se basa en el user_id, que debe ser UNIQUE
+      { 
+        onConflict: 'user_id, token', // El conflicto se basa en la combinación de user_id y token
+        // ignoreDuplicates: false (default) hará que se actualice el 'updated_at' en un conflicto.
+      }
     );
 
     if (error) {

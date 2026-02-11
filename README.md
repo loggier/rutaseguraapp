@@ -34,21 +34,22 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function enviarNotificacion(userId: string, titulo: string, mensaje: string) {
     try {
-        // 1. Obtener el token FCM del usuario
-        const { data: tokenData, error: tokensError } = await supabaseAdmin
+        // 1. Obtener TODOS los tokens FCM del usuario
+        const { data: tokensData, error: tokensError } = await supabaseAdmin
             .from('fcm_tokens')
             .select('token')
             .eq('user_id', userId)
-            .schema('rutasegura')
-            .single(); // Usamos single() porque ahora hay un solo token por usuario
+            .schema('rutasegura');
 
         if (tokensError) throw tokensError;
 
-        // 2. Si hay un token, enviar la notificación push
-        if (tokenData && tokenData.token) {
+        // 2. Si hay tokens, enviar la notificación push a todos los dispositivos
+        if (tokensData && tokensData.length > 0) {
+            const tokens = tokensData.map(t => t.token);
+
             const fcmPayload = {
-                // 'to' es más simple para un solo dispositivo
-                to: tokenData.token, 
+                // Usamos 'registration_ids' para enviar a múltiples dispositivos
+                registration_ids: tokens, 
                 notification: { 
                     title: titulo, 
                     body: mensaje, 
@@ -59,6 +60,7 @@ async function enviarNotificacion(userId: string, titulo: string, mensaje: strin
                     url: "/mipanel/notifications"
                 }
             };
+            
             await fetch("https://fcm.googleapis.com/fcm/send", {
                 method: "POST",
                 headers: {
@@ -116,18 +118,19 @@ const channel = supabase
       const { user_id, titulo, mensaje } = payload.new;
 
       try {
-        const { data: tokenData, error: tokensError } = await supabase
+        // Obtener TODOS los tokens del usuario
+        const { data: tokensData, error: tokensError } = await supabase
             .from('fcm_tokens')
             .select('token')
             .eq('user_id', user_id)
-            .schema('rutasegura')
-            .single();
+            .schema('rutasegura');
 
         if (tokensError) throw tokensError;
 
-        if (tokenData && tokenData.token) {
+        if (tokensData && tokensData.length > 0) {
+            const tokens = tokensData.map(t => t.token);
             const fcmPayload = {
-                to: tokenData.token,
+                registration_ids: tokens,
                 notification: { 
                     title: titulo, 
                     body: mensaje, 
@@ -172,21 +175,23 @@ process.on('SIGINT', () => {
 
 ### Tabla de Tokens para Notificaciones (FCM)
 
-Para habilitar las notificaciones push, necesitas una tabla para almacenar los tokens de los dispositivos. La siguiente configuración asegura que **solo exista un token por usuario**, lo que significa que las notificaciones solo llegarán al **último dispositivo que haya iniciado sesión**.
+Para habilitar las notificaciones push, necesitas una tabla para almacenar los tokens de los dispositivos de los usuarios. La configuración recomendada permite que **un usuario tenga múltiples tokens** (por ejemplo, uno para su teléfono y otro para su tablet), pero evita que se inserte el mismo token más de una vez para el mismo usuario.
 
 #### Script de Creación (Para nuevas instalaciones)
 
-Ejecuta esto en tu Editor SQL de Supabase. Esto crea la tabla con la configuración correcta de un solo token por usuario.
+Ejecuta esto en tu Editor SQL de Supabase. Esto crea la tabla con la configuración correcta.
 
 ```sql
--- Esta versión asegura UN SOLO token por usuario.
+-- Esta versión permite MÚLTIPLES tokens por usuario, pero no duplicados (usuario, token).
 CREATE TABLE IF NOT EXISTS rutasegura.fcm_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- La restricción UNIQUE en `user_id` es la clave para un solo token por usuario.
-    user_id UUID NOT NULL UNIQUE REFERENCES rutasegura.users(id) ON DELETE CASCADE,
+    -- Se establece la referencia a la tabla `rutasegura.users`
+    user_id UUID NOT NULL REFERENCES rutasegura.users(id) ON DELETE CASCADE,
     token TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- La restricción UNIQUE en el par (user_id, token) es la clave
+    CONSTRAINT fcm_tokens_user_id_token_unique UNIQUE (user_id, token)
 );
 
 -- Esta función actualiza automáticamente el campo `updated_at` cuando un registro cambia.
@@ -208,23 +213,18 @@ FOR EACH ROW
 EXECUTE FUNCTION rutasegura.update_updated_at_column();
 ```
 
-#### Script de Corrección (Si ya tienes la tabla con la configuración anterior)
+#### Script de Corrección (Si tenías la configuración de "un solo token por usuario")
 
-Si creaste la tabla permitiendo múltiples tokens por usuario, ejecuta este script para migrar a la nueva estructura de token único.
-
-**¡Atención!** Este script eliminará los tokens antiguos de los usuarios que tengan más de uno, conservando solo el más reciente.
+Si tu tabla `fcm_tokens` tenía una restricción `UNIQUE` solo en `user_id`, ejecuta este script para migrar a la nueva estructura de múltiples tokens.
 
 ```sql
--- 1. Elimina la restricción de unicidad del token (si existe).
+-- 1. Elimina la antigua restricción de unicidad del user_id (si existe).
+ALTER TABLE rutasegura.fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_user_id_key;
+
+-- 2. Elimina otras posibles restricciones de unicidad que puedan entrar en conflicto.
 ALTER TABLE rutasegura.fcm_tokens DROP CONSTRAINT IF EXISTS fcm_tokens_token_key;
 
--- 2. Limpia los tokens duplicados por usuario, manteniendo solo el más reciente.
-DELETE FROM rutasegura.fcm_tokens a
-    USING rutasegura.fcm_tokens b
-WHERE a.updated_at < b.updated_at
-  AND a.user_id = b.user_id;
-
--- 3. Añade la restricción de unicidad al user_id.
--- Esto fallará si el paso 2 no se ejecuta correctamente o si hay duplicados restantes.
-ALTER TABLE rutasegura.fcm_tokens ADD CONSTRAINT fcm_tokens_user_id_key UNIQUE (user_id);
+-- 3. Añade la nueva restricción de unicidad compuesta.
+-- Esto fallará si tienes datos duplicados (misma user_id y token), aunque es poco probable.
+ALTER TABLE rutasegura.fcm_tokens ADD CONSTRAINT fcm_tokens_user_id_token_unique UNIQUE (user_id, token);
 ```
