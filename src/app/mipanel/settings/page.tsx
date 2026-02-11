@@ -73,6 +73,12 @@ export default function SettingsPage() {
         }
     }, [user]);
 
+    // Request permission when entering the page. The function itself has internal guards.
+    useEffect(() => {
+        console.log("[PUSH] Entrando a la página de Ajustes. Intentando solicitar permiso/token...");
+        requestPermission();
+    }, [requestPermission]);
+
     const getAvatarFallback = () => {
         if (!user) return "AD";
         const name = user.nombre;
