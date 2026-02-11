@@ -43,11 +43,12 @@ export async function POST(request: Request) {
         token: token,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'user_id' } // El conflicto se basa en el user_id
+      { onConflict: 'user_id' } // El conflicto se basa en el user_id, que debe ser UNIQUE
     );
 
     if (error) {
       console.error('Error saving FCM token:', error);
+      // Devolver el mensaje de error específico de la base de datos para depuración
       return NextResponse.json({ message: `Error al guardar el token en la base de datos: ${error.message}` }, { status: 500 });
     }
 
