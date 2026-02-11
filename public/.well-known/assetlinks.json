@@ -1,8 +1,8 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.vemontech.rutasegura.app.twa",
-        "sha256_cert_fingerprints": ["70:07:46:01:69:6A:9C:A5:F7:5E:5F:A7:A7:31:7A:57:DF:D0:F6:3D:5C:D5:90:89:F2:97:78:A8:9F:27:A8:BF"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.vemontech.rutasegura.app.twa",
+    "sha256_cert_fingerprints": ["0E:AA:77:B8:93:9B:CB:3D:E5:F6:AC:DB:A0:8D:03:35:3B:EF:15:A8:43:51:C3:CF:A9:15:AC:25:88:57:3E:21"]
+  }
+}]
