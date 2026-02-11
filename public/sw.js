@@ -5,12 +5,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-messaging-com
 // ACTION REQUIRED: Fill in your Firebase project's configuration below.
 // You can find this in your Firebase project settings.
 const firebaseConfig = {
-    apiKey: "...",
-    authDomain: "...",
-    projectId: "...",
-    storageBucket: "...",
-    messagingSenderId: "...",
-    appId: "..."
+    apiKey: "AIzaSyBQY3hL4_FJ5brqyXJrvZGv8Wzz7Jbvlow",
+    authDomain: "dev2026-914cf.firebaseapp.com",
+    projectId: "dev2026-914cf",
+    storageBucket: "dev2026-914cf.firebasestorage.app",
+    messagingSenderId: "961466814009",
+    appId: "1:961466814009:web:b888041a63c159cc9fc7e8"
 };
 
 firebase.initializeApp(firebaseConfig);
