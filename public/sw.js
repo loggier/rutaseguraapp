@@ -1,104 +1,111 @@
-// Use the Firebase SDK for Google Analytics
-importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.3/firebase-messaging-compat.js');
+// /public/sw.js
 
-// ACTION REQUIRED: Fill in your Firebase project's configuration below.
-// You can find this in your Firebase project settings.
+console.log('[SW] Script start.');
+
+try {
+  // Se utiliza importScripts porque es la forma síncrona y compatible con service workers clásicos.
+  importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+  console.log('[SW] Firebase scripts imported successfully.');
+} catch (e) {
+  console.error('[SW] Error importing Firebase scripts:', e);
+}
+
+
+// IMPORTANTE: ¡DEBES REEMPLAZAR ESTO CON TU CONFIGURACIÓN DE FIREBASE!
+// La encuentras en: Configuración del proyecto > General > Tus apps > Configuración de SDK.
 const firebaseConfig = {
-    apiKey: "AIzaSyBQY3hL4_FJ5brqyXJrvZGv8Wzz7Jbvlow",
-    authDomain: "dev2026-914cf.firebaseapp.com",
-    projectId: "dev2026-914cf",
-    storageBucket: "dev2026-914cf.firebasestorage.app",
-    messagingSenderId: "961466814009",
-    appId: "1:961466814009:web:b888041a63c159cc9fc7e8"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-    console.log('[sw.js] Received background message: ', payload);
-
+try {
+  // Usamos el namespace global `firebase` que está disponible después de importScripts.
+  firebase.initializeApp(firebaseConfig);
+  console.log('[SW] Firebase app initialized.');
+  
+  const messaging = firebase.messaging();
+  
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[SW] Received background message ', payload);
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/icons/icon-192x192.png',
+      body: payload.notification.body,
+      icon: payload.notification.icon || '/icons/icon-192x192.png',
     };
-
+  
     self.registration.showNotification(notificationTitle, notificationOptions);
-});
+  });
+  console.log('[SW] Background message handler set up.');
+
+} catch (e) {
+  console.error('[SW] Error during Firebase setup:', e.message);
+  // Si la configuración no es válida, la inicialización fallará aquí.
+}
 
 
-// --- Caching Logic ---
-
-const CACHE_NAME = 'rutasegura-pwa-cache-v2'; // Bump version to force update
+const CACHE_NAME = 'rutasegura-cache-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/logo.jpeg',
+  '/icons/icon-192x192.png'
 ];
 
-// Install the service worker and cache static assets
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+  console.log('[SW] Event: install');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then((cache) => {
+        console.log('[SW] Caching app shell');
         return cache.addAll(urlsToCache);
       })
-  );
-});
-
-// Activate event to clean up old caches
-self.addEventListener('activate', event => {
-    const cacheWhitelist = [CACHE_NAME];
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
-    );
-});
-
-
-// Serve cached content when offline
-self.addEventListener('fetch', event => {
-    // We only want to cache GET requests.
-    if (event.request.method !== 'GET') {
-        return;
-    }
-    
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        return fetch(event.request).then(
-          (response) => {
-            // Check if we received a valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
+      .catch(err => {
+        console.error('[SW] Caching failed:', err);
       })
   );
 });
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Event: activate');
+  // Elimina cachés antiguas.
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Le dice al service worker que tome el control de la página inmediatamente.
+  return self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  // Estrategia Network-first para peticiones de navegación.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  // Estrategia Cache-first para todos los demás recursos.
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        return response || fetch(event.request);
+      })
+  );
+});
+
+console.log('[SW] Script end.');

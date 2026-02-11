@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // ¡IMPORTANTE! Reemplaza esta clave con la CLAVE PÚBLICA (VAPID) de tu proyecto de Firebase.
 // La encuentras en: Configuración del proyecto > Cloud Messaging > Certificados push web.
-const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
+const VAPID_KEY = 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE_GOES_HERE';
 
 type FirebaseMessagingContextType = {
   permission: NotificationPermission;
@@ -86,7 +86,7 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
             console.log('%c[PUSH] Permiso concedido. Esperando que el Service Worker esté listo...', 'color: green');
             
             const registration = await navigator.serviceWorker.ready;
-            console.log('%c[PUSH] Service Worker listo. Obteniendo token de FCM...', 'color: blue');
+            console.log('%c[PUSH] Service Worker está listo (activo). Obteniendo token de FCM...', 'color: blue', registration);
             
             const currentToken = await getToken(messaging, { 
                 vapidKey: VAPID_KEY,
