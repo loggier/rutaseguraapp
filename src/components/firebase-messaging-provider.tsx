@@ -6,7 +6,7 @@ import { app } from '@/lib/firebase';
 import { useUser } from '@/contexts/user-context';
 import { useToast } from '@/hooks/use-toast';
 
-// **ACCIÓN REQUERIDA:** Reemplaza esta clave con tu clave VAPID de la consola de Firebase.
+// Clave VAPID del proyecto de Firebase.
 const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
 
 type FirebaseMessagingContextType = {
@@ -69,40 +69,46 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
     const messaging = getMessaging(app);
 
     try {
-        // Solicita permiso al usuario
         const currentPermission = await Notification.requestPermission();
-        setPermission(currentPermission); // Actualiza el estado local
+        setPermission(currentPermission);
 
         if (currentPermission === 'granted') {
-            toast({ title: '¡Éxito!', description: 'Permiso de notificación concedido.' });
+            toast({ title: '¡Éxito!', description: 'Permiso de notificación concedido. Obteniendo token...' });
             
-            // Espera a que el Service Worker esté listo
             const registration = await navigator.serviceWorker.ready;
             
-            // Obtiene el token y lo guarda
             const currentToken = await getToken(messaging, { 
                 vapidKey: VAPID_KEY,
                 serviceWorkerRegistration: registration,
             });
 
             if (currentToken) {
-                console.log('FCM Token obtenido y guardado:', currentToken);
-                await fetch('/api/profile/save-fcm-token', {
+                console.log('FCM Token obtenido:', currentToken);
+                const response = await fetch('/api/profile/save-fcm-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId: user.id, token: currentToken }),
                 });
+
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.message || 'Error del servidor al guardar el token.');
+                }
+                
+                toast({ title: 'Token Registrado', description: 'Tu dispositivo ahora puede recibir notificaciones.'});
+                console.log('Token guardado exitosamente.');
+
             } else {
-                 console.log('No se pudo obtener el token de registro.');
-                 toast({ variant: 'destructive', title: 'Error', description: 'No se pudo obtener el token para las notificaciones.' });
+                 console.log('No se pudo obtener el token de registro. Asegúrate de que el Service Worker (sw.js) está configurado correctamente con las credenciales de Firebase.');
+                 toast({ variant: 'destructive', title: 'Error de Token', description: 'No se pudo obtener el token. Revisa la configuración del Service Worker.' });
             }
         } else {
             console.log('No se pudo obtener permiso para notificaciones.');
             toast({ variant: 'destructive', title: 'Permiso denegado', description: 'No has permitido las notificaciones.' });
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('Ocurrió un error al solicitar el token.', err);
-        toast({ variant: 'destructive', title: 'Error', description: 'Ocurrió un error al solicitar el permiso.' });
+        toast({ variant: 'destructive', title: 'Error Inesperado', description: err.message || 'Ocurrió un error al procesar la solicitud de notificación.' });
     }
   }, [user, toast]);
 
