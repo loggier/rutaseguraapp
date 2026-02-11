@@ -55,9 +55,10 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para activar las notificaciones.' });
         return;
     }
-    if (!VAPID_KEY || VAPID_KEY === 'TU_CLAVE_VAPID_DE_FIREBASE') {
-        console.error("No se ha proporcionado la clave VAPID de Firebase. Las notificaciones no funcionarán.");
-        toast({ variant: 'destructive', title: 'Error de Configuración', description: 'Falta la clave VAPID para las notificaciones.' });
+    if (!VAPID_KEY || VAPID_KEY === 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM') {
+        const errorMsg = "No se ha proporcionado una clave VAPID válida de Firebase en el código.";
+        console.error(errorMsg);
+        toast({ variant: 'destructive', title: 'Error de Configuración', description: 'Por favor, añade tu clave VAPID en firebase-messaging-provider.tsx' });
         return;
     }
     if (typeof window === 'undefined' || !('Notification' in window) || !app) {
@@ -73,8 +74,10 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
 
         if (currentPermission === 'granted') {
             toast({ title: '¡Éxito!', description: 'Permiso de notificación concedido. Obteniendo token...' });
+            console.log('%c[PUSH] Permiso concedido. Esperando que el Service Worker esté listo...', 'color: green');
             
             const registration = await navigator.serviceWorker.ready;
+            console.log('%c[PUSH] Service Worker listo. Obteniendo token de FCM...', 'color: blue');
             
             const currentToken = await getToken(messaging, { 
                 vapidKey: VAPID_KEY,
@@ -82,8 +85,8 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
             });
 
             if (currentToken) {
-                console.log('FCM Token obtenido:', currentToken);
-                toast({ title: 'Token Obtenido', description: 'Registrando el dispositivo...' });
+                console.log('%c[PUSH] Token de FCM obtenido:', 'color: green; font-weight: bold;', currentToken);
+                toast({ title: 'Token Obtenido', description: 'Registrando el dispositivo en la base de datos...' });
                 
                 const response = await fetch('/api/profile/save-fcm-token', {
                     method: 'POST',
@@ -97,18 +100,18 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
                 }
                 
                 toast({ title: '¡Listo!', description: 'Tu dispositivo ahora puede recibir notificaciones.'});
-                console.log('Token guardado exitosamente en la base de datos.');
+                console.log('%c[PUSH] Token guardado exitosamente en la base de datos.', 'color: green');
 
             } else {
-                 console.log('No se pudo obtener el token de registro. Asegúrate de que el Service Worker (sw.js) está configurado correctamente con las credenciales de Firebase y la clave VAPID es correcta.');
-                 toast({ variant: 'destructive', title: 'Error de Token', description: 'No se pudo obtener el token. Revisa la configuración del Service Worker y la clave VAPID.' });
+                 console.error('%c[PUSH] No se pudo obtener el token de registro. Asegúrate de que sw.js está configurado correctamente con las credenciales de Firebase y que la clave VAPID es la correcta.', 'color: red');
+                 toast({ variant: 'destructive', title: 'Error de Token', description: 'No se pudo obtener el token. Revisa la configuración del Service Worker (sw.js) y tu clave VAPID.' });
             }
         } else {
-            console.log('No se pudo obtener permiso para notificaciones.');
+            console.warn('%c[PUSH] Permiso de notificación denegado por el usuario.', 'color: orange');
             toast({ variant: 'destructive', title: 'Permiso denegado', description: 'No has permitido las notificaciones.' });
         }
     } catch (err: any) {
-        console.error('Ocurrió un error al solicitar el token.', err);
+        console.error('%c[PUSH] Ocurrió un error al solicitar el token:', 'color: red', err);
         toast({ variant: 'destructive', title: 'Error Inesperado', description: err.message || 'Ocurrió un error al procesar la solicitud de notificación.' });
     }
   }, [user, toast]);
