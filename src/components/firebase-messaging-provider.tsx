@@ -6,7 +6,8 @@ import { app } from '@/lib/firebase';
 import { useUser } from '@/contexts/user-context';
 import { useToast } from '@/hooks/use-toast';
 
-// Clave VAPID del proyecto de Firebase.
+// Reemplaza esta clave con la clave pública (VAPID) de tu proyecto de Firebase.
+// La encuentras en: Configuración del proyecto > Cloud Messaging > Certificados push web.
 const VAPID_KEY = 'BJtny6eUPVaTLAf3ngDLqOH0sEwLlUulebyi4szv-qzrcrjI6CNFDuN2iqDtrlvLLZ6tFSeKZJP_hbx5rnQIXHM';
 
 type FirebaseMessagingContextType = {
@@ -29,14 +30,12 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
-  // Comprueba el estado del permiso inicial cuando el componente se monta
   useEffect(() => {
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
   }, []);
 
-  // Escucha los mensajes cuando la app está en primer plano
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && app && permission === 'granted') {
         const messaging = getMessaging(app);
@@ -56,7 +55,7 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para activar las notificaciones.' });
         return;
     }
-    if (!VAPID_KEY) {
+    if (!VAPID_KEY || VAPID_KEY === 'TU_CLAVE_VAPID_DE_FIREBASE') {
         console.error("No se ha proporcionado la clave VAPID de Firebase. Las notificaciones no funcionarán.");
         toast({ variant: 'destructive', title: 'Error de Configuración', description: 'Falta la clave VAPID para las notificaciones.' });
         return;
@@ -84,6 +83,8 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
 
             if (currentToken) {
                 console.log('FCM Token obtenido:', currentToken);
+                toast({ title: 'Token Obtenido', description: 'Registrando el dispositivo...' });
+                
                 const response = await fetch('/api/profile/save-fcm-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -95,12 +96,12 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
                     throw new Error(result.message || 'Error del servidor al guardar el token.');
                 }
                 
-                toast({ title: 'Token Registrado', description: 'Tu dispositivo ahora puede recibir notificaciones.'});
-                console.log('Token guardado exitosamente.');
+                toast({ title: '¡Listo!', description: 'Tu dispositivo ahora puede recibir notificaciones.'});
+                console.log('Token guardado exitosamente en la base de datos.');
 
             } else {
-                 console.log('No se pudo obtener el token de registro. Asegúrate de que el Service Worker (sw.js) está configurado correctamente con las credenciales de Firebase.');
-                 toast({ variant: 'destructive', title: 'Error de Token', description: 'No se pudo obtener el token. Revisa la configuración del Service Worker.' });
+                 console.log('No se pudo obtener el token de registro. Asegúrate de que el Service Worker (sw.js) está configurado correctamente con las credenciales de Firebase y la clave VAPID es correcta.');
+                 toast({ variant: 'destructive', title: 'Error de Token', description: 'No se pudo obtener el token. Revisa la configuración del Service Worker y la clave VAPID.' });
             }
         } else {
             console.log('No se pudo obtener permiso para notificaciones.');
@@ -112,13 +113,11 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
     }
   }, [user, toast]);
 
-    // Solicita permiso automáticamente al iniciar sesión si aún no se ha pedido
     useEffect(() => {
         if (user?.id && permission === 'default') {
-        // Usamos un pequeño timeout para no bombardear al usuario inmediatamente
         const timer = setTimeout(() => {
             requestPermission();
-        }, 3000); // 3 segundos de cortesía
+        }, 3000); 
 
         return () => clearTimeout(timer);
         }
