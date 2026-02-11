@@ -4,19 +4,71 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
-## Arquitectura de Notificaciones Push
+## Arquitectura de Notificaciones Push (Supabase Autoalojado)
 
-Para enviar notificaciones push a los dispositivos de los usuarios, se utiliza una arquitectura que combina Supabase y Firebase Cloud Messaging (FCM). El flujo es el siguiente:
+Si estás usando una instancia autoalojada (self-hosted) de Supabase, no puedes usar Supabase Edge Functions. La arquitectura correcta para enviar notificaciones push es la siguiente:
 
-1.  **Acción en la App (Admin):** Una acción en tu panel de administración (o en cualquier otro lugar) inserta un nuevo registro en la tabla `rutasegura.notificaciones`.
-2.  **Disparador en la Base de Datos:** Un `TRIGGER` en la base de datos de Supabase detecta esta nueva inserción.
-3.  **Ejecución de Edge Function:** El trigger invoca automáticamente una **Supabase Edge Function** (`send-push-notification`).
-4.  **Llamada a Firebase:** La Edge Function obtiene los tokens de notificación del usuario de la tabla `fcm_tokens` y realiza una llamada a la API de Firebase (FCM) para enviar la notificación push.
-5.  **Recepción en el Dispositivo:** El Service Worker de la PWA en el dispositivo del usuario recibe y muestra la notificación.
+1.  **Acción en tu Backend de Admin:** La lógica para enviar una notificación se inicia desde tu propio servidor de administración (el que usan los administradores del colegio, no esta app de padres).
+2.  **Llamada a Firebase desde tu Backend:** Tu servidor de admin es responsable de:
+    a.  Buscar en la base de datos los tokens de notificación del usuario al que se quiere notificar.
+    b.  Realizar una llamada a la API de Firebase Cloud Messaging (FCM) para enviar la notificación push.
+    c.  Insertar un registro en la tabla `rutasegura.notificaciones` para que el usuario tenga un historial visible en la app.
+3.  **Recepción en el Dispositivo:** El Service Worker de la PWA en el dispositivo del usuario recibe y muestra la notificación.
 
-### ¿Dónde se crea la Supabase Edge Function?
+### Ejemplo de Lógica en tu Backend de Admin (Node.js/TypeScript)
 
-La Supabase Edge Function **NO** vive dentro de este proyecto Next.js. Es un proyecto separado que se gestiona con la [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started). Debes crear un nuevo directorio en tu máquina local para gestionar tus funciones de Supabase, enlazarlo a tu proyecto de Supabase y desplegar la función desde allí.
+```typescript
+// Este código debe vivir en el servidor de tu panel de administración.
+
+import { createClient } from '@supabase/supabase-js';
+
+// Estas claves deben ser variables de entorno en tu servidor de admin
+const SUPABASE_URL = process.env.SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const FCM_SERVER_KEY = process.env.FCM_SERVER_KEY!; // Tu clave de servidor de Firebase
+
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+async function enviarNotificacion(userId: string, titulo: string, mensaje: string) {
+    try {
+        // 1. Obtener los tokens FCM del usuario
+        const { data: tokens, error: tokensError } = await supabaseAdmin
+            .from('fcm_tokens')
+            .select('token')
+            .eq('user_id', userId)
+            .schema('rutasegura');
+
+        if (tokensError) throw tokensError;
+
+        // 2. Si hay tokens, enviar la notificación push
+        if (tokens && tokens.length > 0) {
+            const fcmPayload = {
+                registration_ids: tokens.map(t => t.token),
+                notification: { title, body: mensaje, icon: "/icons/icon-192x192.png" },
+            };
+            await fetch("https://fcm.googleapis.com/fcm/send", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `key=${FCM_SERVER_KEY}`,
+                },
+                body: JSON.stringify(fcmPayload),
+            });
+        }
+
+        // 3. Guardar el historial de la notificación en la base de datos
+        const { error: insertError } = await supabaseAdmin
+            .from('notificaciones')
+            .insert({ user_id: userId, titulo, mensaje, tipo: 'general' })
+            .schema('rutasegura');
+
+        if (insertError) throw insertError;
+
+    } catch (error) {
+        console.error("Error en el proceso de enviar notificación:", error);
+    }
+}
+```
 
 ---
 
