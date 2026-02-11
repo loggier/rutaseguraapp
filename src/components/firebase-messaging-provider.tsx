@@ -98,6 +98,18 @@ export function FirebaseMessagingProvider({ children }: { children: ReactNode })
     }
   }, [user, toast]);
 
+    // Solicita permiso automáticamente al iniciar sesión si aún no se ha pedido
+    useEffect(() => {
+        if (user?.id && permission === 'default') {
+        // Usamos un pequeño timeout para no bombardear al usuario inmediatamente
+        const timer = setTimeout(() => {
+            requestPermission();
+        }, 3000); // 3 segundos de cortesía
+
+        return () => clearTimeout(timer);
+        }
+    }, [user, permission, requestPermission]);
+
   return (
     <FirebaseMessagingContext.Provider value={{ permission, requestPermission }}>
       {children}
