@@ -28,37 +28,50 @@ export async function POST(request: Request) {
     const validation = tokenSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ message: "Datos inválidos." }, { status: 400 });
+      return NextResponse.json({ message: "Datos inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
     const { userId, token } = validation.data;
     const supabaseAdmin = createSupabaseAdminClient();
 
-    // Upsert para insertar el token si la combinación (user_id, token) no existe.
-    // Si ya existe, simplemente actualiza el campo `updated_at`.
-    // Esto permite que un usuario tenga múltiples tokens (en diferentes dispositivos),
-    // pero evita que el mismo token se duplique para el mismo usuario.
-    const { error } = await supabaseAdmin.from('fcm_tokens').upsert(
-      {
-        user_id: userId,
-        token: token,
-        updated_at: new Date().toISOString(),
-      },
-      { 
-        onConflict: 'user_id, token', // El conflicto se basa en la combinación de user_id y token
-        // ignoreDuplicates: false (default) hará que se actualice el 'updated_at' en un conflicto.
-      }
-    );
+    // Lógica manual y robusta para evitar problemas con `upsert` y `onConflict`.
+    // 1. Verificar si la combinación exacta de usuario y token ya existe.
+    const { data: existingToken, error: selectError } = await supabaseAdmin
+      .from('fcm_tokens')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('token', token)
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error saving FCM token:', error);
-      // Devolver el mensaje de error específico de la base de datos para depuración
-      return NextResponse.json({ message: `Error al guardar el token en la base de datos: ${error.message}` }, { status: 500 });
+    if (selectError) {
+      console.error('Error al verificar token existente:', selectError);
+      return NextResponse.json({ message: `Error de base de datos al verificar token: ${selectError.message}` }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'Token guardado con éxito.' }, { status: 200 });
+    // 2. Si ya existe, no hacemos nada más que confirmar.
+    if (existingToken) {
+      return NextResponse.json({ message: 'Este dispositivo ya estaba registrado.' }, { status: 200 });
+    }
+
+    // 3. Si no existe, lo insertamos.
+    const { error: insertError } = await supabaseAdmin
+      .from('fcm_tokens')
+      .insert({
+        user_id: userId,
+        token: token,
+      });
+
+    // Si hay un error de inserción (por ejemplo, violación de clave foránea porque el user_id no existe en rutasegura.users)
+    // lo devolveremos de forma explícita.
+    if (insertError) {
+      console.error('Error al insertar el nuevo token FCM:', insertError);
+      return NextResponse.json({ message: `Error de base de datos al guardar el token: ${insertError.message}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Token guardado con éxito.' }, { status: 201 });
+
   } catch (error: any) {
     console.error('Error inesperado en save-fcm-token:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+    return NextResponse.json({ message: 'Error interno del servidor: ' + error.message }, { status: 500 });
   }
 }
