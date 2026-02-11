@@ -23,12 +23,12 @@ try {
     // REEMPLAZA ESTAS CREDENCIALES CON LAS DE TU PROYECTO DE FIREBASE.
     // Las encuentras en: Configuración del proyecto > General > Tus apps > Configuración de SDK.
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBQY3hL4_FJ5brqyXJrvZGv8Wzz7Jbvlow",
+      authDomain: "dev2026-914cf.firebaseapp.com",
+      projectId: "dev2026-914cf",
+      storageBucket: "dev2026-914cf.firebasestorage.app",
+      messagingSenderId: "961466814009",
+      appId: "1:961466814009:web:b888041a63c159cc9fc7e8"
     };
 
     // Inicializa Firebase solo si no ha sido inicializado antes.
