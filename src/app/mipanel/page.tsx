@@ -340,7 +340,7 @@ export default function MiPanelPage() {
                             isOnRoute={isOnRoute}
                             icon={busMarkerIcon}
                             activeIcon={activeBusMarkerIcon}
-                            onClick={() => isOnRoute && handleBusClick(bus.id)}
+                            onClick={() => handleBusClick(bus.id)}
                         />
                     );
                 })}
@@ -361,10 +361,14 @@ export default function MiPanelPage() {
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span>{selectedBusForInfoWindow.conductor ? `${selectedBusForInfoWindow.conductor.nombre} ${selectedBusForInfoWindow.conductor.apellido || ''}`.trim() : 'No asignado'}</span>
                             </div>
-                            <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
-                                <Video className="mr-2 h-4 w-4" />
-                                Ver Video
-                            </Button>
+                            {selectedBusForInfoWindow.ruta?.status_ruta === true ? (
+                                <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
+                                    <Video className="mr-2 h-4 w-4" />
+                                    Ver Video
+                                </Button>
+                            ) : (
+                                <p className="text-xs text-center text-muted-foreground mt-2 p-1 bg-muted rounded-md">Bus fuera de ruta</p>
+                            )}
                         </div>
                     </InfoWindowF>
                 )}
