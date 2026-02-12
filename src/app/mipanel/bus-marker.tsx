@@ -11,10 +11,11 @@ type BusMarkerProps = {
     icon?: google.maps.Icon | string;
     activeIcon?: google.maps.Icon | string;
     isActive: boolean;
+    isOnRoute: boolean; // New prop
     onClick: () => void;
 };
 
-export const BusMarker = memo(function BusMarker({ bus, icon, activeIcon, isActive, onClick }: BusMarkerProps) {
+export const BusMarker = memo(function BusMarker({ bus, icon, activeIcon, isActive, isOnRoute, onClick }: BusMarkerProps) {
     const markerRef = useRef<google.maps.Marker | null>(null);
     const animationFrameId = useRef<number>();
 
@@ -70,14 +71,17 @@ export const BusMarker = memo(function BusMarker({ bus, icon, activeIcon, isActi
 
     }, [bus.last_latitude, bus.last_longitude]); // Reruns only when coordinates change
 
-    // This effect handles changes to icon and z-index when the marker is activated/deactivated
+    // This effect handles changes to icon, z-index, and opacity
     useEffect(() => {
-        markerRef.current?.setIcon(isActive ? activeIcon : icon);
-        markerRef.current?.setZIndex(isActive ? 100 : 50);
-    }, [isActive, icon, activeIcon]);
+        if (!markerRef.current) return;
+        markerRef.current.setIcon(isActive ? activeIcon : icon);
+        markerRef.current.setZIndex(isActive ? 100 : (isOnRoute ? 50 : 10));
+        markerRef.current.setOpacity(isOnRoute ? 1.0 : 0.6);
+    }, [isActive, isOnRoute, icon, activeIcon]);
 
     const onLoad = (marker: google.maps.Marker) => {
         markerRef.current = marker;
+        marker.setOpacity(isOnRoute ? 1.0 : 0.6); // Set initial opacity
         // The click handler is attached here manually to prevent re-renders on the MarkerF component
         marker.addListener('click', onClick);
     };

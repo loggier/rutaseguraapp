@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -70,10 +68,6 @@ export default function MiPanelPage() {
             setIsCenterSet(true);
         }
     }, [colegio, isCenterSet]);
-
-    const busesEnRuta = useMemo(() => 
-        buses.filter(bus => bus.ruta?.status_ruta),
-    [buses]);
 
     const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
@@ -331,9 +325,10 @@ export default function MiPanelPage() {
                 onLoad={onMapLoad}
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
-                {busesEnRuta.map(bus => {
+                {buses.map(bus => {
                     if (bus.last_latitude == null || bus.last_longitude == null) return null;
                     
+                    const isOnRoute = bus.ruta?.status_ruta === true;
                     const isActive = activeBusId === bus.id;
 
                     return (
@@ -341,9 +336,10 @@ export default function MiPanelPage() {
                             key={bus.id}
                             bus={bus}
                             isActive={isActive}
+                            isOnRoute={isOnRoute}
                             icon={busMarkerIcon}
                             activeIcon={activeBusMarkerIcon}
-                            onClick={() => handleBusClick(bus.id)}
+                            onClick={() => isOnRoute && handleBusClick(bus.id)}
                         />
                     );
                 })}
