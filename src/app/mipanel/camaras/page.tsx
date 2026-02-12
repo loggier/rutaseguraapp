@@ -90,11 +90,20 @@ export default function CamerasPage() {
                                 <h2 className="text-2xl font-bold">{selectedBus.matricula}</h2>
                                 <p className="text-muted-foreground">Conductor: {selectedBus.conductor?.nombre || 'No asignado'}</p>
                                 <p className="text-sm text-muted-foreground">Modelo Cámara: {selectedBus.modelo_camara}</p>
-                                <div className="mt-6">
-                                     <Button onClick={() => handleWatchCamera(selectedBus, 1)} disabled={isRequesting}>
-                                        {isRequesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
-                                        Ver Cámara Principal
-                                    </Button>
+                                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {selectedBus.video_channels && selectedBus.video_channels > 0 ? (
+                                        Array.from({ length: selectedBus.video_channels }, (_, i) => i + 1).map((channel) => (
+                                            <Button key={channel} onClick={() => handleWatchCamera(selectedBus, channel)} disabled={isRequesting}>
+                                                {isRequesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
+                                                Cámara {channel}
+                                            </Button>
+                                        ))
+                                    ) : (
+                                        <Button onClick={() => handleWatchCamera(selectedBus, 1)} disabled={isRequesting} className="sm:col-span-2">
+                                            {isRequesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
+                                            Ver Cámara Principal
+                                        </Button>
+                                    )}
                                 </div>
                             </>
                         ) : (

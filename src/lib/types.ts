@@ -121,6 +121,7 @@ export type Autobus = {
   bus_asignado?: { matricula: string }[] | null;
   // New fields from table definition
   modelo_camara?: string | null;
+  video_channels?: number | null;
   last_latitude?: number | null;
   last_longitude?: number | null;
   last_speed?: number | null;
@@ -191,6 +192,7 @@ export type TrackedBus = {
   last_speed?: number | null;
   imei_gps?: string | null;
   modelo_camara?: string | null;
+  video_channels?: number | null;
 }
 
 export type Incidencia = {
