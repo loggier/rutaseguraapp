@@ -59,14 +59,17 @@ export default function MiPanelPage() {
     const { toast } = useToast();
     const isMobile = useIsMobile();
 
+    const [mapCenter, setMapCenter] = useState({ lat: -0.180653, lng: -78.467834 });
+    const [isCenterSet, setIsCenterSet] = useState(false);
+
     const { isLoaded, loadError } = useGoogleMaps();
     
-    const mapCenter = useMemo(() => {
-        if (colegio?.lat && colegio?.lng) {
-            return { lat: colegio.lat, lng: colegio.lng };
+    useEffect(() => {
+        if (colegio?.lat && colegio?.lng && !isCenterSet) {
+            setMapCenter({ lat: colegio.lat, lng: colegio.lng });
+            setIsCenterSet(true);
         }
-        return { lat: -0.180653, lng: -78.467834 }; // Fallback
-    }, [colegio]);
+    }, [colegio, isCenterSet]);
 
     const busesEnRuta = useMemo(() => 
         buses.filter(bus => bus.ruta?.status_ruta),
