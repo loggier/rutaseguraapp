@@ -26,7 +26,9 @@ import { StudentMarker } from './student-marker';
 import { useRouter } from 'next/navigation';
 import { BusMarker } from './bus-marker';
 import { MarkerF } from '@react-google-maps/api';
+import { MultiVideoPlayerModal } from './camaras/video-player-modal';
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type StaticState = {
   currentTurno: 'Recogida' | 'Entrega';
@@ -60,6 +62,12 @@ export default function MiPanelPage() {
 
     const [mapCenter, setMapCenter] = useState({ lat: -0.180653, lng: -78.467834 });
     const [isCenterSet, setIsCenterSet] = useState(false);
+
+    // Video Modal State
+    const [busForVideo, setBusForVideo] = useState<TrackedBus | null>(null);
+    const [isPreparingStreams, setIsPreparingStreams] = useState(false);
+    const [streamUrls, setStreamUrls] = useState<string[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { isLoaded, loadError } = useGoogleMaps();
     
@@ -254,25 +262,6 @@ export default function MiPanelPage() {
         };
     }, [isLoaded]);
 
-    const busMarkerIcon = useMemo(() => {
-        if(!isLoaded) return null;
-        return {
-          url: '/bus.png',
-          scaledSize: new google.maps.Size(40, 50),
-          anchor: new google.maps.Point(20, 50),
-        };
-    }, [isLoaded]);
-
-    const activeBusMarkerIcon = useMemo(() => {
-        if(!isLoaded) return null;
-        return {
-          url: '/bus.png',
-          scaledSize: new google.maps.Size(48, 60),
-          anchor: new google.maps.Point(24, 60),
-        };
-    }, [isLoaded]);
-
-
     const locateUser = () => {
         if (!map) return;
         if (navigator.geolocation) {
@@ -308,7 +297,72 @@ export default function MiPanelPage() {
 
     const handleBusClick = (busId: string) => {
         setActiveBusId(currentId => currentId === busId ? null : busId);
+    };
+
+    const handleWatchAllCameras = async (bus: TrackedBus) => {
+        if (!bus.imei_gps) return;
+        
+        setActiveBusId(null); // Close info window
+        const channels = bus.video_channels || 1;
+
+        setBusForVideo(bus);
+        setIsPreparingStreams(true);
+        setIsModalOpen(true);
+        setStreamUrls([]);
+
+        const urls: string[] = [];
+
+        try {
+            for (let i = 0; i < channels; i++) {
+                const channel = i + 1;
+
+                toast({
+                    title: `Activando Cámara ${channel}...`,
+                    description: `Enviando comando para el canal ${channel} del bus ${bus.matricula}.`,
+                });
+
+                const response = await fetch('/api/video/request-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imei: bus.imei_gps, channel }),
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${channel}.`);
+                }
+
+                const streamUrl = `rtsp://gps.securityyoucar.com:10002/${channel}/${bus.imei_gps}`;
+                urls.push(streamUrl);
+                
+                await delay(1000);
+            }
+            
+            setStreamUrls(urls);
+            toast({
+                title: "¡Cámaras Activadas!",
+                description: "Abriendo reproductor de video...",
+            });
+
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error de Transmisión',
+                description: error.message,
+            });
+            setIsModalOpen(false);
+        } finally {
+            setIsPreparingStreams(false);
+        }
+    };
+    
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setStreamUrls([]);
+        setBusForVideo(null);
     }
+
 
     if (loading || !isLoaded) {
         return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="ml-4">Cargando mapa...</p></div>;
@@ -327,9 +381,6 @@ export default function MiPanelPage() {
                 options={{ mapTypeControl: false, streetViewControl: false, fullscreenControl: false, zoomControl: false }}
             >
                 {buses.map(bus => {
-                    if (bus.last_latitude == null || bus.last_longitude == null) return null;
-                    
-                    const isOnRoute = !!bus.ruta;
                     const isActive = activeBusId === bus.id;
 
                     return (
@@ -337,9 +388,6 @@ export default function MiPanelPage() {
                             key={bus.id}
                             bus={bus}
                             isActive={isActive}
-                            isOnRoute={isOnRoute}
-                            icon={busMarkerIcon}
-                            activeIcon={activeBusMarkerIcon}
                             onClick={() => handleBusClick(bus.id)}
                         />
                     );
@@ -350,7 +398,7 @@ export default function MiPanelPage() {
                         position={selectedBusForInfoWindow.position}
                         onCloseClick={() => setActiveBusId(null)}
                         options={{
-                            pixelOffset: new google.maps.Size(0, -60),
+                            pixelOffset: new google.maps.Size(0, -50),
                             disableAutoPan: true,
                         }}
                     >
@@ -361,7 +409,7 @@ export default function MiPanelPage() {
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span>{selectedBusForInfoWindow.conductor ? `${selectedBusForInfoWindow.conductor.nombre} ${selectedBusForInfoWindow.conductor.apellido || ''}`.trim() : 'No asignado'}</span>
                             </div>
-                            <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
+                            <Button size="sm" className="w-full mt-2" onClick={() => handleWatchAllCameras(selectedBusForInfoWindow)}>
                                 <Video className="mr-2 h-4 w-4" />
                                 Ver Video
                             </Button>
@@ -409,6 +457,16 @@ export default function MiPanelPage() {
                         </CarouselContent>
                     </Carousel>
                 </div>
+            )}
+
+            {isModalOpen && busForVideo && (
+                <MultiVideoPlayerModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    streamUrls={streamUrls}
+                    busMatricula={busForVideo.matricula}
+                    isLoading={isPreparingStreams}
+                />
             )}
         </div>
     );
