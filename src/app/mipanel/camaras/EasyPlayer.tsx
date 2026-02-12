@@ -11,31 +11,41 @@ const EasyPlayer: React.FC<EasyPlayerProps> = ({ streamUrl }) => {
     const videoRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<any>(null);
 
+    // Effect for creating and destroying the player instance
     useEffect(() => {
-        let player: any;
-        if (videoRef.current && typeof EasyPlayerPro !== 'undefined') {
-            player = new EasyPlayerPro(videoRef.current, {
-                stretch: true,
-                hasAudio: true,
-                hasControl: true,
-            });
-            
-            player.play(streamUrl).catch((err: any) => {
-                console.error('Error al reproducir stream:', streamUrl, err);
-            });
-
-            playerRef.current = player;
+        // This function runs when the component mounts
+        if (videoRef.current && typeof EasyPlayerPro !== 'undefined' && !playerRef.current) {
+            try {
+                playerRef.current = new EasyPlayerPro(videoRef.current, {
+                    stretch: true,
+                    hasAudio: true,
+                    hasControl: true,
+                });
+            } catch (error) {
+                console.error("Error creating EasyPlayerPro instance:", error);
+            }
         }
 
+        // This cleanup function runs when the component unmounts
         return () => {
-            if (player) {
+            if (playerRef.current) {
                 try {
-                    player.destroy();
+                    playerRef.current.destroy();
                 } catch (e) {
                      console.warn('Error al destruir el reproductor de video:', e);
                 }
+                playerRef.current = null; // Clear the ref on cleanup
             }
         };
+    }, []); // Empty dependency array ensures this runs only on mount and unmount
+
+    // Effect for playing the stream when the URL is available or changes
+    useEffect(() => {
+        if (playerRef.current && streamUrl) {
+            playerRef.current.play(streamUrl).catch((err: any) => {
+                console.error('Error al reproducir stream:', streamUrl, err);
+            });
+        }
     }, [streamUrl]);
 
     return <div ref={videoRef} className="w-full h-full bg-black" />;
