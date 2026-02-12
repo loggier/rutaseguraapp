@@ -71,6 +71,26 @@ export default function MiPanelPage() {
 
     const { isLoaded, loadError } = useGoogleMaps();
     
+    const busIcon = useMemo(() => {
+        if (!isLoaded) return undefined;
+        const busIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#0D2C5B"><path d="M59.9 16.8h-5.2V13c0-2.6-2.1-4.7-4.7-4.7H14c-2.6 0-4.7 2.1-4.7 4.7v3.8H4.1c-2.3 0-4.1 1.8-4.1 4.1v17.4c0 2.3 1.8 4.1 4.1 4.1h2.2c.4 3.7 3.5 6.6 7.3 6.6s6.9-2.9 7.3-6.6h18.2c.4 3.7 3.5 6.6 7.3 6.6s6.9-2.9 7.3-6.6h2.2c2.3 0 4.1-1.8 4.1-4.1V20.9c0-2.2-1.8-4.1-4.1-4.1zM13.6 46.1c-2.6 0-4.7-2.1-4.7-4.7s2.1-4.7 4.7-4.7 4.7 2.1 4.7 4.7-2.1 4.7-4.7 4.7zm36.8 0c-2.6 0-4.7-2.1-4.7-4.7s2.1-4.7 4.7-4.7 4.7 2.1 4.7 4.7-2.1 4.7-4.7 4.7zM57.1 33H6.9V20.9h50.2V33z"/></svg>`;
+        return {
+            url: `data:image/svg+xml;base64,${btoa(busIconSvg)}`,
+            scaledSize: new google.maps.Size(32, 32),
+            anchor: new google.maps.Point(16, 16),
+        };
+    }, [isLoaded]);
+
+    const activeBusIcon = useMemo(() => {
+        if (!isLoaded) return undefined;
+        const busIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#01C998"><path d="M59.9 16.8h-5.2V13c0-2.6-2.1-4.7-4.7-4.7H14c-2.6 0-4.7 2.1-4.7 4.7v3.8H4.1c-2.3 0-4.1 1.8-4.1 4.1v17.4c0 2.3 1.8 4.1 4.1 4.1h2.2c.4 3.7 3.5 6.6 7.3 6.6s6.9-2.9 7.3-6.6h18.2c.4 3.7 3.5 6.6 7.3 6.6s6.9-2.9 7.3-6.6h2.2c2.3 0 4.1-1.8 4.1-4.1V20.9c0-2.2-1.8-4.1-4.1-4.1zM13.6 46.1c-2.6 0-4.7-2.1-4.7-4.7s2.1-4.7 4.7-4.7 4.7 2.1 4.7 4.7-2.1 4.7-4.7 4.7zm36.8 0c-2.6 0-4.7-2.1-4.7-4.7s2.1-4.7 4.7-4.7 4.7 2.1 4.7 4.7-2.1 4.7-4.7 4.7zM57.1 33H6.9V20.9h50.2V33z"/></svg>`;
+        return {
+            url: `data:image/svg+xml;base64,${btoa(busIconSvg)}`,
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 20),
+        };
+    }, [isLoaded]);
+
     useEffect(() => {
         if (colegio?.lat && colegio?.lng && !isCenterSet) {
             setMapCenter({ lat: colegio.lat, lng: colegio.lng });
@@ -382,12 +402,16 @@ export default function MiPanelPage() {
             >
                 {buses.map(bus => {
                     const isActive = activeBusId === bus.id;
+                    const isOnRoute = !!bus.ruta?.status_ruta;
 
                     return (
                         <BusMarker
                             key={bus.id}
                             bus={bus}
+                            icon={busIcon}
+                            activeIcon={activeBusIcon}
                             isActive={isActive}
+                            isOnRoute={isOnRoute}
                             onClick={() => handleBusClick(bus.id)}
                         />
                     );
