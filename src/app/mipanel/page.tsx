@@ -329,7 +329,7 @@ export default function MiPanelPage() {
                 {buses.map(bus => {
                     if (bus.last_latitude == null || bus.last_longitude == null) return null;
                     
-                    const isOnRoute = !!bus.ruta?.status_ruta;
+                    const isOnRoute = !!bus.ruta;
                     const isActive = activeBusId === bus.id;
 
                     return (
@@ -361,14 +361,10 @@ export default function MiPanelPage() {
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span>{selectedBusForInfoWindow.conductor ? `${selectedBusForInfoWindow.conductor.nombre} ${selectedBusForInfoWindow.conductor.apellido || ''}`.trim() : 'No asignado'}</span>
                             </div>
-                            {selectedBusForInfoWindow.ruta?.status_ruta ? (
-                                <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
-                                    <Video className="mr-2 h-4 w-4" />
-                                    Ver Video
-                                </Button>
-                            ) : (
-                                <p className="text-xs text-center text-muted-foreground mt-2 p-1 bg-muted rounded-md">Bus fuera de ruta</p>
-                            )}
+                            <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
+                                <Video className="mr-2 h-4 w-4" />
+                                Ver Video
+                            </Button>
                         </div>
                     </InfoWindowF>
                 )}
