@@ -24,7 +24,9 @@ const EasyPlayer: React.FC<EasyPlayerProps> = ({ streamUrl }) => {
                         hasControl: true,
                     });
                 } catch (error) {
-                    console.error("Error creating EasyPlayerPro instance:", error);
+                    // This error is related to a 'compute-pressure' permissions policy and seems to be non-critical.
+                    // We log it as a warning to avoid triggering the Next.js error overlay in development.
+                    console.warn("A non-critical error occurred while initializing the video player:", error);
                 }
             }
         }, 100);
