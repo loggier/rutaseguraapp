@@ -13,34 +13,39 @@ const EasyPlayer: React.FC<EasyPlayerProps> = ({ streamUrl }) => {
 
     // Effect for creating and destroying the player instance
     useEffect(() => {
-        // This function runs when the component mounts
-        if (videoRef.current && typeof EasyPlayerPro !== 'undefined' && !playerRef.current) {
-            try {
-                playerRef.current = new EasyPlayerPro(videoRef.current, {
-                    stretch: true,
-                    hasAudio: true,
-                    hasControl: true,
-                });
-            } catch (error) {
-                console.error("Error creating EasyPlayerPro instance:", error);
+        // Use a timeout to ensure the DOM element is fully rendered and sized,
+        // especially when appearing inside a modal dialog.
+        const initTimeout = setTimeout(() => {
+            if (videoRef.current && typeof EasyPlayerPro !== 'undefined' && !playerRef.current) {
+                try {
+                    playerRef.current = new EasyPlayerPro(videoRef.current, {
+                        stretch: true,
+                        hasAudio: true,
+                        hasControl: true,
+                    });
+                } catch (error) {
+                    console.error("Error creating EasyPlayerPro instance:", error);
+                }
             }
-        }
+        }, 100);
 
         // This cleanup function runs when the component unmounts
         return () => {
+            clearTimeout(initTimeout);
             if (playerRef.current) {
                 try {
                     playerRef.current.destroy();
                 } catch (e) {
                      console.warn('Error al destruir el reproductor de video:', e);
                 }
-                playerRef.current = null; // Clear the ref on cleanup
+                playerRef.current = null; // Clear the ref
             }
         };
     }, []); // Empty dependency array ensures this runs only on mount and unmount
 
     // Effect for playing the stream when the URL is available or changes
     useEffect(() => {
+        // We only try to play if the player instance exists and we have a URL.
         if (playerRef.current && streamUrl) {
             playerRef.current.play(streamUrl).catch((err: any) => {
                 console.error('Error al reproducir stream:', streamUrl, err);
