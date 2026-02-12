@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -6,7 +7,7 @@ import {
   PolylineF,
   InfoWindowF,
 } from '@react-google-maps/api';
-import { Loader2, LocateFixed, Video } from 'lucide-react';
+import { Loader2, LocateFixed, Video, User } from 'lucide-react';
 import { useUser } from '@/contexts/user-context';
 import type { Estudiante, Parada, Ruta, TrackedBus } from '@/lib/types';
 import { useParentDashboard, useGoogleMaps } from './layout';
@@ -353,13 +354,16 @@ export default function MiPanelPage() {
                             disableAutoPan: true,
                         }}
                     >
-                         <div className="p-2 bg-background rounded-lg shadow-lg w-64">
-                            <h3 className="font-bold text-lg text-secondary">Bus: {selectedBusForInfoWindow.matricula}</h3>
-                            <p className="text-sm text-muted-foreground">Conductor: {selectedBusForInfoWindow.conductor?.nombre || 'No asignado'}</p>
-                            <p className="text-sm text-muted-foreground mt-1">El autobús llegará en 5 min</p>
-                            <Button className="w-full mt-4 bg-secondary" onClick={() => router.push('/mipanel/camaras')}>
+                         <div className="p-3 bg-background rounded-lg shadow-lg w-48 flex flex-col gap-1">
+                            <h3 className="font-bold text-base">{selectedBusForInfoWindow.matricula}</h3>
+                            <p className="text-sm text-muted-foreground">{selectedBusForInfoWindow.ruta?.nombre || 'Ruta no asignada'}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedBusForInfoWindow.conductor ? `${selectedBusForInfoWindow.conductor.nombre} ${selectedBusForInfoWindow.conductor.apellido || ''}`.trim() : 'No asignado'}</span>
+                            </div>
+                            <Button size="sm" className="w-full mt-2" onClick={() => router.push('/mipanel/camaras')}>
                                 <Video className="mr-2 h-4 w-4" />
-                                Ver video en vivo
+                                Ver Video
                             </Button>
                         </div>
                     </InfoWindowF>
