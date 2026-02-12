@@ -10,56 +10,69 @@ import { useParentDashboard } from "../layout";
 import type { TrackedBus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { VideoPlayerModal } from "./video-player-modal";
+import { MultiVideoPlayerModal } from "./video-player-modal";
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function CamerasPage() {
     const { buses, loading: loadingBuses } = useParentDashboard();
     const [selectedBus, setSelectedBus] = useState<TrackedBus | null>(null);
-    const [isRequesting, setIsRequesting] = useState(false);
-    const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
+    const [isPreparingStreams, setIsPreparingStreams] = useState(false);
+    const [streamUrls, setStreamUrls] = useState<string[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const { toast } = useToast();
 
     const cameraBuses = useMemo(() => {
-        return buses.filter(b => b.imei_gps && b.modelo_camara);
+        return buses.filter(b => b.imei_gps && (b.modelo_camara === 'jc181' || b.modelo_camara === 'jc400'));
     }, [buses]);
 
     const handleSelectBus = useCallback((bus: TrackedBus) => {
         setSelectedBus(bus);
     }, []);
 
-    const handleWatchCamera = async (bus: TrackedBus, channel: number) => {
+    const handleWatchAllCameras = async (bus: TrackedBus) => {
         if (!bus.imei_gps) return;
         
-        if (bus.modelo_camara !== 'jc181') {
-            toast({
-                variant: "destructive",
-                title: "Cámara no compatible",
-                description: `El modelo de cámara '${bus.modelo_camara}' no soporta esta función aún.`
-            });
-            return;
-        }
+        const channels = bus.video_channels || 1;
 
-        setIsRequesting(true);
+        setIsPreparingStreams(true);
+        setIsModalOpen(true);
+        setStreamUrls([]);
+
+        const urls: string[] = [];
+
         try {
-            const response = await fetch('/api/video/request-stream', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imei: bus.imei_gps, channel }),
-            });
-            const data = await response.json();
+            for (let i = 0; i < channels; i++) {
+                const channel = i + 1;
 
-            if (!response.ok || !data.success) {
-                throw new Error(data.message || 'No se pudo iniciar la transmisión de video.');
+                toast({
+                    title: `Activando Cámara ${channel}...`,
+                    description: `Enviando comando para el canal ${channel} del bus ${bus.matricula}.`,
+                });
+
+                const response = await fetch('/api/video/request-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imei: bus.imei_gps, channel }),
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${channel}.`);
+                }
+
+                const streamUrl = `rtsp://gps.securityyoucar.com:10002/${channel}/${bus.imei_gps}`;
+                urls.push(streamUrl);
+                
+                await delay(1000);
             }
-
+            
+            setStreamUrls(urls);
             toast({
-                title: "¡Conexión solicitada!",
-                description: "Iniciando la transmisión de video. Esto puede tomar unos segundos.",
+                title: "¡Cámaras Activadas!",
+                description: "Abriendo reproductor de video...",
             });
-
-            // Construir la URL del stream
-            const streamUrl = `rtsp://gps.securityyoucar.com:10002/${channel}/${bus.imei_gps}`;
-            setVideoModalUrl(streamUrl);
 
         } catch (error: any) {
             toast({
@@ -67,11 +80,17 @@ export default function CamerasPage() {
                 title: 'Error de Transmisión',
                 description: error.message,
             });
+            setIsModalOpen(false);
         } finally {
-            setIsRequesting(false);
+            setIsPreparingStreams(false);
         }
     };
     
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setStreamUrls([]);
+    }
+
     return (
         <>
             <div className="flex flex-col h-full">
@@ -90,20 +109,12 @@ export default function CamerasPage() {
                                 <h2 className="text-2xl font-bold">{selectedBus.matricula}</h2>
                                 <p className="text-muted-foreground">Conductor: {selectedBus.conductor?.nombre || 'No asignado'}</p>
                                 <p className="text-sm text-muted-foreground">Modelo Cámara: {selectedBus.modelo_camara}</p>
-                                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {selectedBus.video_channels && selectedBus.video_channels > 0 ? (
-                                        Array.from({ length: selectedBus.video_channels }, (_, i) => i + 1).map((channel) => (
-                                            <Button key={channel} onClick={() => handleWatchCamera(selectedBus, channel)} disabled={isRequesting}>
-                                                {isRequesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
-                                                Cámara {channel}
-                                            </Button>
-                                        ))
-                                    ) : (
-                                        <Button onClick={() => handleWatchCamera(selectedBus, 1)} disabled={isRequesting} className="sm:col-span-2">
-                                            {isRequesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
-                                            Ver Cámara Principal
-                                        </Button>
-                                    )}
+                                <p className="text-sm text-muted-foreground">Canales: {selectedBus.video_channels || 1}</p>
+                                <div className="mt-6">
+                                    <Button onClick={() => handleWatchAllCameras(selectedBus)} disabled={isPreparingStreams}>
+                                        {isPreparingStreams ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Video className="mr-2 h-4 w-4" />}
+                                        Ver Cámaras
+                                    </Button>
                                 </div>
                             </>
                         ) : (
@@ -111,7 +122,7 @@ export default function CamerasPage() {
                                 <Camera className="h-16 w-16 text-muted-foreground mb-4" />
                                 <h2 className="text-xl font-semibold">Ningún vehículo seleccionado</h2>
                                 <p className="text-muted-foreground">Por favor, elige un vehículo de la lista para ver sus opciones de video.</p>
-                            </>
+                             </>
                         )}
                     </Card>
                     
@@ -152,7 +163,7 @@ export default function CamerasPage() {
                                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
                                     <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
                                     <p className="font-semibold">No se encontraron vehículos</p>
-                                    <p className="text-sm text-muted-foreground">No hay buses con cámaras asignados a las rutas de tus hijos.</p>
+                                    <p className="text-sm text-muted-foreground">No hay buses con cámaras compatibles asignados a las rutas de tus hijos.</p>
                                 </div>
                             )}
                         </CardContent>
@@ -160,13 +171,16 @@ export default function CamerasPage() {
                 </div>
             </div>
 
-            {videoModalUrl && (
-                <VideoPlayerModal
-                    isOpen={!!videoModalUrl}
-                    onClose={() => setVideoModalUrl(null)}
-                    videoUrl={videoModalUrl}
+            {isModalOpen && selectedBus && (
+                <MultiVideoPlayerModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    streamUrls={streamUrls}
+                    busMatricula={selectedBus.matricula}
+                    isLoading={isPreparingStreams}
                 />
             )}
         </>
     );
 }
+    
