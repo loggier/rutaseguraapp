@@ -151,6 +151,8 @@ export async function getParentDashboardData(parentId: string): Promise<ParentDa
         last_speed: bus.last_speed,
         conductor: bus.conductor as Conductor | null,
         ruta: bus.ruta as Ruta | null,
+        imei_gps: bus.imei_gps,
+        modelo_camara: bus.modelo_camara,
     }));
 
     return {

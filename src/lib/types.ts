@@ -189,6 +189,8 @@ export type TrackedBus = {
   last_latitude?: number | null;
   last_longitude?: number | null;
   last_speed?: number | null;
+  imei_gps?: string | null;
+  modelo_camara?: string | null;
 }
 
 export type Incidencia = {
