@@ -23,10 +23,15 @@ const EasyPlayer: React.FC<EasyPlayerProps> = ({ streamUrl }) => {
                         hasAudio: true,
                         hasControl: true,
                     });
-                } catch (error) {
-                    // This error is related to a 'compute-pressure' permissions policy and seems to be non-critical.
-                    // We log it as a warning to avoid triggering the Next.js error overlay in development.
-                    console.warn("A non-critical error occurred while initializing the video player:", error);
+                } catch (error: any) {
+                    // This specific 'PressureObserver' error is non-critical and expected in some dev environments.
+                    // We check for its message and log it as a console.warn to prevent the Next.js error overlay.
+                    if (error?.message?.includes('PressureObserver')) {
+                        console.warn("A non-critical error occurred while initializing the video player. This can be ignored.", error);
+                    } else {
+                        // For any other unexpected error, we log it as a proper error.
+                        console.error("An unexpected error occurred while initializing the video player:", error);
+                    }
                 }
             }
         }, 100);
