@@ -334,26 +334,33 @@ export default function MiPanelPage() {
 
         try {
             for (let i = 0; i < channels; i++) {
-                const channel = i + 1;
+                // The channel to send depends on the model.
+                // JC400 expects 0-indexed, others expect 1-indexed.
+                const apiChannel = bus.modelo_camara === 'jc400' ? i : i + 1;
 
                 toast({
-                    title: `Activando Cámara ${channel}...`,
-                    description: `Enviando comando para el canal ${channel} del bus ${bus.matricula}.`,
+                    title: `Activando Cámara ${i + 1}...`,
+                    description: `Enviando comando para el canal ${i + 1} del bus ${bus.matricula}.`,
                 });
 
                 const response = await fetch('/api/video/request-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imei: bus.imei_gps, channel }),
+                    body: JSON.stringify({ 
+                        imei: bus.imei_gps, 
+                        channel: apiChannel,
+                        model: bus.modelo_camara,
+                    }),
                 });
 
                 const data = await response.json();
                 
                 if (!response.ok || !data.success) {
-                    throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${channel}.`);
+                    throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${i + 1}.`);
                 }
-
-                const streamUrl = `rtsp://gps.securityyoucar.com:10002/${channel}/${bus.imei_gps}`;
+                
+                // Use the URL from the API response instead of constructing it manually
+                const streamUrl = data.url;
                 urls.push(streamUrl);
                 
                 await delay(1000);
