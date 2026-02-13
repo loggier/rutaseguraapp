@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import EasyPlayer from './EasyPlayer';
+import ReactPlayer from 'react-player/lazy';
+import { useState, useEffect } from 'react';
 
 type MultiVideoPlayerModalProps = {
   isOpen: boolean;
@@ -19,6 +20,11 @@ type MultiVideoPlayerModalProps = {
 export function MultiVideoPlayerModal({ isOpen, onClose, streamUrls, busMatricula, isLoading }: MultiVideoPlayerModalProps) {
     const gridCols = streamUrls.length > 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
     const gridItems = streamUrls.length > 0 ? `grid-cols-1 ${gridCols}` : 'grid-cols-1';
+
+    const [isClient, setIsClient] = useState(false);
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -39,9 +45,20 @@ export function MultiVideoPlayerModal({ isOpen, onClose, streamUrls, busMatricul
             ) : (
                 <ScrollArea className="h-full">
                     <div className={cn('grid gap-2 p-1', gridItems)}>
-                        {streamUrls.map((url, index) => (
+                        {isClient && streamUrls.map((url, index) => (
                             <div key={index} className="aspect-video relative bg-black rounded-md overflow-hidden">
-                                <EasyPlayer streamUrl={url} />
+                                <ReactPlayer 
+                                    url={url} 
+                                    playing 
+                                    controls 
+                                    width="100%" 
+                                    height="100%"
+                                    config={{
+                                        file: {
+                                            forceFLV: true,
+                                        }
+                                    }}
+                                />
                                 <div className="absolute top-1 left-1 bg-black/50 text-white text-xs px-2 py-1 rounded-sm">
                                     Cámara {index + 1}
                                 </div>

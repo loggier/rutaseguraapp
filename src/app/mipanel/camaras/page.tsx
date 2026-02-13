@@ -63,12 +63,13 @@ export default function CamerasPage() {
                 });
 
                 const data = await response.json();
-                
-                if (!response.ok || !data.success) {
+                console.log(data);
+                if (data.code !=0) {
                     throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${i + 1}.`);
                 }
 
                 const streamUrl = data.url; // Use URL from response
+               console.log('res:',data)
                 urls.push(streamUrl);
                 
                 await delay(1000);

@@ -33,25 +33,20 @@ export async function POST(request: Request) {
             videoUDPPort: 0,
         };
 
-        const requestUrl = `${woxUrl}/app/send-instruct`;
+        const requestUrl = `${woxUrl}/proxy/whatsgps-video-jimi?IMEI=${imei}&channel=${channel}`;
         
-        const requestBody = new URLSearchParams();
-        requestBody.append('imei', imei);
-        requestBody.append('cmdContent', JSON.stringify(cmdContent));
-        requestBody.append('serverFlagId', '0');
-        requestBody.append('proNo', '37121');
-        requestBody.append('platform', 'web');
-        requestBody.append('requestId', '6');
-        requestBody.append('cmdType', 'normallns');
-        requestBody.append('token', '123');
-        requestBody.append('offLineFlag', '1');
+        const requestBody = {
+            IMEI: imei,
+            channel: channel,
+        };
+
+        console.log('--- INICIO DEBUG VIDEO ---');
+        console.log('[DEBUG] URL de destino:', requestUrl);
+        console.log('[DEBUG] Parámetros enviados:', JSON.stringify(requestBody, null, 2));
 
         const woxResponse = await fetch(requestUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: requestBody.toString(),
+            method: 'GET',
+            
         });
 
         const responseText = await woxResponse.text();
@@ -62,13 +57,13 @@ export async function POST(request: Request) {
         }
 
         const responseData = JSON.parse(responseText);
-
+       
         if (responseData.code !== 0) {
              console.error('Error en la respuesta de WOX:', responseData);
              return NextResponse.json({ success: false, message: `El dispositivo devolvió un error: ${JSON.stringify(responseData)}` }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, message: 'Solicitud de video enviada.' });
+        return NextResponse.json(responseData);
 
     } catch (error: any) {
         console.error("Error requesting video stream:", error);
