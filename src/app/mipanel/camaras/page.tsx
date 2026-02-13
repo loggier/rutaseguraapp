@@ -49,7 +49,7 @@ export default function CamerasPage() {
                 
                 toast({
                     title: `Activando Cámara ${i + 1}...`,
-                    description: `Enviando comando para el canal ${i + 1} del bus ${bus.matricula}.`,
+                    description: `Esperando video de la camara ${i + 1} del bus ${bus.matricula}.`,
                 });
 
                 const response = await fetch('/api/video/request-stream', {
@@ -64,7 +64,7 @@ export default function CamerasPage() {
 
                 const data = await response.json();
                 
-                if (!response.ok || !data.success) {
+                if (data.code !=0) {
                     throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${i + 1}.`);
                 }
 
