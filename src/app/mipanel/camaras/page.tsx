@@ -63,30 +63,18 @@ export default function CamerasPage() {
                 });
 
                 const data = await response.json();
-                console.log(data);
-                if (data.code !=0) {
+                
+                if (!response.ok || !data.success) {
                     throw new Error(data.message || `No se pudo iniciar la transmisión para el canal ${i + 1}.`);
                 }
 
                 const streamUrl = data.url; // Use URL from response
-               console.log('res:',data)
                 urls.push(streamUrl);
                 
                 await delay(1000);
             }
             
             setStreamUrls(urls);
-            toast({
-                title: "¡Cámaras Activadas!",
-                description: (
-                  <div>
-                    <p>Abriendo reproductor de video con {urls.length} canal(es).</p>
-                    <div className="mt-2 w-full overflow-x-auto rounded-md bg-gray-900 p-2">
-                      <pre className="text-xs text-white">{JSON.stringify(urls, null, 2)}</pre>
-                    </div>
-                  </div>
-                ),
-            });
 
         } catch (error: any) {
             toast({
