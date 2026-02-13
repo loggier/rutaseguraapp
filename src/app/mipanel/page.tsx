@@ -369,7 +369,14 @@ export default function MiPanelPage() {
             setStreamUrls(urls);
             toast({
                 title: "¡Cámaras Activadas!",
-                description: "Abriendo reproductor de video...",
+                description: (
+                  <div>
+                    <p>Abriendo reproductor de video con {urls.length} canal(es).</p>
+                    <div className="mt-2 w-full overflow-x-auto rounded-md bg-gray-900 p-2">
+                      <pre className="text-xs text-white">{JSON.stringify(urls, null, 2)}</pre>
+                    </div>
+                  </div>
+                ),
             });
 
         } catch (error: any) {

@@ -2,7 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bus, Camera, Loader2, Video, AlertTriangle } from "lucide-react";
@@ -77,7 +77,14 @@ export default function CamerasPage() {
             setStreamUrls(urls);
             toast({
                 title: "¡Cámaras Activadas!",
-                description: "Abriendo reproductor de video...",
+                description: (
+                  <div>
+                    <p>Abriendo reproductor de video con {urls.length} canal(es).</p>
+                    <div className="mt-2 w-full overflow-x-auto rounded-md bg-gray-900 p-2">
+                      <pre className="text-xs text-white">{JSON.stringify(urls, null, 2)}</pre>
+                    </div>
+                  </div>
+                ),
             });
 
         } catch (error: any) {
@@ -189,4 +196,3 @@ export default function CamerasPage() {
         </>
     );
 }
-    
