@@ -35,6 +35,10 @@ export async function POST(request: Request) {
             channel: channel,
         };
 
+        console.log('--- INICIO DEBUG VIDEO ---');
+        console.log('[DEBUG] URL de destino:', requestUrl);
+        console.log('[DEBUG] Parámetros enviados:', JSON.stringify(requestBody, null, 2));
+
         const woxResponse = await fetch(requestUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json;charset=utf-8' },
@@ -42,30 +46,45 @@ export async function POST(request: Request) {
         });
 
         const responseText = await woxResponse.text();
+        console.log('[DEBUG] Respuesta recibida (texto plano):', responseText);
 
         if (!woxResponse.ok) {
             console.error('Error en la solicitud al proxy de video:', responseText);
+            console.log('--- FIN DEBUG VIDEO (ERROR) ---');
             return NextResponse.json({ success: false, message: `El servicio de video no respondió. Causa: ${responseText}` }, { status: 500 });
         }
 
-        const responseData = JSON.parse(responseText);
+        try {
+            const responseData = JSON.parse(responseText);
 
-        if (responseData.data?._code === 300) {
-             console.error('Error en la respuesta del servicio de video:', responseData);
-             const errorMessage = responseData.data?.msg || 'Error desconocido del servicio de video.';
-             return NextResponse.json({ success: false, message: `No se pudo obtener la URL para el canal ${channel}: ${errorMessage}` }, { status: 400 });
-        }
+            if (responseData.data?._code === 300) {
+                 console.error('Error en la respuesta del servicio de video:', responseData);
+                 const errorMessage = responseData.data?.msg || 'Error desconocido del servicio de video.';
+                 console.log('--- FIN DEBUG VIDEO (ERROR 300) ---');
+                 return NextResponse.json({ success: false, message: `No se pudo obtener la URL para el canal ${channel}: ${errorMessage}` }, { status: 400 });
+            }
 
-        if (!responseData.url) {
-            console.error('La respuesta del servicio de video no contiene una URL:', responseData);
-            return NextResponse.json({ success: false, message: `La respuesta para el canal ${channel} no incluyó una URL.` }, { status: 500 });
+            if (!responseData.url) {
+                console.error('La respuesta del servicio de video no contiene una URL:', responseData);
+                console.log('--- FIN DEBUG VIDEO (SIN URL) ---');
+                return NextResponse.json({ success: false, message: `La respuesta para el canal ${channel} no incluyó una URL.` }, { status: 500 });
+            }
+            
+            console.log('[DEBUG] URL de video obtenida con éxito:', responseData.url);
+            console.log('--- FIN DEBUG VIDEO (ÉXITO) ---');
+            
+            return NextResponse.json({ success: true, url: responseData.url });
+
+        } catch (parseError) {
+             console.error('Error al parsear la respuesta JSON:', parseError);
+             console.log('[DEBUG] Respuesta que causó el error de parseo:', responseText);
+             console.log('--- FIN DEBUG VIDEO (ERROR DE PARSEO) ---');
+             return NextResponse.json({ success: false, message: `Error al interpretar la respuesta del servicio de video.` }, { status: 500 });
         }
-        
-        // Return the URL from the response
-        return NextResponse.json({ success: true, url: responseData.url });
 
     } catch (error: any) {
         console.error("Error al solicitar la URL del stream de video:", error);
+        console.log('--- FIN DEBUG VIDEO (ERROR CATCH) ---');
         return NextResponse.json({ success: false, message: 'Error interno del servidor al procesar la solicitud de video.' }, { status: 500 });
     }
 }
